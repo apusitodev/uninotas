@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
-import { GraduationCap, ArrowRight, Sparkles } from 'lucide-react';
+import { GraduationCap, ArrowRight } from 'lucide-react';
 
 export default function LoginPage() {
   const [isLogin, setIsLogin] = useState(true);
@@ -30,11 +30,10 @@ export default function LoginPage() {
         if (error) throw error;
         
         if (data.user) {
-          const { error: profileError } = await supabase.from('profiles').insert({
+          await supabase.from('profiles').insert({
             id: data.user.id,
             email: data.user.email,
           });
-          if (profileError) console.error('Error creando perfil:', profileError);
         }
 
         setSuccessMsg('¡Cuenta creada con éxito! Redirigiendo al onboarding...');
@@ -51,14 +50,10 @@ export default function LoginPage() {
 
   return (
     <div className="min-h-screen bg-[#f4f5f8] flex items-center justify-center p-4 relative overflow-hidden font-sans antialiased">
-      
-      {/* Círculos decorativos de fondo difuminados (estilo iOS minimalista) */}
       <div className="absolute -top-32 -left-32 w-96 h-96 bg-blue-400/10 rounded-full blur-3xl pointer-events-none" />
       <div className="absolute -bottom-32 -right-32 w-96 h-96 bg-indigo-400/10 rounded-full blur-3xl pointer-events-none" />
 
-      {/* Tarjeta flotante central con fondo translúcido y opaco */}
       <div className="w-full max-w-md bg-white/85 backdrop-blur-xl rounded-3xl p-8 shadow-2xl border border-white/80 space-y-7 relative z-10 animate-ios-item-1">
-        
         <div className="text-center space-y-2">
           <div className="w-12 h-12 rounded-2xl bg-blue-50 border border-blue-100 flex items-center justify-center text-[#0071e3] mx-auto shadow-xs">
             <GraduationCap className="w-6 h-6" />
@@ -70,7 +65,7 @@ export default function LoginPage() {
         </div>
 
         {errorMsg && (
-          <div className="p-3.5 rounded-2xl bg-red-50 border border-red-200 text-red-600 text-xs font-semibold text-center animate-shake">
+          <div className="p-3.5 rounded-2xl bg-red-50 border border-red-200 text-red-600 text-xs font-semibold text-center">
             {errorMsg}
           </div>
         )}
@@ -90,7 +85,7 @@ export default function LoginPage() {
               placeholder="tu.nombre@ejemplo.com"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              className="w-full p-3.5 rounded-2xl border border-gray-200 bg-white/60 text-xs font-semibold text-gray-900 focus:outline-none focus:border-[#0071e3] transition-all shadow-2xs"
+              className="w-full p-3.5 rounded-2xl border border-gray-200 bg-white/60 text-xs font-semibold text-gray-900 focus:outline-none focus:border-[#0071e3]"
             />
           </div>
 
@@ -102,7 +97,7 @@ export default function LoginPage() {
               placeholder="••••••••"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              className="w-full p-3.5 rounded-2xl border border-gray-200 bg-white/60 text-xs font-semibold text-gray-900 focus:outline-none focus:border-[#0071e3] transition-all shadow-2xs"
+              className="w-full p-3.5 rounded-2xl border border-gray-200 bg-white/60 text-xs font-semibold text-gray-900 focus:outline-none focus:border-[#0071e3]"
             />
           </div>
 
@@ -131,12 +126,9 @@ export default function LoginPage() {
         </div>
 
         <div className="pt-4 border-t border-gray-100 text-center">
-          <p className="text-[11px] text-gray-400">
-            EUM • Grau en Màrqueting (2n A)
-          </p>
+          <p className="text-[11px] text-gray-400">EUM • Grau en Màrqueting (2n A)</p>
         </div>
       </div>
-
     </div>
   );
 }
