@@ -3,7 +3,6 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import Footer from '@/components/footer';
 import { supabase } from '@/lib/supabase';
 import { 
   GraduationCap, 
@@ -658,7 +657,6 @@ export default function DashboardPage() {
             </div>
           </div>
 
-          {/* BOTÓN DE AJUSTES */}
           <button
             onClick={() => {
               setSidebarOpen(false);
@@ -850,15 +848,17 @@ export default function DashboardPage() {
                 </div>
 
                 <button
-                    onClick={() => {
-                        setEventInClass(false);
-                        setOtherDescription('');
-                        setShowAddModal(true);
-                    }}
-                    className="flex items-center gap-2 px-4 py-2.5 rounded-2xl bg-[#0071e3] hover:bg-[#0077ed] text-white text-xs font-bold transition-all shadow-md active:scale-95 cursor-pointer"
+                  onClick={() => {
+                    setEventStartDate(selIso);
+                    setEventDueDate(selIso);
+                    setEventInClass(true);
+                    setOtherDescription('');
+                    setShowAddModal(true);
+                  }}
+                  className="flex items-center gap-2 px-4 py-2.5 rounded-2xl bg-[#0071e3] hover:bg-[#0077ed] text-white text-xs font-bold transition-all shadow-md active:scale-95 cursor-pointer"
                 >
-                    <Plus className="w-4 h-4" />
-                    <span>Añadir trabajo o examen</span>
+                  <Plus className="w-4 h-4" />
+                  <span>Añadir trabajo o examen</span>
                 </button>
               </div>
 
@@ -1033,15 +1033,15 @@ export default function DashboardPage() {
 
                   <button
                     onClick={() => {
-                        setEventInClass(false);
-                        setOtherDescription('');
-                        setShowAddModal(true);
+                      setEventInClass(false);
+                      setOtherDescription('');
+                      setShowAddModal(true);
                     }}
                     className="flex items-center gap-2 px-4 py-2.5 rounded-2xl bg-[#0071e3] hover:bg-[#0077ed] text-white text-xs font-bold transition-all shadow-md active:scale-95 cursor-pointer"
-                >
-                    <Plus className="w-4 h-4 text-white" />
+                  >
+                    <Plus className="w-4 h-4" />
                     <span>Añadir trabajo o examen</span>
-                </button>
+                  </button>
                 </div>
               </div>
 
@@ -1431,12 +1431,42 @@ export default function DashboardPage() {
 
         </main>
 
-        {/* FOOTER IMPORTADO DESDE COMPONENTS */}
-        <footer />
+        {/* FOOTER INTEGRADO DIRECTAMENTE */}
+        <footer className="w-full border-t border-gray-200/60 bg-white/40 backdrop-blur-sm py-8 px-6 mt-12">
+          <div className="max-w-[1400px] mx-auto flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-gray-400">
+            <div className="flex items-center gap-2">
+              <span className="font-bold text-gray-700">UniNotas</span>
+              <span>•</span>
+              <span>2n A Grau Màrqueting (EUM • Mediterrani)</span>
+            </div>
+
+            <nav className="flex flex-wrap items-center justify-center gap-4 text-[11px] font-semibold text-gray-500">
+              <Link href="/legal/aviso-legal" className="hover:text-gray-900 transition-colors">
+                Aviso Legal
+              </Link>
+              <Link href="/legal/privacidad" className="hover:text-gray-900 transition-colors">
+                Política de Privacidad
+              </Link>
+              <Link href="/legal/cookies" className="hover:text-gray-900 transition-colors">
+                Cookies
+              </Link>
+              <Link href="/legal/terminos" className="hover:text-gray-900 transition-colors">
+                Términos y Condiciones
+              </Link>
+              <Link href="/sitemap.xml" target="_blank" className="hover:text-gray-900 transition-colors">
+                Sitemap
+              </Link>
+            </nav>
+
+            <p className="text-[11px] text-gray-400">
+              © {new Date().getFullYear()} UniNotas. Uso académico personal.
+            </p>
+          </div>
+        </footer>
 
       </div>
 
-      {/* MODAL DE AJUSTES DEL PERFIL CON ENLACES LEGALES */}
+      {/* MODAL DE AJUSTES DEL PERFIL */}
       {settingsOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/30 backdrop-blur-sm">
           <div className="w-full max-w-md bg-white rounded-3xl p-6 sm:p-7 shadow-2xl border border-gray-200/80 space-y-6 animate-ios-item-1 max-h-[90vh] overflow-y-auto">
@@ -1455,14 +1485,12 @@ export default function DashboardPage() {
               </button>
             </div>
 
-            {/* Datos de cuenta */}
             <div className="bg-gray-50 rounded-2xl p-4 border border-gray-200/70 space-y-1">
               <span className="text-[10px] uppercase font-bold text-gray-400 tracking-wider">Cuenta Activa</span>
               <p className="text-xs font-bold text-gray-900">{userEmail}</p>
               <p className="text-[11px] text-gray-500">2n A Grau Màrqueting • EUM Mediterrani</p>
             </div>
 
-            {/* Ajuste de Grupo: Xinès II */}
             <div className="space-y-2.5">
               <div className="flex items-center justify-between px-1">
                 <label className="text-xs font-extrabold text-gray-800 uppercase tracking-wider">
@@ -1494,7 +1522,6 @@ export default function DashboardPage() {
               </div>
             </div>
 
-            {/* Ajuste de Grupo: Anglès II */}
             <div className="space-y-2.5">
               <div className="flex items-center justify-between px-1">
                 <label className="text-xs font-extrabold text-gray-800 uppercase tracking-wider">
@@ -1526,7 +1553,6 @@ export default function DashboardPage() {
               </div>
             </div>
 
-            {/* SECCIÓN DE ENLACES LEGALES EN EL MODAL DE AJUSTES */}
             <div className="pt-3 border-t border-gray-100 space-y-2">
               <span className="text-[10px] uppercase font-bold text-gray-400 tracking-wider flex items-center gap-1">
                 <ShieldCheck className="w-3.5 h-3.5 text-gray-400" />
