@@ -811,15 +811,15 @@ export default function DashboardPage() {
           </nav>
         </div>
 
-        <div className={`border-t border-gray-200/60 pt-4 space-y-2.5 ${sidebarOpen ? 'animate-ios-item-4' : ''}`}>
-          <div className="flex items-center gap-3 px-1">
+        <div className={`border-t border-gray-200/60 pt-4 space-y-2 ${sidebarOpen ? 'animate-ios-item-4' : ''}`}>
+          <div className="flex items-center gap-3 px-1 pb-1">
             <div className="w-8 h-8 rounded-xl bg-white border border-gray-200/80 flex items-center justify-center text-[#0071e3] shadow-xs shrink-0">
               <GraduationCap className="w-4 h-4" />
             </div>
             <div className="min-w-0">
               <div className="flex items-baseline gap-2">
                 <span className="text-xs font-bold text-gray-900">UniNotas</span>
-                <span className="text-[11px] font-normal text-gray-400">EUM • Mediterrani</span>
+                <span className="text-[11px] font-normal text-gray-400">EUM</span>
               </div>
               <p className="text-[10px] text-gray-400 truncate mt-0.5">{userEmail}</p>
             </div>
@@ -830,9 +830,9 @@ export default function DashboardPage() {
               setSidebarOpen(false);
               setShowFeedbackModal(true);
             }}
-            className="w-full flex items-center justify-center gap-2 py-2 px-3 rounded-xl bg-blue-50/70 hover:bg-blue-100 text-xs font-semibold text-[#0071e3] transition-colors cursor-pointer border border-blue-200/60"
+            className="w-full flex items-center gap-3 px-3.5 py-2.5 rounded-2xl text-xs font-semibold text-[#0071e3] hover:bg-blue-50/70 transition-all cursor-pointer border border-blue-100/60 bg-blue-50/30"
           >
-            <MessageSquarePlus className="w-3.5 h-3.5 shrink-0" />
+            <MessageSquarePlus className="w-4 h-4 shrink-0" />
             <span>Reportar fallo / Sugerencia</span>
           </button>
 
@@ -841,9 +841,9 @@ export default function DashboardPage() {
               setSidebarOpen(false);
               setShowHelpModal(true);
             }}
-            className="w-full flex items-center justify-center gap-2 py-2 px-3 rounded-xl bg-gray-100 hover:bg-gray-200/80 text-xs font-semibold text-gray-700 transition-colors cursor-pointer"
+            className="w-full flex items-center gap-3 px-3.5 py-2.5 rounded-2xl text-xs font-semibold text-gray-600 hover:text-gray-900 hover:bg-white/60 transition-all cursor-pointer"
           >
-            <HelpCircle className="w-3.5 h-3.5 text-gray-600 shrink-0" />
+            <HelpCircle className="w-4 h-4 shrink-0 text-gray-500" />
             <span>Guía y Funcionalidades</span>
           </button>
 
@@ -852,17 +852,17 @@ export default function DashboardPage() {
               setSidebarOpen(false);
               setSettingsOpen(true);
             }}
-            className="w-full flex items-center justify-center gap-2 py-2 px-3 rounded-xl bg-gray-100 hover:bg-gray-200/80 text-xs font-semibold text-gray-700 transition-colors cursor-pointer"
+            className="w-full flex items-center gap-3 px-3.5 py-2.5 rounded-2xl text-xs font-semibold text-gray-600 hover:text-gray-900 hover:bg-white/60 transition-all cursor-pointer"
           >
-            <Settings className="w-3.5 h-3.5 text-gray-600 shrink-0" />
+            <Settings className="w-4 h-4 shrink-0 text-gray-500" />
             <span>Ajustes del perfil</span>
           </button>
 
           <button
             onClick={handleLogout}
-            className="w-full flex items-center justify-center gap-2 py-2 px-3 rounded-xl bg-red-50 hover:bg-red-100 text-xs font-semibold text-red-600 transition-colors cursor-pointer"
+            className="w-full flex items-center gap-3 px-3.5 py-2.5 rounded-2xl text-xs font-semibold text-red-600 hover:bg-red-50/70 transition-all cursor-pointer"
           >
-            <LogOut className="w-3.5 h-3.5 shrink-0" />
+            <LogOut className="w-4 h-4 shrink-0 text-red-500" />
             <span>Cerrar sesión</span>
           </button>
         </div>
