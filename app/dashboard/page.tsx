@@ -235,7 +235,7 @@ export default function DashboardPage() {
           } else {
             const { data: inserted } = await supabase
               .from('user_subjects')
-              .insert({ user_id: user.id, subject_id: sub.id, missed_classes: 0 })
+              .insert({ user_id: user.id, subject_id: sub.id, missed_classes: 0, is_convalidated: false })
               .select()
               .single();
             if (inserted) subMap[sub.id] = inserted;
@@ -387,6 +387,21 @@ export default function DashboardPage() {
     await supabase.from('user_subjects').update({ missed_classes: nextVal }).eq('user_id', user.id).eq('subject_id', subjectId);
   };
 
+  const handleToggleConvalidation = async (subjectId: string) => {
+    const current = userSubjects[subjectId]?.is_convalidated || false;
+    const nextVal = !current;
+
+    setUserSubjects((prev) => ({
+      ...prev,
+      [subjectId]: { ...prev[subjectId], is_convalidated: nextVal }
+    }));
+
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return;
+
+    await supabase.from('user_subjects').update({ is_convalidated: nextVal }).eq('user_id', user.id).eq('subject_id', subjectId);
+  };
+
   const handleUpdateGrade = async (criteriaId: string, valStr: string) => {
     const parsed = valStr === '' ? null : Math.min(10, Math.max(0, parseFloat(valStr)));
     setUserGrades((prev) => ({ ...prev, [criteriaId]: parsed }));
@@ -451,6 +466,28 @@ export default function DashboardPage() {
     setSavingSettings(false);
   };
 
+  const handleDeleteAccount = async () => {
+    const confirmDelete = window.confirm(
+      '¿Estás seguro de que quieres borrar tu cuenta? Se eliminarán todos tus datos, notas y registros de asistencia de forma permanente.'
+    );
+    if (!confirmDelete) return;
+
+    try {
+      if (userId) {
+        await supabase.from('user_subjects').delete().eq('user_id', userId);
+        await supabase.from('user_grades').delete().eq('user_id', userId);
+        await supabase.from('academic_events').delete().eq('user_id', userId);
+        await supabase.from('attendance_logs').delete().eq('user_id', userId);
+        await supabase.from('profiles').delete().eq('id', userId);
+        await supabase.auth.signOut();
+      }
+      router.push('/');
+    } catch (err) {
+      console.error('Error al borrar la cuenta:', err);
+      alert('Hubo un error al intentar eliminar la cuenta.');
+    }
+  };
+
   const handleLogout = async () => {
     await supabase.auth.signOut();
     router.push('/');
@@ -507,10 +544,13 @@ export default function DashboardPage() {
   let totalElapsedGlobal = 0;
   let totalMissedGlobal = 0;
   filteredSubjects.forEach((sub) => {
-    const elapsed = getElapsedSessions(sub.code);
-    const missed = userSubjects[sub.id]?.missed_classes || 0;
-    totalElapsedGlobal += elapsed;
-    totalMissedGlobal += Math.min(missed, elapsed);
+    const isConv = userSubjects[sub.id]?.is_convalidated;
+    if (!isConv) {
+      const elapsed = getElapsedSessions(sub.code);
+      const missed = userSubjects[sub.id]?.missed_classes || 0;
+      totalElapsedGlobal += elapsed;
+      totalMissedGlobal += Math.min(missed, elapsed);
+    }
   });
 
   const totalAttendedGlobal = Math.max(0, totalElapsedGlobal - totalMissedGlobal);
@@ -521,10 +561,13 @@ export default function DashboardPage() {
   let totalEctsWithGrade = 0;
   let weightedGradeSum = 0;
   filteredSubjects.forEach((sub) => {
-    const res = getSubjectGrade(sub.id);
-    if (res && res.scaledToTen !== null) {
-      weightedGradeSum += res.scaledToTen * sub.ects;
-      totalEctsWithGrade += sub.ects;
+    const isConv = userSubjects[sub.id]?.is_convalidated;
+    if (!isConv) {
+      const res = getSubjectGrade(sub.id);
+      if (res && res.scaledToTen !== null) {
+        weightedGradeSum += res.scaledToTen * sub.ects;
+        totalEctsWithGrade += sub.ects;
+      }
     }
   });
   const courseGpa = totalEctsWithGrade > 0 ? (weightedGradeSum / totalEctsWithGrade).toFixed(2) : null;
@@ -536,8 +579,12 @@ export default function DashboardPage() {
   const dailyClasses: { code: string; name: string; slot: ClassSlot }[] = [];
   if (!isSelectedHoliday && selDayOfWeek >= 1 && selDayOfWeek <= 5) {
     for (const [code, item] of Object.entries(S1_SCHEDULE_CLEAN)) {
-      for (const slot of item.slots) {
-        if (slot.day === selDayOfWeek) dailyClasses.push({ code, name: item.name, slot });
+      const sub = subjects.find(s => s.code === code);
+      const isConv = sub ? userSubjects[sub.id]?.is_convalidated : false;
+      if (!isConv) {
+        for (const slot of item.slots) {
+          if (slot.day === selDayOfWeek) dailyClasses.push({ code, name: item.name, slot });
+        }
       }
     }
     dailyClasses.sort((a, b) => a.slot.startHour - b.slot.startHour);
@@ -560,7 +607,6 @@ export default function DashboardPage() {
   return (
     <div className="min-h-screen bg-[#f4f5f8] text-gray-900 font-sans antialiased relative overflow-x-hidden">
       
-      {/* CAPA DE DESENFOQUE PARA EL MENÚ LATERAL */}
       <div 
         onClick={() => setSidebarOpen(false)}
         className={`fixed inset-0 z-40 bg-black/15 backdrop-blur-sm transition-opacity duration-300 ${
@@ -568,7 +614,6 @@ export default function DashboardPage() {
         }`}
       />
 
-      {/* MENÚ FLOTANTE */}
       <aside
         className={`fixed top-4 left-4 bottom-4 z-50 w-80 glass-panel rounded-3xl p-6 flex flex-col justify-between shadow-2xl transition-all duration-300 ease-out border border-white/80 ${
           sidebarOpen ? 'translate-x-0 opacity-100' : '-translate-x-full opacity-0 pointer-events-none'
@@ -678,7 +723,6 @@ export default function DashboardPage() {
         </div>
       </aside>
 
-      {/* BOTÓN 3 RAYAS */}
       <button
         onClick={() => setSidebarOpen(true)}
         aria-label="Abrir menú"
@@ -693,7 +737,6 @@ export default function DashboardPage() {
         </div>
       </button>
 
-      {/* CONTENIDO PRINCIPAL */}
       <div className="w-full flex flex-col min-w-0">
         <header className="px-8 pl-22 py-5 flex items-center justify-between border-b border-gray-200/60 bg-white/40 backdrop-blur-md sticky top-0 z-30">
           <div>
@@ -810,7 +853,6 @@ export default function DashboardPage() {
 
         <main className="p-8 max-w-[1400px] w-full mx-auto space-y-6">
 
-          {/* PESTAÑA: HORARIO DIARIO */}
           {activeTab === 'diario' && (
             <div className="space-y-6">
               <div className="glass-panel rounded-2xl p-4 border border-gray-200/70 flex flex-col sm:flex-row items-center justify-between gap-4">
@@ -1002,7 +1044,6 @@ export default function DashboardPage() {
             </div>
           )}
 
-          {/* PESTAÑA: CALENDARIO ACADÉMICO */}
           {activeTab === 'calendario' && (
             <div className="space-y-6">
               <div className="glass-panel rounded-2xl p-4 border border-gray-200/70 flex flex-col sm:flex-row items-center justify-between gap-4">
@@ -1061,8 +1102,12 @@ export default function DashboardPage() {
                       {[1, 2, 3, 4, 5].map((dayNum) => {
                         const daySlots: { code: string; name: string; slot: ClassSlot }[] = [];
                         for (const [code, item] of Object.entries(S1_SCHEDULE_CLEAN)) {
-                          for (const slot of item.slots) {
-                            if (slot.day === dayNum) daySlots.push({ code, name: item.name, slot });
+                          const sub = subjects.find(s => s.code === code);
+                          const isConv = sub ? userSubjects[sub.id]?.is_convalidated : false;
+                          if (!isConv) {
+                            for (const slot of item.slots) {
+                              if (slot.day === dayNum) daySlots.push({ code, name: item.name, slot });
+                            }
                           }
                         }
                         daySlots.sort((a, b) => a.slot.startHour - b.slot.startHour);
@@ -1183,7 +1228,6 @@ export default function DashboardPage() {
             </div>
           )}
 
-          {/* PESTAÑA: RESUMEN GENERAL */}
           {activeTab === 'general' && (
             <div className="space-y-6">
               <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
@@ -1225,12 +1269,32 @@ export default function DashboardPage() {
                 </div>
                 <div className="divide-y divide-gray-100">
                   {filteredSubjects.map((sub) => {
+                    const isConv = userSubjects[sub.id]?.is_convalidated;
                     const elapsed = getElapsedSessions(sub.code);
                     const missed = userSubjects[sub.id]?.missed_classes || 0;
                     const attended = Math.max(0, elapsed - missed);
                     const pct = elapsed > 0 ? Math.round((attended / elapsed) * 100) : 100;
                     const isDanger = pct < sub.min_attendance_pct && elapsed > 0;
                     const gradeObj = getSubjectGrade(sub.id);
+
+                    if (isConv) {
+                      return (
+                        <div key={sub.id} className="px-6 py-4 flex items-center justify-between bg-emerald-50/20 hover:bg-emerald-50/40 transition-colors">
+                          <div className="flex items-center gap-4">
+                            <span className="text-xs font-mono font-bold text-emerald-700 bg-emerald-100 px-2 py-1 rounded-md border border-emerald-200">
+                              {sub.code}
+                            </span>
+                            <div>
+                              <p className="text-sm font-semibold text-gray-800 line-through">{sub.name}</p>
+                              <p className="text-xs text-emerald-700 font-bold">Asignatura Convalidada</p>
+                            </div>
+                          </div>
+                          <span className="text-xs font-bold bg-emerald-100 text-emerald-800 px-3 py-1 rounded-full">
+                            Convalidada
+                          </span>
+                        </div>
+                      );
+                    }
 
                     return (
                       <div key={sub.id} className="px-6 py-4 flex items-center justify-between hover:bg-white/40 transition-colors">
@@ -1280,7 +1344,6 @@ export default function DashboardPage() {
             </div>
           )}
 
-          {/* PESTAÑA: CONTROL DE ASISTENCIA */}
           {activeTab === 'asistencia' && (
             <div className="glass-panel rounded-2xl border border-gray-200/70 overflow-hidden">
               <div className="px-6 py-4 border-b border-gray-100">
@@ -1289,11 +1352,31 @@ export default function DashboardPage() {
               </div>
               <div className="divide-y divide-gray-100">
                 {filteredSubjects.map((sub) => {
+                  const isConv = userSubjects[sub.id]?.is_convalidated;
                   const elapsed = getElapsedSessions(sub.code);
                   const missed = userSubjects[sub.id]?.missed_classes || 0;
                   const attended = Math.max(0, elapsed - missed);
                   const pct = elapsed > 0 ? Math.round((attended / elapsed) * 100) : 100;
                   const isDanger = pct < sub.min_attendance_pct && elapsed > 0;
+
+                  if (isConv) {
+                    return (
+                      <div key={sub.id} className="px-6 py-4 flex items-center justify-between bg-emerald-50/20">
+                        <div className="flex items-center gap-4">
+                          <span className="text-xs font-mono font-bold text-emerald-700 bg-emerald-100 px-2 py-1 rounded-md border border-emerald-200">
+                            {sub.code}
+                          </span>
+                          <div>
+                            <p className="text-sm font-semibold text-gray-800 line-through">{sub.name}</p>
+                            <p className="text-xs text-emerald-700 font-bold">Convalidada (Sin control de faltas)</p>
+                          </div>
+                        </div>
+                        <span className="text-xs font-bold bg-emerald-100 text-emerald-800 px-3 py-1 rounded-full">
+                          Convalidada
+                        </span>
+                      </div>
+                    );
+                  }
 
                   return (
                     <div key={sub.id} className="px-6 py-4 flex items-center justify-between hover:bg-white/40 transition-colors">
@@ -1339,7 +1422,6 @@ export default function DashboardPage() {
             </div>
           )}
 
-          {/* PESTAÑA: CALIFICACIONES */}
           {activeTab === 'notas' && (
             <div className="space-y-4">
               <div className="glass-panel rounded-2xl p-6 border border-gray-200/70 flex items-center justify-between">
@@ -1355,9 +1437,29 @@ export default function DashboardPage() {
 
               <div className="space-y-3">
                 {filteredSubjects.map((sub) => {
+                  const isConv = userSubjects[sub.id]?.is_convalidated;
                   const subCriteria = criteria.filter((c) => c.subject_id === sub.id);
                   const gradeObj = getSubjectGrade(sub.id);
                   const isExpanded = expandedSubject === sub.id;
+
+                  if (isConv) {
+                    return (
+                      <div key={sub.id} className="glass-panel rounded-2xl border border-emerald-200 bg-emerald-50/20 p-5 flex items-center justify-between shadow-xs">
+                        <div className="flex items-center gap-4">
+                          <span className="text-xs font-mono font-bold text-emerald-700 bg-emerald-100 px-2 py-1 rounded-md border border-emerald-200">
+                            {sub.code}
+                          </span>
+                          <div>
+                            <p className="text-sm font-bold text-gray-800 line-through">{sub.name}</p>
+                            <p className="text-xs text-emerald-700 font-bold">Asignatura Convalidada (No computa en media)</p>
+                          </div>
+                        </div>
+                        <span className="text-xs font-bold bg-emerald-100 text-emerald-800 px-3 py-1 rounded-full">
+                          Convalidada
+                        </span>
+                      </div>
+                    );
+                  }
 
                   return (
                     <div key={sub.id} className="glass-panel rounded-2xl border border-gray-200/70 overflow-hidden transition-all shadow-xs">
@@ -1431,7 +1533,6 @@ export default function DashboardPage() {
 
         </main>
 
-        {/* FOOTER INTEGRADO DIRECTAMENTE */}
         <footer className="w-full border-t border-gray-200/60 bg-white/40 backdrop-blur-sm py-8 px-6 mt-12">
           <div className="max-w-[1400px] mx-auto flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-gray-400">
             <div className="flex items-center gap-2">
@@ -1441,21 +1542,11 @@ export default function DashboardPage() {
             </div>
 
             <nav className="flex flex-wrap items-center justify-center gap-4 text-[11px] font-semibold text-gray-500">
-              <Link href="/legal/aviso-legal" className="hover:text-gray-900 transition-colors">
-                Aviso Legal
-              </Link>
-              <Link href="/legal/privacidad" className="hover:text-gray-900 transition-colors">
-                Política de Privacidad
-              </Link>
-              <Link href="/legal/cookies" className="hover:text-gray-900 transition-colors">
-                Cookies
-              </Link>
-              <Link href="/legal/terminos" className="hover:text-gray-900 transition-colors">
-                Términos y Condiciones
-              </Link>
-              <Link href="/sitemap.xml" target="_blank" className="hover:text-gray-900 transition-colors">
-                Sitemap
-              </Link>
+              <Link href="/legal/aviso-legal" className="hover:text-gray-900 transition-colors">Aviso Legal</Link>
+              <Link href="/legal/privacidad" className="hover:text-gray-900 transition-colors">Política de Privacidad</Link>
+              <Link href="/legal/cookies" className="hover:text-gray-900 transition-colors">Cookies</Link>
+              <Link href="/legal/terminos" className="hover:text-gray-900 transition-colors">Términos y Condiciones</Link>
+              <Link href="/sitemap.xml" target="_blank" className="hover:text-gray-900 transition-colors">Sitemap</Link>
             </nav>
 
             <p className="text-[11px] text-gray-400">
@@ -1466,7 +1557,6 @@ export default function DashboardPage() {
 
       </div>
 
-      {/* MODAL DE AJUSTES DEL PERFIL */}
       {settingsOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/30 backdrop-blur-sm">
           <div className="w-full max-w-md bg-white rounded-3xl p-6 sm:p-7 shadow-2xl border border-gray-200/80 space-y-6 animate-ios-item-1 max-h-[90vh] overflow-y-auto">
@@ -1491,12 +1581,33 @@ export default function DashboardPage() {
               <p className="text-[11px] text-gray-500">2n A Grau Màrqueting • EUM Mediterrani</p>
             </div>
 
+            {/* Configuración de Convalidaciones desde Ajustes */}
+            <div className="space-y-2.5 bg-gray-50/80 p-4 rounded-2xl border border-gray-200/70">
+              <span className="text-[10px] uppercase font-bold text-gray-400 tracking-wider">Gestión de Convalidaciones</span>
+              <div className="space-y-1.5 max-h-40 overflow-y-auto pr-1">
+                {subjects.map(sub => {
+                  const isConv = userSubjects[sub.id]?.is_convalidated || false;
+                  return (
+                    <div 
+                      key={`set_conv_${sub.id}`}
+                      onClick={() => handleToggleConvalidation(sub.id)}
+                      className={`p-2.5 rounded-xl border flex items-center justify-between cursor-pointer transition-all text-xs ${
+                        isConv ? 'bg-emerald-50 border-emerald-300 font-bold text-emerald-900' : 'bg-white border-gray-200 text-gray-700 hover:border-gray-300'
+                      }`}
+                    >
+                      <span className="truncate">{sub.name}</span>
+                      <span className={`text-[10px] px-2 py-0.5 rounded-full ${isConv ? 'bg-emerald-500 text-white' : 'bg-gray-100 text-gray-500'}`}>
+                        {isConv ? 'Convalidada' : 'Activa'}
+                      </span>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+
             <div className="space-y-2.5">
               <div className="flex items-center justify-between px-1">
-                <label className="text-xs font-extrabold text-gray-800 uppercase tracking-wider">
-                  Grupo de Xinès II
-                </label>
-                <span className="text-[11px] font-semibold text-gray-400">Aula asignada</span>
+                <label className="text-xs font-extrabold text-gray-800 uppercase tracking-wider">Grupo de Xinès II</label>
               </div>
               <div className="grid grid-cols-4 gap-2">
                 {GROUPS_INFO.map((g) => {
@@ -1507,15 +1618,11 @@ export default function DashboardPage() {
                       type="button"
                       onClick={() => handleUpdateGroups(g.id, userEnglishGroup)}
                       className={`p-2.5 rounded-2xl border text-center transition-all cursor-pointer ${
-                        isSelected
-                          ? 'border-[#0071e3] bg-[#0071e3] text-white shadow-xs scale-102 font-bold'
-                          : 'border-gray-200 bg-white hover:border-gray-300 text-gray-700'
+                        isSelected ? 'border-[#0071e3] bg-[#0071e3] text-white shadow-xs font-bold' : 'border-gray-200 bg-white text-gray-700'
                       }`}
                     >
                       <p className="text-xs font-black">{g.label}</p>
-                      <p className={`text-[10px] mt-0.5 ${isSelected ? 'text-white/80 font-medium' : 'text-gray-400'}`}>
-                        {g.room}
-                      </p>
+                      <p className={`text-[10px] mt-0.5 ${isSelected ? 'text-white/80' : 'text-gray-400'}`}>{g.room}</p>
                     </button>
                   );
                 })}
@@ -1524,10 +1631,7 @@ export default function DashboardPage() {
 
             <div className="space-y-2.5">
               <div className="flex items-center justify-between px-1">
-                <label className="text-xs font-extrabold text-gray-800 uppercase tracking-wider">
-                  Grupo de Anglès II
-                </label>
-                <span className="text-[11px] font-semibold text-gray-400">Aula asignada</span>
+                <label className="text-xs font-extrabold text-gray-800 uppercase tracking-wider">Grupo de Anglès II</label>
               </div>
               <div className="grid grid-cols-4 gap-2">
                 {GROUPS_INFO.map((g) => {
@@ -1538,40 +1642,26 @@ export default function DashboardPage() {
                       type="button"
                       onClick={() => handleUpdateGroups(userChineseGroup, g.id)}
                       className={`p-2.5 rounded-2xl border text-center transition-all cursor-pointer ${
-                        isSelected
-                          ? 'border-[#0071e3] bg-[#0071e3] text-white shadow-xs scale-102 font-bold'
-                          : 'border-gray-200 bg-white hover:border-gray-300 text-gray-700'
+                        isSelected ? 'border-[#0071e3] bg-[#0071e3] text-white shadow-xs font-bold' : 'border-gray-200 bg-white text-gray-700'
                       }`}
                     >
                       <p className="text-xs font-black">{g.label}</p>
-                      <p className={`text-[10px] mt-0.5 ${isSelected ? 'text-white/80 font-medium' : 'text-gray-400'}`}>
-                        {g.room}
-                      </p>
+                      <p className={`text-[10px] mt-0.5 ${isSelected ? 'text-white/80' : 'text-gray-400'}`}>{g.room}</p>
                     </button>
                   );
                 })}
               </div>
             </div>
 
-            <div className="pt-3 border-t border-gray-100 space-y-2">
-              <span className="text-[10px] uppercase font-bold text-gray-400 tracking-wider flex items-center gap-1">
-                <ShieldCheck className="w-3.5 h-3.5 text-gray-400" />
-                Información Legal y Cumplimiento
-              </span>
-              <div className="grid grid-cols-2 gap-2 text-[11px] font-semibold text-gray-600">
-                <Link href="/legal/aviso-legal" className="p-2 rounded-xl bg-gray-50 hover:bg-gray-100 hover:text-gray-900 transition-colors">
-                  Aviso Legal →
-                </Link>
-                <Link href="/legal/privacidad" className="p-2 rounded-xl bg-gray-50 hover:bg-gray-100 hover:text-gray-900 transition-colors">
-                  Privacidad (RGPD) →
-                </Link>
-                <Link href="/legal/cookies" className="p-2 rounded-xl bg-gray-50 hover:bg-gray-100 hover:text-gray-900 transition-colors">
-                  Política de Cookies →
-                </Link>
-                <Link href="/legal/terminos" className="p-2 rounded-xl bg-gray-50 hover:bg-gray-100 hover:text-gray-900 transition-colors">
-                  Términos de Uso →
-                </Link>
-              </div>
+            {/* Botón de Borrar Cuenta */}
+            <div className="pt-3 border-t border-gray-100">
+              <button
+                type="button"
+                onClick={handleDeleteAccount}
+                className="w-full py-2.5 px-3 rounded-xl bg-red-50 hover:bg-red-100 text-red-600 text-xs font-bold transition-colors cursor-pointer flex items-center justify-center gap-2 border border-red-200/60"
+              >
+                <span>Eliminar mi cuenta permanentemente</span>
+              </button>
             </div>
 
             <div className="pt-3 border-t border-gray-100 flex items-center justify-between">
@@ -1590,7 +1680,6 @@ export default function DashboardPage() {
         </div>
       )}
 
-      {/* MODAL PARA AÑADIR TRABAJO / EXAMEN */}
       {showAddModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/25 backdrop-blur-sm">
           <div className="w-full max-w-md bg-white rounded-3xl p-6 shadow-2xl border border-gray-200/80 space-y-5 animate-ios-item-1">
