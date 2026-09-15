@@ -1,26 +1,82 @@
 @import "tailwindcss";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
+html, body {
+  background-color: #f4f5f8 !important;
+  color: #111827 !important;
+  min-height: 100vh;
+  margin: 0;
+  padding: 0;
+  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
 }
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+/* Cristal esmerilado blanco translúcido con efecto de refracción */
+.glass-panel {
+  background: rgba(255, 255, 255, 0.72);
+  backdrop-filter: blur(25px);
+  -webkit-backdrop-filter: blur(25px);
+  /* Borde doble: línea nítida suave + luz interior */
+  border: 1px solid rgba(209, 213, 219, 0.6);
+  box-shadow: 
+    0 25px 50px -12px rgba(15, 23, 42, 0.08),
+    0 4px 16px -2px rgba(15, 23, 42, 0.03),
+    inset 0 1px 0 0 rgba(255, 255, 255, 0.9),
+    inset 0 -1px 0 0 rgba(0, 0, 0, 0.03);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+/* Inputs incrustados con profundidad visible */
+.ios-input {
+  background: #f0f2f5;
+  color: #111827;
+  border: 1px solid rgba(209, 213, 219, 0.7);
+  box-shadow: 
+    inset 1px 1px 2px rgba(0, 0, 0, 0.05),
+    0 1px 0 rgba(255, 255, 255, 0.8);
+  transition: all 0.2s ease;
 }
 
-body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+.ios-input:focus {
+  background: #ffffff;
+  border-color: #0071e3;
+  box-shadow: 
+    0 0 0 4px rgba(0, 113, 227, 0.15),
+    inset 0 1px 2px rgba(0, 0, 0, 0.02);
+}
+
+/* Tarjeta secundaria */
+.glass-subcard {
+  background: #ffffff;
+  border: 1px solid #e5e7eb;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.03);
+}
+
+/* Input estilo ajustes iOS */
+.ios-input {
+  background: #ebeef2;
+  color: #111827;
+  border: 1px solid transparent;
+  transition: all 0.2s ease;
+}
+
+.ios-input:focus {
+  background: #ffffff;
+  border-color: #0071e3;
+  box-shadow: 0 0 0 4px rgba(0, 113, 227, 0.12);
+}
+
+/* Botón táctil Apple */
+.ios-button {
+  background: #0071e3;
+  color: #ffffff;
+  box-shadow: 0 4px 12px rgba(0, 113, 227, 0.25);
+  transition: all 0.15s ease;
+}
+
+.ios-button:hover {
+  background: #0077ed;
+  box-shadow: 0 6px 16px rgba(0, 113, 227, 0.35);
+}
+
+.ios-button:active {
+  transform: scale(0.985);
 }
