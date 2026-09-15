@@ -80,3 +80,34 @@ html, body {
 .ios-button:active {
   transform: scale(0.985);
 }
+/* Animaciones fluidas del menú lateral estilo iOS */
+@keyframes iosSlideIn {
+  0% {
+    opacity: 0;
+    transform: translateX(-16px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+.animate-ios-item-1 {
+  animation: iosSlideIn 0.28s cubic-bezier(0.16, 1, 0.3, 1) 0.02s forwards;
+  opacity: 0;
+}
+
+.animate-ios-item-2 {
+  animation: iosSlideIn 0.28s cubic-bezier(0.16, 1, 0.3, 1) 0.06s forwards;
+  opacity: 0;
+}
+
+.animate-ios-item-3 {
+  animation: iosSlideIn 0.28s cubic-bezier(0.16, 1, 0.3, 1) 0.10s forwards;
+  opacity: 0;
+}
+
+.animate-ios-item-4 {
+  animation: iosSlideIn 0.28s cubic-bezier(0.16, 1, 0.3, 1) 0.14s forwards;
+  opacity: 0;
+}
