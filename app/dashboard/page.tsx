@@ -27,7 +27,8 @@ import {
   Calendar,
   BookmarkCheck,
   AlertTriangle,
-  Settings
+  Settings,
+  HelpCircle
 } from 'lucide-react';
 
 interface Subject {
@@ -171,6 +172,11 @@ export default function DashboardPage() {
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [savingSettings, setSavingSettings] = useState(false);
 
+  // Estados del Tour y Guía de Ayuda
+  const [showTour, setShowTour] = useState(false);
+  const [tourStep, setTourStep] = useState(1);
+  const [showHelpModal, setShowHelpModal] = useState(false);
+
   const [activeTab, setActiveTab] = useState<'general' | 'diario' | 'calendario' | 'asistencia' | 'notas'>('general');
   const [activeSemester, setActiveSemester] = useState<number>(1);
   const [sidebarOpen, setSidebarOpen] = useState<boolean>(false);
@@ -208,7 +214,7 @@ export default function DashboardPage() {
 
       const { data: profile } = await supabase
         .from('profiles')
-        .select('chinese_group, english_group')
+        .select('chinese_group, english_group, has_seen_tour')
         .eq('id', user.id)
         .single();
 
@@ -219,6 +225,10 @@ export default function DashboardPage() {
 
       setUserChineseGroup(profile.chinese_group);
       setUserEnglishGroup(profile.english_group);
+
+      if (!profile.has_seen_tour) {
+        setShowTour(true);
+      }
 
       const { data: subjectsData } = await supabase
         .from('subjects')
@@ -279,6 +289,13 @@ export default function DashboardPage() {
       console.error(err);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleFinishTour = async () => {
+    setShowTour(false);
+    if (userId) {
+      await supabase.from('profiles').update({ has_seen_tour: true }).eq('id', userId);
     }
   };
 
@@ -779,6 +796,17 @@ export default function DashboardPage() {
               <p className="text-[10px] text-gray-400 truncate mt-0.5">{userEmail}</p>
             </div>
           </div>
+
+          <button
+            onClick={() => {
+              setSidebarOpen(false);
+              setShowHelpModal(true);
+            }}
+            className="w-full flex items-center justify-center gap-2 py-2 px-3 rounded-xl bg-gray-100 hover:bg-gray-200/80 text-xs font-semibold text-gray-700 transition-colors cursor-pointer"
+          >
+            <HelpCircle className="w-3.5 h-3.5 text-gray-600 shrink-0" />
+            <span>Guía y Funcionalidades</span>
+          </button>
 
           <button
             onClick={() => {
@@ -1706,6 +1734,124 @@ export default function DashboardPage() {
         </footer>
 
       </div>
+
+      {/* MODAL DE TOUR INICIAL / GUÍA DE AYUDA */}
+      {(showTour || showHelpModal) && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-md animate-fade-in">
+          <div className="w-full max-w-lg bg-white/95 backdrop-blur-xl rounded-3xl p-7 shadow-2xl border border-white/80 space-y-6 relative overflow-hidden">
+            
+            <div className="flex items-center justify-between pb-3 border-b border-gray-100">
+              <div className="flex items-center gap-2.5">
+                <div className="w-9 h-9 rounded-2xl bg-blue-50 border border-blue-100 flex items-center justify-center text-[#0071e3] shadow-xs">
+                  <GraduationCap className="w-5 h-5" />
+                </div>
+                <div>
+                  <h4 className="text-base font-extrabold text-gray-900">
+                    {showTour ? `Bienvenido a UniNotas (${tourStep}/4)` : 'Guía de Funcionalidades'}
+                  </h4>
+                  <p className="text-[11px] text-gray-400 font-medium">Todo lo que necesitas saber para dominar el curso</p>
+                </div>
+              </div>
+
+              <button 
+                onClick={() => {
+                  setShowTour(false);
+                  setShowHelpModal(false);
+                  if (showTour) handleFinishTour();
+                }} 
+                className="text-gray-400 hover:text-gray-600 cursor-pointer p-1.5 rounded-xl hover:bg-gray-100 transition-colors"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="space-y-4 py-2">
+              {(showHelpModal || tourStep === 1) && (
+                <div className="space-y-2 bg-blue-50/50 p-4 rounded-2xl border border-blue-100/80">
+                  <h5 className="text-xs font-black uppercase tracking-wider text-[#0071e3]">1. Resumen Global y GPA</h5>
+                  <p className="text-xs text-gray-600 leading-relaxed">
+                    En la pantalla principal verás tu **media ponderada en directo** (calculada automáticamente con los créditos ECTS de cada asignatura) y el porcentaje de asistencia global frente al **límite crítico del 60%**.
+                  </p>
+                </div>
+              )}
+
+              {(showHelpModal || tourStep === 2) && (
+                <div className="space-y-2 bg-purple-50/50 p-4 rounded-2xl border border-purple-100/80">
+                  <h5 className="text-xs font-black uppercase tracking-wider text-purple-700">2. Control de Asistencia y Notificaciones</h5>
+                  <p className="text-xs text-gray-600 leading-relaxed">
+                    La campana superior te avisará de clases pasadas para que confirmes si fuiste o faltaste. También puedes usar la pestaña **Control de Asistencia** con los botones `+` y `-` para regular tus faltas manualmente.
+                  </p>
+                </div>
+              )}
+
+              {(showHelpModal || tourStep === 3) && (
+                <div className="space-y-2 bg-emerald-50/50 p-4 rounded-2xl border border-emerald-100/80">
+                  <h5 className="text-xs font-black uppercase tracking-wider text-emerald-700">3. Calificaciones y Trabajos Personalizados</h5>
+                  <p className="text-xs text-gray-600 leading-relaxed">
+                    En **Calificaciones**, despliega cualquier asignatura. Puedes meter notas sueltas o pulsar **"+ Añadir trabajo"** para crear tantas prácticas como tengas; la app calculará la media del apartado y su peso final ella solita.
+                  </p>
+                </div>
+              )}
+
+              {(showHelpModal || tourStep === 4) && (
+                <div className="space-y-2 bg-amber-50/50 p-4 rounded-2xl border border-amber-100/80">
+                  <h5 className="text-xs font-black uppercase tracking-wider text-amber-700">4. Horario Diario, Convalidaciones y Ajustes</h5>
+                  <p className="text-xs text-gray-600 leading-relaxed">
+                    Consulta las aulas (A41, A42...) en el **Horario Diario**, revisa festivos oficiales en el **Calendario**, o modifica tus grupos de idiomas y asignaturas convalidadas desde los **Ajustes del perfil**.
+                  </p>
+                </div>
+              )}
+            </div>
+
+            <div className="pt-3 border-t border-gray-100 flex items-center justify-between">
+              {showTour ? (
+                <>
+                  <span className="text-[11px] text-gray-400 font-medium">Paso {tourStep} de 4</span>
+                  <div className="flex items-center gap-2">
+                    {tourStep > 1 && (
+                      <button
+                        type="button"
+                        onClick={() => setTourStep(tourStep - 1)}
+                        className="px-4 py-2.5 rounded-xl bg-gray-100 hover:bg-gray-200 text-xs font-bold text-gray-700 cursor-pointer"
+                      >
+                        Anterior
+                      </button>
+                    )}
+                    {tourStep < 4 ? (
+                      <button
+                        type="button"
+                        onClick={() => setTourStep(tourStep + 1)}
+                        className="px-5 py-2.5 rounded-2xl bg-[#0071e3] hover:bg-[#0077ed] text-white text-xs font-bold shadow-xs cursor-pointer"
+                      >
+                        Siguiente
+                      </button>
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={handleFinishTour}
+                        className="px-6 py-2.5 rounded-2xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-extrabold shadow-md cursor-pointer"
+                      >
+                        ¡Empezar a usar UniNotas!
+                      </button>
+                    )}
+                  </div>
+                </>
+              ) : (
+                <div className="w-full flex justify-end">
+                  <button
+                    type="button"
+                    onClick={() => setShowHelpModal(false)}
+                    className="px-6 py-2.5 rounded-2xl bg-[#0071e3] hover:bg-[#0077ed] text-white text-xs font-bold shadow-xs cursor-pointer"
+                  >
+                    Cerrar Guía
+                  </button>
+                </div>
+              )}
+            </div>
+
+          </div>
+        </div>
+      )}
 
       {settingsOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/30 backdrop-blur-sm">
