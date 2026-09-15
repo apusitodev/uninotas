@@ -737,7 +737,7 @@ export default function DashboardPage() {
         }`}
       />
 
-      <aside
+<aside
         className={`fixed top-4 left-4 bottom-4 z-50 w-80 glass-panel rounded-3xl p-6 flex flex-col justify-between shadow-2xl transition-all duration-300 ease-out border border-white/80 ${
           sidebarOpen ? 'translate-x-0 opacity-100' : '-translate-x-full opacity-0 pointer-events-none'
         }`}
@@ -749,13 +749,17 @@ export default function DashboardPage() {
               aria-label="Cerrar menú"
               className="w-8 h-8 flex items-center justify-center cursor-pointer p-0 border-none bg-transparent"
             >
-              <div className="flex flex-col items-center justify-center gap-1 w-5 h-5 rotate-90 transition-transform duration-300 ease-in-out">
+              <div className="flex flex-col items-center justify-center gap-1 w-5 h-5 -rotate-90 transition-transform duration-300 ease-in-out">
                 <span className="w-4 h-[2px] bg-gray-800 rounded-full" />
                 <span className="w-4 h-[2px] bg-gray-800 rounded-full" />
                 <span className="w-4 h-[2px] bg-gray-800 rounded-full" />
               </div>
             </button>
-            <h2 className="text-2xl font-extrabold tracking-tight text-gray-900 leading-none">Menú</h2>
+            <h2 className={`text-2xl font-extrabold tracking-tight text-gray-900 leading-none transition-all duration-300 ${
+              sidebarOpen ? 'opacity-100 translate-x-0 animate-ios-item-1' : 'opacity-0 -translate-x-4'
+            }`}>
+              Menú
+            </h2>
           </div>
 
           <nav className="space-y-1.5">
@@ -830,7 +834,7 @@ export default function DashboardPage() {
               setSidebarOpen(false);
               setShowFeedbackModal(true);
             }}
-            className="w-full flex items-center justify-center gap-2 py-2 px-3 rounded-xl bg-blue-50/70 hover:bg-blue-100 text-xs font-semibold text-[#0071e3] transition-colors cursor-pointer border border-blue-200/60"
+            className="w-full flex items-center justify-center gap-2 py-2.5 px-3 rounded-xl bg-blue-50 hover:bg-blue-100 text-xs font-bold text-[#0071e3] transition-colors cursor-pointer border border-blue-200/60 shadow-2xs"
           >
             <MessageSquarePlus className="w-3.5 h-3.5 shrink-0" />
             <span>Reportar fallo / Sugerencia</span>
