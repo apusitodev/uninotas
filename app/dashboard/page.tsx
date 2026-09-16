@@ -29,7 +29,8 @@ import {
   AlertTriangle,
   Settings,
   HelpCircle,
-  MessageSquareWarning
+  MessageSquareWarning,
+  CloudCheck
 } from 'lucide-react';
 
 interface Subject {
@@ -172,6 +173,7 @@ export default function DashboardPage() {
 
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [savingSettings, setSavingSettings] = useState(false);
+  const [syncStatus, setSyncStatus] = useState<'sincronizado' | 'guardando'>('sincronizado');
 
   const [showTour, setShowTour] = useState(false);
   const [tourStep, setTourStep] = useState(1);
@@ -248,7 +250,7 @@ export default function DashboardPage() {
 
         const subMap: Record<string, UserSubject> = {};
         for (const sub of subjectsData) {
-          const existing = userSubData?.find((u: any) => u.subject_id === sub.id);
+          const existing = userSubData?.find((u: UserSubject) => u.subject_id === sub.id);
           if (existing) {
             subMap[sub.id] = existing;
           } else {
@@ -268,14 +270,14 @@ export default function DashboardPage() {
         const { data: gradesData } = await supabase.from('user_grades').select('*').eq('user_id', user.id);
         const gradeMap: Record<string, number | null> = {};
         if (gradesData) {
-          gradesData.forEach((g: any) => { gradeMap[g.criteria_id] = g.grade; });
+          gradesData.forEach((g: { criteria_id: string; grade: number | null }) => { gradeMap[g.criteria_id] = g.grade; });
         }
         setUserGrades(gradeMap);
 
         const { data: subCritData } = await supabase.from('custom_sub_criteria').select('*').eq('user_id', user.id);
         const subCritMap: Record<string, CustomSubItem[]> = {};
         if (subCritData) {
-          subCritData.forEach((sc: any) => {
+          subCritData.forEach((sc: CustomSubItem & { criteria_id: string }) => {
             if (!subCritMap[sc.criteria_id]) subCritMap[sc.criteria_id] = [];
             subCritMap[sc.criteria_id].push(sc);
           });
@@ -308,7 +310,7 @@ export default function DashboardPage() {
       .eq('user_id', currentUserId);
 
     const answeredSet = new Set(
-      (answeredLogs || []).map((l: any) => `${l.subject_code}_${l.session_date}`)
+      (answeredLogs || []).map((l: { subject_code: string; session_date: string }) => `${l.subject_code}_${l.session_date}`)
     );
 
     const start = new Date(2026, 8, 14);
@@ -361,6 +363,7 @@ export default function DashboardPage() {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return;
 
+    setSyncStatus('guardando');
     await supabase.from('attendance_logs').insert({
       user_id: user.id,
       subject_code: session.subjectCode,
@@ -368,11 +371,12 @@ export default function DashboardPage() {
       attended: attended
     });
 
-    if (!attended) handleUpdateMissedClasses(session.subjectId, 1);
+    if (!attended) await handleUpdateMissedClasses(session.subjectId, 1);
 
     setPendingSessions((prev) =>
       prev.filter((p) => !(p.subjectCode === session.subjectCode && p.sessionDate === session.sessionDate))
     );
+    setSyncStatus('sincronizado');
   };
 
   const getElapsedSessions = (code: string): number => {
@@ -417,10 +421,12 @@ export default function DashboardPage() {
       [subjectId]: { ...prev[subjectId], missed_classes: nextVal }
     }));
 
+    setSyncStatus('guardando');
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return;
 
     await supabase.from('user_subjects').update({ missed_classes: nextVal }).eq('user_id', user.id).eq('subject_id', subjectId);
+    setSyncStatus('sincronizado');
   };
 
   const handleToggleConvalidation = async (subjectId: string) => {
@@ -432,16 +438,19 @@ export default function DashboardPage() {
       [subjectId]: { ...prev[subjectId], is_convalidated: nextVal }
     }));
 
+    setSyncStatus('guardando');
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return;
 
     await supabase.from('user_subjects').update({ is_convalidated: nextVal }).eq('user_id', user.id).eq('subject_id', subjectId);
+    setSyncStatus('sincronizado');
   };
 
   const handleUpdateGrade = async (criteriaId: string, valStr: string) => {
     const parsed = valStr === '' ? null : Math.min(10, Math.max(0, parseFloat(valStr)));
     setUserGrades((prev) => ({ ...prev, [criteriaId]: parsed }));
 
+    setSyncStatus('guardando');
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return;
 
@@ -450,12 +459,14 @@ export default function DashboardPage() {
       criteria_id: criteriaId,
       grade: parsed
     }, { onConflict: 'user_id,criteria_id' });
+    setSyncStatus('sincronizado');
   };
 
   const handleAddCustomSubCriteria = async (criteriaId: string) => {
     const subItems = customSubCriteria[criteriaId] || [];
     const name = `Treball ${subItems.length + 1}`;
 
+    setSyncStatus('guardando');
     const { data: inserted, error } = await supabase.from('custom_sub_criteria').insert({
       user_id: userId,
       criteria_id: criteriaId,
@@ -469,6 +480,7 @@ export default function DashboardPage() {
         [criteriaId]: [...(prev[criteriaId] || []), inserted]
       }));
     }
+    setSyncStatus('sincronizado');
   };
 
   const handleUpdateCustomSubGrade = async (subId: string, criteriaId: string, valStr: string) => {
@@ -479,7 +491,9 @@ export default function DashboardPage() {
       [criteriaId]: (prev[criteriaId] || []).map(item => item.id === subId ? { ...item, grade: parsed } : item)
     }));
 
+    setSyncStatus('guardando');
     await supabase.from('custom_sub_criteria').update({ grade: parsed }).eq('id', subId);
+    setSyncStatus('sincronizado');
   };
 
   const handleUpdateCustomSubName = async (subId: string, criteriaId: string, newName: string) => {
@@ -497,7 +511,9 @@ export default function DashboardPage() {
       [criteriaId]: (prev[criteriaId] || []).filter(item => item.id !== subId)
     }));
 
+    setSyncStatus('guardando');
     await supabase.from('custom_sub_criteria').delete().eq('id', subId);
+    setSyncStatus('sincronizado');
   };
 
   const handleSaveEvent = async (e: React.FormEvent) => {
@@ -511,6 +527,7 @@ export default function DashboardPage() {
       ? `${eventTitle.trim()} (${otherDescription.trim()})`
       : eventTitle.trim();
 
+    setSyncStatus('guardando');
     const { data: inserted, error } = await supabase.from('academic_events').insert({
       user_id: user.id,
       subject_id: eventSubjectId,
@@ -528,6 +545,7 @@ export default function DashboardPage() {
       setOtherDescription('');
       setShowAddModal(false);
     }
+    setSyncStatus('sincronizado');
   };
 
   const handleToggleEvent = async (eventId: string, current: boolean) => {
@@ -539,6 +557,7 @@ export default function DashboardPage() {
     setUserChineseGroup(chineseG);
     setUserEnglishGroup(englishG);
     setSavingSettings(true);
+    setSyncStatus('guardando');
 
     if (userId) {
       await supabase.from('profiles').update({
@@ -548,6 +567,7 @@ export default function DashboardPage() {
     }
 
     setSavingSettings(false);
+    setSyncStatus('sincronizado');
   };
 
   const handleDeleteAccount = async () => {
@@ -817,7 +837,6 @@ export default function DashboardPage() {
             <span>Ajustes del perfil</span>
           </button>
 
-          {/* BOTÓN DE REPORTE DE PROBLEMAS AÑADIDO */}
           <button
             onClick={() => { setSidebarOpen(false); setReportOpen(true); }}
             className="w-full flex items-center justify-center gap-2 py-2 px-3 rounded-xl bg-amber-50 hover:bg-amber-100 text-xs font-semibold text-amber-700 transition-colors cursor-pointer border border-amber-200/50"
@@ -836,7 +855,7 @@ export default function DashboardPage() {
         </div>
       </aside>
 
-      {/* BOTÓN FLOTANTE EXTERIOR (3 RAYAS CON ANIMACIÓN SUAVE Y FLUIDA) */}
+      {/* BOTÓN FLOTANTE EXTERIOR (3 RAYAS) */}
       <button
         onClick={() => setSidebarOpen(true)}
         aria-label="Abrir menú"
@@ -862,7 +881,13 @@ export default function DashboardPage() {
               {activeTab === 'asistencia' && 'Registro de Asistencias'}
               {activeTab === 'notas' && 'Expediente y Calificaciones'}
             </h2>
-            <p className="text-xs text-gray-400 mt-0.5">2n A Grau Màrqueting • 16:00 a 20:30</p>
+            <div className="flex items-center gap-2 mt-0.5">
+              <p className="text-xs text-gray-400">2n A Grau Màrqueting • 16:00 a 20:30</p>
+              <span className="text-[10px] text-gray-400">•</span>
+              <span className={`text-[10px] font-semibold flex items-center gap-1 ${syncStatus === 'guardando' ? 'text-amber-600 animate-pulse' : 'text-emerald-600'}`}>
+                {syncStatus === 'guardando' ? 'Sincronizando...' : 'Supabase Al Día'}
+              </span>
+            </div>
           </div>
 
           <div className="flex items-center gap-4">
@@ -1603,114 +1628,113 @@ export default function DashboardPage() {
                           </div>
 
                           <div className="w-8 h-8 rounded-xl bg-gray-100 flex items-center justify-center text-gray-500">
-                            {isExpanded ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+                            {isExpanded ? <ChevronUp className="w-4 h-4 transition-transform duration-300" /> : <ChevronDown className="w-4 h-4 transition-transform duration-300" />}
                           </div>
                         </div>
                       </div>
 
-                      {isExpanded && (
-                        <div className="border-t border-gray-100 bg-white/50 p-6 space-y-4">
-                          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                            {subCriteria.map((crit) => {
-                              const currentVal = userGrades[crit.id];
-                              const subItems = customSubCriteria[crit.id] || [];
-                              
-                              let effectiveGrade = currentVal;
-                              if (subItems.length > 0) {
-                                const validGrades = subItems.filter((i) => i.grade !== null && i.grade !== undefined) as { grade: number }[];
-                                if (validGrades.length > 0) {
-                                  const sum = validGrades.reduce((acc, curr) => acc + curr.grade, 0);
-                                  effectiveGrade = Number((sum / validGrades.length).toFixed(2));
-                                } else {
-                                  effectiveGrade = null;
-                                }
+                      {/* DESPLEGABLE CON ANIMACIÓN FLUIDA */}
+                      <div className={`transition-all duration-300 ease-in-out overflow-hidden ${isExpanded ? 'max-h-[1000px] opacity-100 border-t border-gray-100 bg-white/50 p-6' : 'max-h-0 opacity-0 p-0'}`}>
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                          {subCriteria.map((crit) => {
+                            const currentVal = userGrades[crit.id];
+                            const subItems = customSubCriteria[crit.id] || [];
+                            
+                            let effectiveGrade = currentVal;
+                            if (subItems.length > 0) {
+                              const validGrades = subItems.filter((i) => i.grade !== null && i.grade !== undefined) as { grade: number }[];
+                              if (validGrades.length > 0) {
+                                const sum = validGrades.reduce((acc, curr) => acc + curr.grade, 0);
+                                effectiveGrade = Number((sum / validGrades.length).toFixed(2));
+                              } else {
+                                effectiveGrade = null;
                               }
+                            }
 
-                              return (
-                                <div key={crit.id} className="bg-white border border-gray-200/80 rounded-2xl p-4 shadow-xs space-y-3">
-                                  <div className="flex items-center justify-between">
-                                    <div>
-                                      <p className="text-xs font-bold text-gray-900">{crit.name}</p>
-                                      <p className="text-[11px] text-gray-400 font-medium">Peso: {crit.weight_pct}%</p>
+                            return (
+                              <div key={crit.id} className="bg-white border border-gray-200/80 rounded-2xl p-4 shadow-xs space-y-3">
+                                <div className="flex items-center justify-between">
+                                  <div>
+                                    <p className="text-xs font-bold text-gray-900">{crit.name}</p>
+                                    <p className="text-[11px] text-gray-400 font-medium">Peso: {crit.weight_pct}%</p>
+                                  </div>
+
+                                  {subItems.length === 0 && (
+                                    <div className="flex items-center gap-1.5">
+                                      <input
+                                        type="number"
+                                        step="0.05"
+                                        min="0"
+                                        max="10"
+                                        placeholder="—"
+                                        value={currentVal !== null && currentVal !== undefined ? currentVal : ''}
+                                        onChange={(e) => handleUpdateGrade(crit.id, e.target.value)}
+                                        className="w-16 text-center py-1.5 px-2 text-sm font-bold rounded-lg border border-gray-200 focus:outline-none focus:border-[#0071e3] bg-gray-50/50"
+                                      />
+                                      <span className="text-xs text-gray-400 font-bold">/10</span>
                                     </div>
+                                  )}
+                                </div>
 
-                                    {subItems.length === 0 && (
-                                      <div className="flex items-center gap-1.5">
+                                <div className="space-y-2 pt-2 border-t border-gray-100">
+                                  <div className="flex items-center justify-between">
+                                    <span className="text-[10px] uppercase font-extrabold text-gray-400 tracking-wider">
+                                      Entregas / Trabajos ({subItems.length})
+                                    </span>
+                                    <button
+                                      onClick={() => handleAddCustomSubCriteria(crit.id)}
+                                      className="text-[11px] font-bold text-[#0071e3] hover:underline flex items-center gap-1 cursor-pointer"
+                                    >
+                                      <Plus className="w-3 h-3" />
+                                      <span>Añadir trabajo</span>
+                                    </button>
+                                  </div>
+
+                                  {subItems.map((subItem) => (
+                                    <div key={subItem.id} className="flex items-center justify-between gap-2 bg-gray-50 p-2 rounded-xl border border-gray-200/60">
+                                      <input
+                                        type="text"
+                                        value={subItem.name}
+                                        onChange={(e) => handleUpdateCustomSubName(subItem.id, crit.id, e.target.value)}
+                                        className="text-xs font-semibold text-gray-800 bg-transparent border-none focus:outline-none w-full"
+                                      />
+
+                                      <div className="flex items-center gap-2 shrink-0">
                                         <input
                                           type="number"
                                           step="0.05"
                                           min="0"
                                           max="10"
                                           placeholder="—"
-                                          value={currentVal !== null && currentVal !== undefined ? currentVal : ''}
-                                          onChange={(e) => handleUpdateGrade(crit.id, e.target.value)}
-                                          className="w-16 text-center py-1.5 px-2 text-sm font-bold rounded-lg border border-gray-200 focus:outline-none focus:border-[#0071e3] bg-gray-50/50"
+                                          value={subItem.grade !== null && subItem.grade !== undefined ? subItem.grade : ''}
+                                          onChange={(e) => handleUpdateCustomSubGrade(subItem.id, crit.id, e.target.value)}
+                                          className="w-14 text-center py-1 px-1.5 text-xs font-bold rounded-lg border border-gray-200 bg-white"
                                         />
-                                        <span className="text-xs text-gray-400 font-bold">/10</span>
+                                        <span className="text-[10px] text-gray-400 font-bold">/10</span>
+                                        <button
+                                          onClick={() => handleDeleteCustomSubCriteria(subItem.id, crit.id)}
+                                          className="text-gray-400 hover:text-red-500 p-1 cursor-pointer"
+                                        >
+                                          <X className="w-3.5 h-3.5" />
+                                        </button>
                                       </div>
-                                    )}
-                                  </div>
-
-                                  <div className="space-y-2 pt-2 border-t border-gray-100">
-                                    <div className="flex items-center justify-between">
-                                      <span className="text-[10px] uppercase font-extrabold text-gray-400 tracking-wider">
-                                        Entregas / Trabajos ({subItems.length})
-                                      </span>
-                                      <button
-                                        onClick={() => handleAddCustomSubCriteria(crit.id)}
-                                        className="text-[11px] font-bold text-[#0071e3] hover:underline flex items-center gap-1 cursor-pointer"
-                                      >
-                                        <Plus className="w-3 h-3" />
-                                        <span>Añadir trabajo</span>
-                                      </button>
                                     </div>
+                                  ))}
 
-                                    {subItems.map((subItem) => (
-                                      <div key={subItem.id} className="flex items-center justify-between gap-2 bg-gray-50 p-2 rounded-xl border border-gray-200/60">
-                                        <input
-                                          type="text"
-                                          value={subItem.name}
-                                          onChange={(e) => handleUpdateCustomSubName(subItem.id, crit.id, e.target.value)}
-                                          className="text-xs font-semibold text-gray-800 bg-transparent border-none focus:outline-none w-full"
-                                        />
-
-                                        <div className="flex items-center gap-2 shrink-0">
-                                          <input
-                                            type="number"
-                                            step="0.05"
-                                            min="0"
-                                            max="10"
-                                            placeholder="—"
-                                            value={subItem.grade !== null && subItem.grade !== undefined ? subItem.grade : ''}
-                                            onChange={(e) => handleUpdateCustomSubGrade(subItem.id, crit.id, e.target.value)}
-                                            className="w-14 text-center py-1 px-1.5 text-xs font-bold rounded-lg border border-gray-200 bg-white"
-                                          />
-                                          <span className="text-[10px] text-gray-400 font-bold">/10</span>
-                                          <button
-                                            onClick={() => handleDeleteCustomSubCriteria(subItem.id, crit.id)}
-                                            className="text-gray-400 hover:text-red-500 p-1 cursor-pointer"
-                                          >
-                                            <X className="w-3.5 h-3.5" />
-                                          </button>
-                                        </div>
-                                      </div>
-                                    ))}
-
-                                    {subItems.length > 0 && (
-                                      <div className="flex items-center justify-between pt-1 text-xs">
-                                        <span className="font-bold text-gray-500">Nota media del apartado:</span>
-                                        <span className="font-black text-[#0071e3]">
-                                          {effectiveGrade !== null ? `${effectiveGrade} / 10` : 'Sin calificar'}
-                                        </span>
-                                      </div>
-                                    )}
-                                  </div>
+                                  {subItems.length > 0 && (
+                                    <div className="flex items-center justify-between pt-1 text-xs">
+                                      <span className="font-bold text-gray-500">Nota media del apartado:</span>
+                                      <span className="font-black text-[#0071e3]">
+                                        {effectiveGrade !== null ? `${effectiveGrade} / 10` : 'Sin calificar'}
+                                      </span>
+                                    </div>
+                                  )}
                                 </div>
-                              );
-                            })}
-                          </div>
+                              </div>
+                            );
+                          })}
                         </div>
-                      )}
+                      </div>
                     </div>
                   );
                 })}
@@ -1868,7 +1892,7 @@ export default function DashboardPage() {
         </div>
       )}
 
-      {/* MODAL DE REPORTE DE PROBLEMAS AÑADIDO */}
+      {/* MODAL DE REPORTE DE PROBLEMAS */}
       {reportOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/30 backdrop-blur-sm">
           <div className="w-full max-w-md bg-white rounded-3xl p-6 shadow-2xl border border-gray-200/80 space-y-4 animate-ios-item-1">
