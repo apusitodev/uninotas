@@ -856,19 +856,19 @@ export default function DashboardPage() {
           </button>
         </div>
       </aside>
-
-      {/* BOTÓN FLOTANTE EXTERIOR (3 RAYAS EN RECUADRO - DESAPARECE AL ESTAR ABIERTO) */}
+      
+{/* BOTÓN FLOTANTE EXTERIOR (3 RAYAS) - SIEMPRE VISIBLE ARRIBA A LA IZQUIERDA */}
       <button
         onClick={() => setSidebarOpen(true)}
         aria-label="Abrir menú"
-        className={`fixed top-5 left-6 z-30 w-11 h-11 rounded-2xl glass-panel flex items-center justify-center cursor-pointer shadow-sm hover:shadow transition-all duration-300 ${
+        className={`fixed top-5 left-6 z-[60] w-11 h-11 rounded-2xl glass-panel flex items-center justify-center cursor-pointer shadow-md hover:shadow-lg transition-all duration-300 bg-white/90 backdrop-blur-md border border-gray-200/80 ${
           sidebarOpen ? 'opacity-0 scale-90 pointer-events-none' : 'opacity-100 scale-100 pointer-events-auto'
         }`}
       >
         <div className="flex flex-col items-center justify-center gap-1 w-5 h-5">
-          <span className="w-4 h-[2px] bg-gray-700 rounded-full" />
-          <span className="w-4 h-[2px] bg-gray-700 rounded-full" />
-          <span className="w-4 h-[2px] bg-gray-700 rounded-full" />
+          <span className="w-4 h-[2.5px] bg-gray-800 rounded-full" />
+          <span className="w-4 h-[2.5px] bg-gray-800 rounded-full" />
+          <span className="w-4 h-[2.5px] bg-gray-800 rounded-full" />
         </div>
       </button>
 
