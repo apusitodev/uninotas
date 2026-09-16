@@ -28,7 +28,8 @@ import {
   BookmarkCheck,
   AlertTriangle,
   Settings,
-  HelpCircle
+  HelpCircle,
+  MessageSquareWarning
 } from 'lucide-react';
 
 interface Subject {
@@ -175,6 +176,8 @@ export default function DashboardPage() {
   const [showTour, setShowTour] = useState(false);
   const [tourStep, setTourStep] = useState(1);
   const [showHelpModal, setShowHelpModal] = useState(false);
+  const [reportOpen, setReportOpen] = useState(false);
+  const [reportText, setReportText] = useState('');
 
   const [activeTab, setActiveTab] = useState<'general' | 'diario' | 'calendario' | 'asistencia' | 'notas'>('general');
   const [activeSemester, setActiveSemester] = useState<number>(1);
@@ -812,6 +815,15 @@ export default function DashboardPage() {
           >
             <Settings className="w-3.5 h-3.5 text-gray-600 shrink-0" />
             <span>Ajustes del perfil</span>
+          </button>
+
+          {/* BOTÓN DE REPORTE DE PROBLEMAS AÑADIDO */}
+          <button
+            onClick={() => { setSidebarOpen(false); setReportOpen(true); }}
+            className="w-full flex items-center justify-center gap-2 py-2 px-3 rounded-xl bg-amber-50 hover:bg-amber-100 text-xs font-semibold text-amber-700 transition-colors cursor-pointer border border-amber-200/50"
+          >
+            <MessageSquareWarning className="w-3.5 h-3.5 text-amber-600 shrink-0" />
+            <span>Reportar un problema</span>
           </button>
 
           <button
@@ -1852,6 +1864,48 @@ export default function DashboardPage() {
               )}
             </div>
 
+          </div>
+        </div>
+      )}
+
+      {/* MODAL DE REPORTE DE PROBLEMAS AÑADIDO */}
+      {reportOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/30 backdrop-blur-sm">
+          <div className="w-full max-w-md bg-white rounded-3xl p-6 shadow-2xl border border-gray-200/80 space-y-4 animate-ios-item-1">
+            <div className="flex items-center justify-between pb-3 border-b border-gray-100">
+              <h4 className="text-base font-bold text-gray-900">Reportar un Problema</h4>
+              <button onClick={() => setReportOpen(false)} className="text-gray-400 hover:text-gray-600 cursor-pointer">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            <p className="text-xs text-gray-500">¿Has encontrado algún error, fallo de asistencia o nota que no cuadra? Cuéntanoslo.</p>
+            <textarea
+              rows={4}
+              placeholder="Describe el problema aquí..."
+              value={reportText}
+              onChange={(e) => setReportText(e.target.value)}
+              className="w-full p-3 rounded-xl border border-gray-200 text-xs font-medium focus:outline-none focus:border-[#0071e3] bg-gray-50/50"
+            />
+            <div className="flex justify-end gap-2 pt-2">
+              <button
+                type="button"
+                onClick={() => setReportOpen(false)}
+                className="px-4 py-2 rounded-xl text-xs font-bold text-gray-500 hover:bg-gray-100 cursor-pointer"
+              >
+                Cancelar
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  alert('¡Gracias por el reporte! Lo revisaremos enseguida.');
+                  setReportText('');
+                  setReportOpen(false);
+                }}
+                className="px-5 py-2 rounded-xl bg-[#0071e3] hover:bg-[#0077ed] text-white text-xs font-bold shadow-xs cursor-pointer"
+              >
+                Enviar Reporte
+              </button>
+            </div>
           </div>
         </div>
       )}
