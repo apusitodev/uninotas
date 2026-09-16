@@ -736,32 +736,38 @@ export default function DashboardPage() {
           sidebarOpen ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'
         }`}
       />
+{/* CAPA DE DESENFOQUE DE FONDO (BLUR) */}
+      <div 
+        onClick={() => setSidebarOpen(false)}
+        className={`fixed inset-0 z-40 bg-black/15 backdrop-blur-sm transition-opacity duration-300 ${
+          sidebarOpen ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'
+        }`}
+      />
 
-<aside
+      {/* MENÚ LATERAL FLOTANTE TRASLÚCIDO ESTILO iOS */}
+      <aside
         className={`fixed top-4 left-4 bottom-4 z-50 w-80 glass-panel rounded-3xl p-6 flex flex-col justify-between shadow-2xl transition-all duration-300 ease-out border border-white/80 ${
           sidebarOpen ? 'translate-x-0 opacity-100' : '-translate-x-full opacity-0 pointer-events-none'
         }`}
       >
         <div className="space-y-7">
+          {/* CABECERA: 3 RAYAS GIRADAS 90 GRADOS HACIA ABAJO + TÍTULO MENÚ */}
           <div className="flex items-center gap-3.5 pt-1">
             <button
               onClick={() => setSidebarOpen(false)}
               aria-label="Cerrar menú"
               className="w-8 h-8 flex items-center justify-center cursor-pointer p-0 border-none bg-transparent"
             >
-              <div className="flex flex-col items-center justify-center gap-1 w-5 h-5 -rotate-90 transition-transform duration-300 ease-in-out">
+              <div className="flex flex-col items-center justify-center gap-1 w-5 h-5 rotate-90 transition-transform duration-300 ease-in-out">
                 <span className="w-4 h-[2px] bg-gray-800 rounded-full" />
                 <span className="w-4 h-[2px] bg-gray-800 rounded-full" />
                 <span className="w-4 h-[2px] bg-gray-800 rounded-full" />
               </div>
             </button>
-            <h2 className={`text-2xl font-extrabold tracking-tight text-gray-900 leading-none transition-all duration-300 ${
-              sidebarOpen ? 'opacity-100 translate-x-0 animate-ios-item-1' : 'opacity-0 -translate-x-4'
-            }`}>
-              Menú
-            </h2>
+            <h2 className="text-2xl font-extrabold tracking-tight text-gray-900 leading-none">Menú</h2>
           </div>
 
+          {/* OPCIONES DE NAVEGACIÓN CON ENTRADA ESCALONADA */}
           <nav className="space-y-1.5">
             <button
               onClick={() => { setActiveTab('general'); setSidebarOpen(false); }}
@@ -815,6 +821,7 @@ export default function DashboardPage() {
           </nav>
         </div>
 
+        {/* PIE DEL MENÚ: UNINOTAS + UNIVERSIDAD + AJUSTES + SALIDA */}
         <div className={`border-t border-gray-200/60 pt-4 space-y-2.5 ${sidebarOpen ? 'animate-ios-item-4' : ''}`}>
           <div className="flex items-center gap-3 px-1">
             <div className="w-8 h-8 rounded-xl bg-white border border-gray-200/80 flex items-center justify-center text-[#0071e3] shadow-xs shrink-0">
@@ -828,28 +835,6 @@ export default function DashboardPage() {
               <p className="text-[10px] text-gray-400 truncate mt-0.5">{userEmail}</p>
             </div>
           </div>
-
-          <button
-            onClick={() => {
-              setSidebarOpen(false);
-              setShowFeedbackModal(true);
-            }}
-            className="w-full flex items-center justify-center gap-2 py-2.5 px-3 rounded-xl bg-blue-50 hover:bg-blue-100 text-xs font-bold text-[#0071e3] transition-colors cursor-pointer border border-blue-200/60 shadow-2xs"
-          >
-            <MessageSquarePlus className="w-3.5 h-3.5 shrink-0" />
-            <span>Reportar fallo / Sugerencia</span>
-          </button>
-
-          <button
-            onClick={() => {
-              setSidebarOpen(false);
-              setShowHelpModal(true);
-            }}
-            className="w-full flex items-center justify-center gap-2 py-2 px-3 rounded-xl bg-gray-100 hover:bg-gray-200/80 text-xs font-semibold text-gray-700 transition-colors cursor-pointer"
-          >
-            <HelpCircle className="w-3.5 h-3.5 text-gray-600 shrink-0" />
-            <span>Guía y Funcionalidades</span>
-          </button>
 
           <button
             onClick={() => {
@@ -872,10 +857,11 @@ export default function DashboardPage() {
         </div>
       </aside>
 
+      {/* BOTÓN FLOTANTE EXTERIOR (3 RAYAS EN RECUADRO - DESAPARECE AL ESTAR ABIERTO) */}
       <button
         onClick={() => setSidebarOpen(true)}
         aria-label="Abrir menú"
-        className={`fixed top-5 left-6 z-40 w-11 h-11 rounded-2xl glass-panel flex items-center justify-center cursor-pointer shadow-sm hover:shadow transition-all duration-300 ${
+        className={`fixed top-5 left-6 z-30 w-11 h-11 rounded-2xl glass-panel flex items-center justify-center cursor-pointer shadow-sm hover:shadow transition-all duration-300 ${
           sidebarOpen ? 'opacity-0 scale-90 pointer-events-none' : 'opacity-100 scale-100 pointer-events-auto'
         }`}
       >
