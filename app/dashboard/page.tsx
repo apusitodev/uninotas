@@ -803,7 +803,6 @@ export default function DashboardPage() {
   return (
     <div className="min-h-screen bg-[#f4f5f8] text-gray-900 font-sans antialiased relative overflow-x-hidden">
       
-      {/* CAPA DE DESENFOQUE DE FONDO */}
       <div 
         onClick={() => setSidebarOpen(false)}
         className={`fixed inset-0 z-40 bg-black/15 backdrop-blur-sm transition-opacity duration-300 ${
@@ -811,7 +810,6 @@ export default function DashboardPage() {
         }`}
       />
 
-      {/* MENÚ LATERAL FLOTANTE RESPONSIVE */}
       <aside
         className={`fixed top-4 left-4 bottom-4 z-50 w-72 sm:w-80 glass-panel rounded-3xl p-5 sm:p-6 flex flex-col justify-between shadow-2xl transition-all duration-300 ease-out border border-white/80 ${
           sidebarOpen ? 'translate-x-0 opacity-100' : '-translate-x-full opacity-0 pointer-events-none'
@@ -934,7 +932,6 @@ export default function DashboardPage() {
         </div>
       </aside>
 
-      {/* BOTÓN FLOTANTE EXTERIOR (3 RAYAS) */}
       <button
         onClick={() => setSidebarOpen(true)}
         aria-label="Abrir menú"
@@ -949,7 +946,6 @@ export default function DashboardPage() {
         </div>
       </button>
 
-      {/* CONTENIDO PRINCIPAL RESPONSIVE */}
       <div className="w-full flex flex-col min-w-0">
         <header className="px-4 sm:px-8 pl-16 sm:pl-22 py-4 sm:py-5 flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-gray-200/60 bg-white/40 backdrop-blur-md sticky top-0 z-20">
           <div>
@@ -1329,38 +1325,38 @@ export default function DashboardPage() {
                 </div>
               </div>
 
+              {/* VISTA SEMANAL ADAPTADA A MÓVIL */}
               {calendarMode === 'semanal' && (
-                <div className="glass-panel rounded-2xl border border-gray-200/70 overflow-x-auto shadow-xs">
-                  <div className="min-w-[960px]">
-                    <div className="grid grid-cols-5 border-b border-gray-200/70 bg-gray-50/60">
-                      {['Dilluns', 'Dimarts', 'Dimecres', 'Dijous', 'Divendres'].map((day) => (
-                        <div key={day} className="p-3.5 text-center border-r last:border-r-0 border-gray-200/70">
-                          <p className="text-xs font-bold text-gray-800">{day}</p>
-                          <p className="text-[10px] text-gray-400">16:00 a 20:30</p>
-                        </div>
-                      ))}
-                    </div>
-
-                    <div className="grid grid-cols-5 divide-x divide-gray-200/70 p-4 gap-4 bg-white/40">
-                      {[1, 2, 3, 4, 5].map((dayNum) => {
-                        const daySlots: { code: string; name: string; slot: ClassSlot }[] = [];
-                        for (const [code, item] of Object.entries(S1_SCHEDULE_CLEAN)) {
-                          const sub = subjects.find(s => s.code === code);
-                          const isConv = sub ? userSubjects[sub.id]?.is_convalidated : false;
-                          if (!isConv) {
-                            for (const slot of item.slots) {
-                              if (slot.day === dayNum) daySlots.push({ code, name: item.name, slot });
-                            }
+                <div className="glass-panel rounded-2xl border border-gray-200/70 overflow-hidden shadow-xs">
+                  <div className="grid grid-cols-1 sm:grid-cols-5 divide-y sm:divide-y-0 sm:divide-x divide-gray-200/70">
+                    {['Dilluns', 'Dimarts', 'Dimecres', 'Dijous', 'Divendres'].map((dayName, index) => {
+                      const dayNum = index + 1;
+                      const daySlots: { code: string; name: string; slot: ClassSlot }[] = [];
+                      for (const [code, item] of Object.entries(S1_SCHEDULE_CLEAN)) {
+                        const sub = subjects.find(s => s.code === code);
+                        const isConv = sub ? userSubjects[sub.id]?.is_convalidated : false;
+                        if (!isConv) {
+                          for (const slot of item.slots) {
+                            if (slot.day === dayNum) daySlots.push({ code, name: item.name, slot });
                           }
                         }
-                        daySlots.sort((a, b) => a.slot.startHour - b.slot.startHour);
+                      }
+                      daySlots.sort((a, b) => a.slot.startHour - b.slot.startHour);
 
-                        return (
-                          <div key={dayNum} className="space-y-3">
-                            {daySlots.map(({ code, name, slot }) => {
+                      return (
+                        <div key={dayName} className="p-4 space-y-3 bg-white/40">
+                          <div className="text-center pb-2 border-b border-gray-200/60 bg-gray-50/60 -mx-4 -mt-4 p-3 mb-3">
+                            <p className="text-xs font-bold text-gray-800">{dayName}</p>
+                            <p className="text-[10px] text-gray-400">16:00 a 20:30</p>
+                          </div>
+
+                          {daySlots.length === 0 ? (
+                            <p className="text-[11px] text-gray-400 text-center py-4">Sin clases</p>
+                          ) : (
+                            daySlots.map(({ code, name, slot }) => {
                               const room = getClassroomDisplay(code, slot.defaultClassroom, slot.isLanguage);
                               return (
-                                <div key={`${code}_${slot.startTime}`} className="bg-white border border-gray-200/80 rounded-2xl p-3.5 shadow-xs space-y-1.5 hover:border-[#0071e3]/40 transition-colors">
+                                <div key={`${code}_${slot.startTime}`} className="bg-white border border-gray-200/80 rounded-2xl p-3 shadow-xs space-y-1.5 hover:border-[#0071e3]/40 transition-colors">
                                   <div className="flex items-center justify-between">
                                     <span className="text-[10px] font-mono font-bold text-[#0071e3] bg-blue-50 px-1.5 py-0.5 rounded">
                                       {code}
@@ -1371,102 +1367,101 @@ export default function DashboardPage() {
                                   <p className="text-[11px] font-medium text-gray-500">{slot.startTime} - {slot.endTime}</p>
                                 </div>
                               );
-                            })}
-                          </div>
-                        );
-                      })}
-                    </div>
+                            })
+                          )}
+                        </div>
+                      );
+                    })}
                   </div>
                 </div>
               )}
 
+              {/* VISTA MENSUAL ADAPTADA A MÓVIL */}
               {calendarMode === 'mensual' && (
-                <div className="glass-panel rounded-2xl p-4 sm:p-6 border border-gray-200/70 space-y-4 shadow-xs overflow-x-auto">
-                  <div className="min-w-[650px]">
-                    <div className="flex items-center justify-between pb-3 border-b border-gray-100">
-                      <button
-                        onClick={() => setSelectedMonth(new Date(selectedMonth.getFullYear(), selectedMonth.getMonth() - 1, 1))}
-                        className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-600 transition-colors cursor-pointer"
-                      >
-                        <ChevronLeft className="w-5 h-5" />
-                      </button>
-                      <h4 className="text-sm font-extrabold text-gray-900 capitalize">
-                        {selectedMonth.toLocaleString('es-ES', { month: 'long', year: 'numeric' })}
-                      </h4>
-                      <button
-                        onClick={() => setSelectedMonth(new Date(selectedMonth.getFullYear(), selectedMonth.getMonth() + 1, 1))}
-                        className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-600 transition-colors cursor-pointer"
-                      >
-                        <ChevronRight className="w-5 h-5" />
-                      </button>
-                    </div>
+                <div className="glass-panel rounded-2xl p-4 sm:p-6 border border-gray-200/70 space-y-4 shadow-xs overflow-hidden">
+                  <div className="flex items-center justify-between pb-3 border-b border-gray-100">
+                    <button
+                      onClick={() => setSelectedMonth(new Date(selectedMonth.getFullYear(), selectedMonth.getMonth() - 1, 1))}
+                      className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-600 transition-colors cursor-pointer"
+                    >
+                      <ChevronLeft className="w-5 h-5" />
+                    </button>
+                    <h4 className="text-xs sm:text-sm font-extrabold text-gray-900 capitalize">
+                      {selectedMonth.toLocaleString('es-ES', { month: 'long', year: 'numeric' })}
+                    </h4>
+                    <button
+                      onClick={() => setSelectedMonth(new Date(selectedMonth.getFullYear(), selectedMonth.getMonth() + 1, 1))}
+                      className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-600 transition-colors cursor-pointer"
+                    >
+                      <ChevronRight className="w-5 h-5" />
+                    </button>
+                  </div>
 
-                    <div className="grid grid-cols-7 text-center text-xs font-bold text-gray-400 mt-3">
-                      <span>Lun</span>
-                      <span>Mar</span>
-                      <span>Mié</span>
-                      <span>Jue</span>
-                      <span>Vie</span>
-                      <span>Sáb</span>
-                      <span>Dom</span>
-                    </div>
+                  <div className="grid grid-cols-7 text-center text-[10px] sm:text-xs font-bold text-gray-400">
+                    <span>Lun</span>
+                    <span>Mar</span>
+                    <span>Mié</span>
+                    <span>Jue</span>
+                    <span>Vie</span>
+                    <span>Sáb</span>
+                    <span>Dom</span>
+                  </div>
 
-                    <div className="grid grid-cols-7 gap-2 mt-2">
-                      {monthDaysList.map((dayDate, idx) => {
-                        if (!dayDate) return <div key={`empty_${idx}`} className="h-20 rounded-xl bg-transparent" />;
+                  <div className="grid grid-cols-7 gap-1 sm:gap-2">
+                    {monthDaysList.map((dayDate, idx) => {
+                      if (!dayDate) return <div key={`empty_${idx}`} className="h-14 sm:h-20 rounded-xl bg-transparent" />;
 
-                        const iso = dayDate.toISOString().split('T')[0];
-                        const holiday = S1_HOLIDAYS_INFO[iso];
-                        const isWeekend = dayDate.getDay() === 0 || dayDate.getDay() === 6;
-                        const isToday = dayDate.toDateString() === new Date().toDateString();
-                        const dayEvents = events.filter((e) => e.due_date === iso);
+                      const iso = dayDate.toISOString().split('T')[0];
+                      const holiday = S1_HOLIDAYS_INFO[iso];
+                      const isWeekend = dayDate.getDay() === 0 || dayDate.getDay() === 6;
+                      const isToday = dayDate.toDateString() === new Date().toDateString();
+                      const dayEvents = events.filter((e) => e.due_date === iso);
 
-                        return (
-                          <div
-                            key={iso}
-                            onClick={() => {
-                              setSelectedDay(dayDate);
-                              setActiveTab('diario');
-                            }}
-                            className={`h-20 p-1.5 sm:p-2 rounded-xl border flex flex-col justify-between cursor-pointer transition-all ${
-                              isToday
-                                ? 'border-[#0071e3] bg-blue-50/50 shadow-xs'
-                                : holiday
-                                ? 'border-amber-200 bg-amber-50/40 text-amber-900'
-                                : isWeekend
-                                ? 'border-transparent bg-gray-50/40 text-gray-400'
-                                : 'border-gray-100 hover:border-gray-300 bg-white'
-                            }`}
-                          >
-                            <div className="flex items-center justify-between">
-                              <span className={`text-xs font-bold ${isToday ? 'text-[#0071e3]' : 'text-gray-700'}`}>
-                                {dayDate.getDate()}
-                              </span>
-                              {holiday && <span className="w-2 h-2 rounded-full bg-amber-500" />}
-                            </div>
-
-                            <div className="space-y-0.5 truncate">
-                              {holiday ? (
-                                <span className="text-[9px] font-bold text-amber-700 truncate block">
-                                  {holiday.split('(')[0]}
-                                </span>
-                              ) : (
-                                dayEvents.slice(0, 2).map((ev) => (
-                                  <span
-                                    key={ev.id}
-                                    className={`text-[8px] font-bold px-1 py-0.5 rounded truncate block ${
-                                      ev.event_type === 'examen' ? 'bg-red-100 text-red-700' : 'bg-blue-100 text-blue-700'
-                                    }`}
-                                  >
-                                    {formatCleanTime(ev.due_time)} {ev.title}
-                                  </span>
-                                ))
-                              )}
-                            </div>
+                      return (
+                        <div
+                          key={iso}
+                          onClick={() => {
+                            setSelectedDay(dayDate);
+                            setActiveTab('diario');
+                          }}
+                          className={`h-14 sm:h-20 p-1 sm:p-2 rounded-xl border flex flex-col justify-between cursor-pointer transition-all ${
+                            isToday
+                              ? 'border-[#0071e3] bg-blue-50/50 shadow-xs'
+                              : holiday
+                              ? 'border-amber-200 bg-amber-50/40 text-amber-900'
+                              : isWeekend
+                              ? 'border-transparent bg-gray-50/40 text-gray-400'
+                              : 'border-gray-100 hover:border-gray-300 bg-white'
+                          }`}
+                        >
+                          <div className="flex items-center justify-between">
+                            <span className={`text-[11px] sm:text-xs font-bold ${isToday ? 'text-[#0071e3]' : 'text-gray-700'}`}>
+                              {dayDate.getDate()}
+                            </span>
+                            {holiday && <span className="w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full bg-amber-500" />}
                           </div>
-                        );
-                      })}
-                    </div>
+
+                          <div className="space-y-0.5 truncate hidden sm:block">
+                            {holiday ? (
+                              <span className="text-[9px] font-bold text-amber-700 truncate block">
+                                {holiday.split('(')[0]}
+                              </span>
+                            ) : (
+                              dayEvents.slice(0, 2).map((ev) => (
+                                <span
+                                  key={ev.id}
+                                  className={`text-[8px] font-bold px-1 py-0.5 rounded truncate block ${
+                                    ev.event_type === 'examen' ? 'bg-red-100 text-red-700' : 'bg-blue-100 text-blue-700'
+                                  }`}
+                                >
+                                  {formatCleanTime(ev.due_time)} {ev.title}
+                                </span>
+                              ))
+                            )}
+                          </div>
+                        </div>
+                      );
+                    })}
                   </div>
                 </div>
               )}
@@ -1740,7 +1735,6 @@ export default function DashboardPage() {
                         </div>
                       </div>
 
-                      {/* DESPLEGABLE CON ANIMACIÓN FLUIDA */}
                       <div className={`transition-all duration-300 ease-in-out overflow-hidden ${isExpanded ? 'max-h-[1500px] opacity-100 border-t border-gray-100 bg-white/50 p-4 sm:p-6' : 'max-h-0 opacity-0 p-0'}`}>
                         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                           {subCriteria.map((crit) => {
@@ -1875,7 +1869,6 @@ export default function DashboardPage() {
 
       </div>
 
-      {/* MODAL DE TOUR INICIAL / GUÍA DE AYUDA */}
       {(showTour || showHelpModal) && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-md animate-fade-in">
           <div className="w-full max-w-lg bg-white/95 backdrop-blur-xl rounded-3xl p-6 sm:p-7 shadow-2xl border border-white/80 space-y-6 relative overflow-hidden max-h-[90vh] overflow-y-auto">
@@ -1999,7 +1992,6 @@ export default function DashboardPage() {
         </div>
       )}
 
-      {/* MODAL DE REPORTE DE PROBLEMAS */}
       {reportOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/30 backdrop-blur-sm">
           <div className="w-full max-w-md bg-white rounded-3xl p-6 shadow-2xl border border-gray-200/80 space-y-4 animate-ios-item-1">
