@@ -811,13 +811,13 @@ export default function DashboardPage() {
         }`}
       />
 
-      {/* MENÚ LATERAL FLOTANTE TRASLÚCIDO ESTILO iOS */}
+      {/* MENÚ LATERAL FLOTANTE RESPONSIVE */}
       <aside
-        className={`fixed top-4 left-4 bottom-4 z-50 w-80 glass-panel rounded-3xl p-6 flex flex-col justify-between shadow-2xl transition-all duration-300 ease-out border border-white/80 ${
+        className={`fixed top-4 left-4 bottom-4 z-50 w-72 sm:w-80 glass-panel rounded-3xl p-5 sm:p-6 flex flex-col justify-between shadow-2xl transition-all duration-300 ease-out border border-white/80 ${
           sidebarOpen ? 'translate-x-0 opacity-100' : '-translate-x-full opacity-0 pointer-events-none'
         }`}
       >
-        <div className="space-y-7">
+        <div className="space-y-6 overflow-y-auto pr-1">
           <div className="flex items-center gap-3.5 pt-1">
             <button
               onClick={() => setSidebarOpen(false)}
@@ -894,7 +894,7 @@ export default function DashboardPage() {
             <div className="min-w-0">
               <div className="flex items-baseline gap-2">
                 <span className="text-xs font-bold text-gray-900">UniNotas</span>
-                <span className="text-[11px] font-normal text-gray-400">EUM • Mediterrani</span>
+                <span className="text-[11px] font-normal text-gray-400">EUM</span>
               </div>
               <p className="text-[10px] text-gray-400 truncate mt-0.5">{userEmail}</p>
             </div>
@@ -938,47 +938,47 @@ export default function DashboardPage() {
       <button
         onClick={() => setSidebarOpen(true)}
         aria-label="Abrir menú"
-        className={`fixed top-5 left-6 z-40 w-11 h-11 rounded-2xl glass-panel flex items-center justify-center cursor-pointer shadow-sm hover:shadow transition-all duration-300 ${
+        className={`fixed top-4 left-4 sm:top-5 sm:left-6 z-30 w-10 h-10 sm:w-11 sm:h-11 rounded-2xl glass-panel flex items-center justify-center cursor-pointer shadow-sm hover:shadow transition-all duration-300 ${
           sidebarOpen ? 'opacity-0 scale-90 pointer-events-none' : 'opacity-100 scale-100 pointer-events-auto'
         }`}
       >
-        <div className="flex flex-col items-center justify-center gap-1 w-5 h-5 transition-transform duration-300 ease-in-out">
-          <span className="w-4 h-[2px] bg-gray-700 rounded-full" />
-          <span className="w-4 h-[2px] bg-gray-700 rounded-full" />
-          <span className="w-4 h-[2px] bg-gray-700 rounded-full" />
+        <div className="flex flex-col items-center justify-center gap-1 w-4 h-4 sm:w-5 sm:h-5 transition-transform duration-300 ease-in-out">
+          <span className="w-3.5 sm:w-4 h-[2px] bg-gray-700 rounded-full" />
+          <span className="w-3.5 sm:w-4 h-[2px] bg-gray-700 rounded-full" />
+          <span className="w-3.5 sm:w-4 h-[2px] bg-gray-700 rounded-full" />
         </div>
       </button>
 
-      {/* CONTENIDO PRINCIPAL */}
+      {/* CONTENIDO PRINCIPAL RESPONSIVE */}
       <div className="w-full flex flex-col min-w-0">
-        <header className="px-8 pl-22 py-5 flex items-center justify-between border-b border-gray-200/60 bg-white/40 backdrop-blur-md sticky top-0 z-30">
+        <header className="px-4 sm:px-8 pl-16 sm:pl-22 py-4 sm:py-5 flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-gray-200/60 bg-white/40 backdrop-blur-md sticky top-0 z-20">
           <div>
-            <h2 className="text-xl font-bold tracking-tight text-gray-900">
+            <h2 className="text-lg sm:text-xl font-bold tracking-tight text-gray-900">
               {activeTab === 'general' && 'Resumen Global del Curso'}
               {activeTab === 'diario' && 'Horario Diario y Tareas en Clase'}
               {activeTab === 'calendario' && 'Calendario Académico y Entregas'}
               {activeTab === 'asistencia' && 'Registro de Asistencias'}
               {activeTab === 'notas' && 'Expediente y Calificaciones'}
             </h2>
-            <div className="flex items-center gap-2 mt-0.5">
-              <p className="text-xs text-gray-400">2n A Grau Màrqueting • 16:00 a 20:30</p>
-              <span className="text-[10px] text-gray-400">•</span>
+            <div className="flex flex-wrap items-center gap-2 mt-0.5">
+              <p className="text-[11px] sm:text-xs text-gray-400">2n A Grau Màrqueting • 16:00 a 20:30</p>
+              <span className="text-[10px] text-gray-400 hidden sm:inline">•</span>
               <span className={`text-[10px] font-semibold flex items-center gap-1 ${syncStatus === 'guardando' ? 'text-amber-600 animate-pulse' : 'text-emerald-600'}`}>
                 {syncStatus === 'guardando' ? 'Sincronizando...' : 'Supabase Al Día'}
               </span>
             </div>
           </div>
 
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-3 self-end sm:self-auto">
             <div className="relative">
               <button
                 onClick={() => setNotifOpen(!notifOpen)}
                 aria-label="Notificaciones"
-                className="w-10 h-10 rounded-xl glass-panel flex items-center justify-center text-gray-600 hover:text-gray-900 relative cursor-pointer shadow-xs transition-colors"
+                className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl glass-panel flex items-center justify-center text-gray-600 hover:text-gray-900 relative cursor-pointer shadow-xs transition-colors"
               >
                 <Bell className="w-4 h-4" />
                 {pendingSessions.length > 0 && (
-                  <span className="absolute -top-1 -right-1 w-5 h-5 bg-[#ff3b30] text-white text-[10px] font-extrabold rounded-full flex items-center justify-center shadow-xs animate-pulse">
+                  <span className="absolute -top-1 -right-1 w-4 h-4 sm:w-5 sm:h-5 bg-[#ff3b30] text-white text-[9px] sm:text-[10px] font-extrabold rounded-full flex items-center justify-center shadow-xs animate-pulse">
                     {pendingSessions.length}
                   </span>
                 )}
@@ -987,7 +987,7 @@ export default function DashboardPage() {
               {notifOpen && (
                 <>
                   <div className="fixed inset-0 z-40" onClick={() => setNotifOpen(false)} />
-                  <div className="absolute right-0 top-12 w-88 sm:w-96 bg-white/95 backdrop-blur-xl rounded-2xl p-5 shadow-2xl border border-gray-200/80 z-50 animate-ios-item-1">
+                  <div className="absolute right-0 top-12 w-80 sm:w-96 bg-white/95 backdrop-blur-xl rounded-2xl p-4 sm:p-5 shadow-2xl border border-gray-200/80 z-50 animate-ios-item-1">
                     <div className="flex items-center justify-between pb-3 border-b border-gray-100">
                       <div className="flex items-center gap-2">
                         <span className="text-xs font-bold text-gray-900">Asistencias Pendientes</span>
@@ -1052,30 +1052,30 @@ export default function DashboardPage() {
             <div className="inline-flex p-1 rounded-xl bg-gray-200/70 border border-gray-300/40">
               <button
                 onClick={() => setActiveSemester(1)}
-                className={`px-4 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
+                className={`px-3 sm:px-4 py-1.5 rounded-lg text-[11px] sm:text-xs font-semibold transition-all cursor-pointer ${
                   activeSemester === 1 ? 'bg-white text-gray-900 shadow-xs' : 'text-gray-500 hover:text-gray-900'
                 }`}
               >
-                1r Semestre
+                1r Sem.
               </button>
               <button
                 onClick={() => setActiveSemester(2)}
-                className={`px-4 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
+                className={`px-3 sm:px-4 py-1.5 rounded-lg text-[11px] sm:text-xs font-semibold transition-all cursor-pointer ${
                   activeSemester === 2 ? 'bg-white text-gray-900 shadow-xs' : 'text-gray-500 hover:text-gray-900'
                 }`}
               >
-                2n Semestre
+                2n Sem.
               </button>
             </div>
           </div>
         </header>
 
-        <main className="p-8 max-w-[1400px] w-full mx-auto space-y-6">
+        <main className="p-4 sm:p-8 max-w-[1400px] w-full mx-auto space-y-6">
 
           {activeTab === 'diario' && (
             <div className="space-y-6">
               <div className="glass-panel rounded-2xl p-4 border border-gray-200/70 flex flex-col sm:flex-row items-center justify-between gap-4">
-                <div className="flex items-center gap-3">
+                <div className="flex items-center justify-between w-full sm:w-auto gap-3">
                   <button
                     onClick={() => {
                       const d = new Date(selectedDay);
@@ -1087,8 +1087,8 @@ export default function DashboardPage() {
                     <ChevronLeft className="w-5 h-5" />
                   </button>
 
-                  <div>
-                    <h3 className="text-base font-extrabold text-gray-900">
+                  <div className="text-center sm:text-left">
+                    <h3 className="text-sm sm:text-base font-extrabold text-gray-900">
                       {DAYS_NAMES[selectedDay.getDay()]}, {selectedDay.getDate()} de {selectedDay.toLocaleString('es-ES', { month: 'long' })}
                     </h3>
                     <p className="text-xs text-[#0071e3] font-semibold">
@@ -1118,7 +1118,7 @@ export default function DashboardPage() {
                     setEventTitle('');
                     setShowAddModal(true);
                   }}
-                  className="flex items-center gap-2 px-4 py-2.5 rounded-2xl bg-[#0071e3] hover:bg-[#0077ed] text-white text-xs font-bold transition-all shadow-md active:scale-95 cursor-pointer"
+                  className="w-full sm:w-auto flex items-center justify-center gap-2 px-4 py-2.5 rounded-2xl bg-[#0071e3] hover:bg-[#0077ed] text-white text-xs font-bold transition-all shadow-md active:scale-95 cursor-pointer"
                 >
                   <Plus className="w-4 h-4" />
                   <span>Añadir trabajo o examen</span>
@@ -1126,7 +1126,7 @@ export default function DashboardPage() {
               </div>
 
               {isSelectedHoliday ? (
-                <div className="glass-panel rounded-2xl p-12 text-center space-y-2 border border-amber-200/70 bg-amber-50/40">
+                <div className="glass-panel rounded-2xl p-8 sm:p-12 text-center space-y-2 border border-amber-200/70 bg-amber-50/40">
                   <AlertTriangle className="w-8 h-8 text-amber-600 mx-auto" />
                   <h4 className="text-base font-bold text-amber-900">Universidad Cerrada • Día no lectivo</h4>
                   <p className="text-xs text-amber-700 font-medium">{isSelectedHoliday}</p>
@@ -1157,7 +1157,7 @@ export default function DashboardPage() {
                         return (
                           <div 
                             key={`${code}_${slot.startTime}`}
-                            className={`glass-panel rounded-3xl p-5 border transition-all shadow-xs ${
+                            className={`glass-panel rounded-3xl p-4 sm:p-5 border transition-all shadow-xs ${
                               isOngoing ? 'border-[#0071e3] ring-2 ring-[#0071e3]/20 bg-blue-50/30' : 'border-gray-200/70'
                             }`}
                           >
@@ -1174,7 +1174,7 @@ export default function DashboardPage() {
 
                             <h4 className="text-base font-bold text-gray-900 mt-2">{name}</h4>
 
-                            <div className="mt-4 pt-3 border-t border-gray-100 flex flex-wrap items-center gap-5 text-xs text-gray-500">
+                            <div className="mt-4 pt-3 border-t border-gray-100 flex flex-wrap items-center gap-4 sm:gap-5 text-xs text-gray-500">
                               <div className="flex items-center gap-1.5">
                                 <Clock className="w-3.5 h-3.5 text-[#0071e3]" />
                                 <span className="font-semibold text-gray-700">{slot.startTime} - {slot.endTime}</span>
@@ -1293,11 +1293,11 @@ export default function DashboardPage() {
                   <p className="text-xs text-gray-400">Festivos oficiales, entregas con límite de hora y exámenes</p>
                 </div>
 
-                <div className="flex items-center gap-3">
-                  <div className="inline-flex p-1 rounded-2xl bg-gray-100 border border-gray-200/80 shadow-inner">
+                <div className="flex flex-col sm:flex-row items-center gap-3 w-full sm:w-auto">
+                  <div className="inline-flex p-1 rounded-2xl bg-gray-100 border border-gray-200/80 shadow-inner w-full sm:w-auto justify-center">
                     <button
                       onClick={() => setCalendarMode('semanal')}
-                      className={`px-5 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                      className={`flex-1 sm:flex-initial px-5 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
                         calendarMode === 'semanal' ? 'bg-white text-[#0071e3] shadow-sm' : 'text-gray-500 hover:text-gray-900'
                       }`}
                     >
@@ -1305,7 +1305,7 @@ export default function DashboardPage() {
                     </button>
                     <button
                       onClick={() => setCalendarMode('mensual')}
-                      className={`px-5 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                      className={`flex-1 sm:flex-initial px-5 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
                         calendarMode === 'mensual' ? 'bg-white text-[#0071e3] shadow-sm' : 'text-gray-500 hover:text-gray-900'
                       }`}
                     >
@@ -1321,7 +1321,7 @@ export default function DashboardPage() {
                       setEventTitle('');
                       setShowAddModal(true);
                     }}
-                    className="flex items-center gap-2 px-4 py-2.5 rounded-2xl bg-[#0071e3] hover:bg-[#0077ed] text-white text-xs font-bold transition-all shadow-md active:scale-95 cursor-pointer"
+                    className="w-full sm:w-auto flex items-center justify-center gap-2 px-4 py-2.5 rounded-2xl bg-[#0071e3] hover:bg-[#0077ed] text-white text-xs font-bold transition-all shadow-md active:scale-95 cursor-pointer"
                   >
                     <Plus className="w-4 h-4" />
                     <span>Añadir trabajo o examen</span>
@@ -1381,90 +1381,92 @@ export default function DashboardPage() {
               )}
 
               {calendarMode === 'mensual' && (
-                <div className="glass-panel rounded-2xl p-6 border border-gray-200/70 space-y-4 shadow-xs">
-                  <div className="flex items-center justify-between pb-3 border-b border-gray-100">
-                    <button
-                      onClick={() => setSelectedMonth(new Date(selectedMonth.getFullYear(), selectedMonth.getMonth() - 1, 1))}
-                      className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-600 transition-colors cursor-pointer"
-                    >
-                      <ChevronLeft className="w-5 h-5" />
-                    </button>
-                    <h4 className="text-sm font-extrabold text-gray-900 capitalize">
-                      {selectedMonth.toLocaleString('es-ES', { month: 'long', year: 'numeric' })}
-                    </h4>
-                    <button
-                      onClick={() => setSelectedMonth(new Date(selectedMonth.getFullYear(), selectedMonth.getMonth() + 1, 1))}
-                      className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-600 transition-colors cursor-pointer"
-                    >
-                      <ChevronRight className="w-5 h-5" />
-                    </button>
-                  </div>
+                <div className="glass-panel rounded-2xl p-4 sm:p-6 border border-gray-200/70 space-y-4 shadow-xs overflow-x-auto">
+                  <div className="min-w-[650px]">
+                    <div className="flex items-center justify-between pb-3 border-b border-gray-100">
+                      <button
+                        onClick={() => setSelectedMonth(new Date(selectedMonth.getFullYear(), selectedMonth.getMonth() - 1, 1))}
+                        className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-600 transition-colors cursor-pointer"
+                      >
+                        <ChevronLeft className="w-5 h-5" />
+                      </button>
+                      <h4 className="text-sm font-extrabold text-gray-900 capitalize">
+                        {selectedMonth.toLocaleString('es-ES', { month: 'long', year: 'numeric' })}
+                      </h4>
+                      <button
+                        onClick={() => setSelectedMonth(new Date(selectedMonth.getFullYear(), selectedMonth.getMonth() + 1, 1))}
+                        className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-600 transition-colors cursor-pointer"
+                      >
+                        <ChevronRight className="w-5 h-5" />
+                      </button>
+                    </div>
 
-                  <div className="grid grid-cols-7 text-center text-xs font-bold text-gray-400">
-                    <span>Lun</span>
-                    <span>Mar</span>
-                    <span>Mié</span>
-                    <span>Jue</span>
-                    <span>Vie</span>
-                    <span>Sáb</span>
-                    <span>Dom</span>
-                  </div>
+                    <div className="grid grid-cols-7 text-center text-xs font-bold text-gray-400 mt-3">
+                      <span>Lun</span>
+                      <span>Mar</span>
+                      <span>Mié</span>
+                      <span>Jue</span>
+                      <span>Vie</span>
+                      <span>Sáb</span>
+                      <span>Dom</span>
+                    </div>
 
-                  <div className="grid grid-cols-7 gap-2">
-                    {monthDaysList.map((dayDate, idx) => {
-                      if (!dayDate) return <div key={`empty_${idx}`} className="h-20 rounded-xl bg-transparent" />;
+                    <div className="grid grid-cols-7 gap-2 mt-2">
+                      {monthDaysList.map((dayDate, idx) => {
+                        if (!dayDate) return <div key={`empty_${idx}`} className="h-20 rounded-xl bg-transparent" />;
 
-                      const iso = dayDate.toISOString().split('T')[0];
-                      const holiday = S1_HOLIDAYS_INFO[iso];
-                      const isWeekend = dayDate.getDay() === 0 || dayDate.getDay() === 6;
-                      const isToday = dayDate.toDateString() === new Date().toDateString();
-                      const dayEvents = events.filter((e) => e.due_date === iso);
+                        const iso = dayDate.toISOString().split('T')[0];
+                        const holiday = S1_HOLIDAYS_INFO[iso];
+                        const isWeekend = dayDate.getDay() === 0 || dayDate.getDay() === 6;
+                        const isToday = dayDate.toDateString() === new Date().toDateString();
+                        const dayEvents = events.filter((e) => e.due_date === iso);
 
-                      return (
-                        <div
-                          key={iso}
-                          onClick={() => {
-                            setSelectedDay(dayDate);
-                            setActiveTab('diario');
-                          }}
-                          className={`h-20 p-2 rounded-xl border flex flex-col justify-between cursor-pointer transition-all ${
-                            isToday
-                              ? 'border-[#0071e3] bg-blue-50/50 shadow-xs'
-                              : holiday
-                              ? 'border-amber-200 bg-amber-50/40 text-amber-900'
-                              : isWeekend
-                              ? 'border-transparent bg-gray-50/40 text-gray-400'
-                              : 'border-gray-100 hover:border-gray-300 bg-white'
-                          }`}
-                        >
-                          <div className="flex items-center justify-between">
-                            <span className={`text-xs font-bold ${isToday ? 'text-[#0071e3]' : 'text-gray-700'}`}>
-                              {dayDate.getDate()}
-                            </span>
-                            {holiday && <span className="w-2 h-2 rounded-full bg-amber-500" />}
-                          </div>
-
-                          <div className="space-y-0.5 truncate">
-                            {holiday ? (
-                              <span className="text-[9px] font-bold text-amber-700 truncate block">
-                                {holiday.split('(')[0]}
+                        return (
+                          <div
+                            key={iso}
+                            onClick={() => {
+                              setSelectedDay(dayDate);
+                              setActiveTab('diario');
+                            }}
+                            className={`h-20 p-1.5 sm:p-2 rounded-xl border flex flex-col justify-between cursor-pointer transition-all ${
+                              isToday
+                                ? 'border-[#0071e3] bg-blue-50/50 shadow-xs'
+                                : holiday
+                                ? 'border-amber-200 bg-amber-50/40 text-amber-900'
+                                : isWeekend
+                                ? 'border-transparent bg-gray-50/40 text-gray-400'
+                                : 'border-gray-100 hover:border-gray-300 bg-white'
+                            }`}
+                          >
+                            <div className="flex items-center justify-between">
+                              <span className={`text-xs font-bold ${isToday ? 'text-[#0071e3]' : 'text-gray-700'}`}>
+                                {dayDate.getDate()}
                               </span>
-                            ) : (
-                              dayEvents.slice(0, 2).map((ev) => (
-                                <span
-                                  key={ev.id}
-                                  className={`text-[8px] font-bold px-1 py-0.5 rounded truncate block ${
-                                    ev.event_type === 'examen' ? 'bg-red-100 text-red-700' : 'bg-blue-100 text-blue-700'
-                                  }`}
-                                >
-                                  {formatCleanTime(ev.due_time)} {ev.title}
+                              {holiday && <span className="w-2 h-2 rounded-full bg-amber-500" />}
+                            </div>
+
+                            <div className="space-y-0.5 truncate">
+                              {holiday ? (
+                                <span className="text-[9px] font-bold text-amber-700 truncate block">
+                                  {holiday.split('(')[0]}
                                 </span>
-                              ))
-                            )}
+                              ) : (
+                                dayEvents.slice(0, 2).map((ev) => (
+                                  <span
+                                    key={ev.id}
+                                    className={`text-[8px] font-bold px-1 py-0.5 rounded truncate block ${
+                                      ev.event_type === 'examen' ? 'bg-red-100 text-red-700' : 'bg-blue-100 text-blue-700'
+                                    }`}
+                                  >
+                                    {formatCleanTime(ev.due_time)} {ev.title}
+                                  </span>
+                                ))
+                              )}
+                            </div>
                           </div>
-                        </div>
-                      );
-                    })}
+                        );
+                      })}
+                    </div>
                   </div>
                 </div>
               )}
@@ -1473,7 +1475,7 @@ export default function DashboardPage() {
 
           {activeTab === 'general' && (
             <div className="space-y-6">
-              <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                 <div className="glass-panel rounded-2xl p-5 border border-gray-200/70">
                   <p className="text-[11px] uppercase tracking-wider font-bold text-gray-400">Asistencia Impartida</p>
                   <h3 className="text-3xl font-extrabold text-[#0071e3] mt-2">{globalAttendancePct}%</h3>
@@ -1510,78 +1512,80 @@ export default function DashboardPage() {
                   <h3 className="text-sm font-bold text-gray-900">Estado de Asignaturas</h3>
                   <span className="text-xs text-gray-400">{filteredSubjects.length} materias</span>
                 </div>
-                <div className="divide-y divide-gray-100">
-                  {filteredSubjects.map((sub) => {
-                    const isConv = userSubjects[sub.id]?.is_convalidated;
-                    const elapsed = getElapsedSessions(sub.code);
-                    const missed = userSubjects[sub.id]?.missed_classes || 0;
-                    const attended = Math.max(0, elapsed - missed);
-                    const pct = elapsed > 0 ? Math.round((attended / elapsed) * 100) : 100;
-                    const isDanger = pct < sub.min_attendance_pct && elapsed > 0;
-                    const gradeObj = getSubjectGrade(sub.id);
+                <div className="divide-y divide-gray-100 overflow-x-auto">
+                  <div className="min-w-[700px]">
+                    {filteredSubjects.map((sub) => {
+                      const isConv = userSubjects[sub.id]?.is_convalidated;
+                      const elapsed = getElapsedSessions(sub.code);
+                      const missed = userSubjects[sub.id]?.missed_classes || 0;
+                      const attended = Math.max(0, elapsed - missed);
+                      const pct = elapsed > 0 ? Math.round((attended / elapsed) * 100) : 100;
+                      const isDanger = pct < sub.min_attendance_pct && elapsed > 0;
+                      const gradeObj = getSubjectGrade(sub.id);
 
-                    if (isConv) {
+                      if (isConv) {
+                        return (
+                          <div key={sub.id} className="px-6 py-4 flex items-center justify-between bg-emerald-50/20 hover:bg-emerald-50/40 transition-colors">
+                            <div className="flex items-center gap-4">
+                              <span className="text-xs font-mono font-bold text-emerald-700 bg-emerald-100 px-2 py-1 rounded-md border border-emerald-200">
+                                {sub.code}
+                              </span>
+                              <div>
+                                <p className="text-sm font-semibold text-gray-800 line-through">{sub.name}</p>
+                                <p className="text-xs text-emerald-700 font-bold">Asignatura Convalidada</p>
+                              </div>
+                            </div>
+                            <span className="text-xs font-bold bg-emerald-100 text-emerald-800 px-3 py-1 rounded-full">
+                              Convalidada
+                            </span>
+                          </div>
+                        );
+                      }
+
                       return (
-                        <div key={sub.id} className="px-6 py-4 flex items-center justify-between bg-emerald-50/20 hover:bg-emerald-50/40 transition-colors">
+                        <div key={sub.id} className="px-6 py-4 flex items-center justify-between hover:bg-white/40 transition-colors">
                           <div className="flex items-center gap-4">
-                            <span className="text-xs font-mono font-bold text-emerald-700 bg-emerald-100 px-2 py-1 rounded-md border border-emerald-200">
+                            <span className="text-xs font-mono font-bold text-[#0071e3] bg-blue-50 px-2 py-1 rounded-md border border-blue-100">
                               {sub.code}
                             </span>
                             <div>
-                              <p className="text-sm font-semibold text-gray-800 line-through">{sub.name}</p>
-                              <p className="text-xs text-emerald-700 font-bold">Asignatura Convalidada</p>
+                              <p className="text-sm font-semibold text-gray-900">{sub.name}</p>
+                              <p className="text-xs text-gray-400">
+                                {elapsed === 0 ? 'Sin clases concluidas aún' : `${elapsed} sesiones`} • {sub.ects} ECTS {sub.is_annual ? '(Anual)' : ''}
+                              </p>
                             </div>
                           </div>
-                          <span className="text-xs font-bold bg-emerald-100 text-emerald-800 px-3 py-1 rounded-full">
-                            Convalidada
-                          </span>
+
+                          <div className="flex items-center gap-8">
+                            <div className="text-right w-28">
+                              <p className="text-xs font-semibold text-gray-900">
+                                {gradeObj ? `${gradeObj.scaledToTen} / 10` : '—'}
+                              </p>
+                              <p className="text-[11px] text-gray-400">
+                                {gradeObj ? `${gradeObj.completedPct}% evaluado` : 'Sin notas'}
+                              </p>
+                            </div>
+
+                            <div className="text-right w-24">
+                              <p className="text-xs font-semibold text-gray-700">{pct}% asist.</p>
+                              <p className="text-[11px] text-gray-400">{missed} faltas</p>
+                            </div>
+
+                            <div className="w-20 bg-gray-100 h-1.5 rounded-full overflow-hidden">
+                              <div className={`h-full rounded-full ${isDanger ? 'bg-red-500' : 'bg-[#0071e3]'}`} style={{ width: `${pct}%` }} />
+                            </div>
+
+                            <div className="w-20 text-right">
+                              <span className={`inline-flex items-center gap-1 text-xs font-bold ${isDanger ? 'text-red-600' : 'text-emerald-600'}`}>
+                                {isDanger ? <AlertCircle className="w-3.5 h-3.5" /> : <CheckCircle2 className="w-3.5 h-3.5" />}
+                                {isDanger ? 'Crítico' : 'Al día'}
+                              </span>
+                            </div>
+                          </div>
                         </div>
                       );
-                    }
-
-                    return (
-                      <div key={sub.id} className="px-6 py-4 flex items-center justify-between hover:bg-white/40 transition-colors">
-                        <div className="flex items-center gap-4">
-                          <span className="text-xs font-mono font-bold text-[#0071e3] bg-blue-50 px-2 py-1 rounded-md border border-blue-100">
-                            {sub.code}
-                          </span>
-                          <div>
-                            <p className="text-sm font-semibold text-gray-900">{sub.name}</p>
-                            <p className="text-xs text-gray-400">
-                              {elapsed === 0 ? 'Sin clases concluidas aún' : `${elapsed} sesiones`} • {sub.ects} ECTS {sub.is_annual ? '(Anual)' : ''}
-                            </p>
-                          </div>
-                        </div>
-
-                        <div className="flex items-center gap-8">
-                          <div className="text-right w-28">
-                            <p className="text-xs font-semibold text-gray-900">
-                              {gradeObj ? `${gradeObj.scaledToTen} / 10` : '—'}
-                            </p>
-                            <p className="text-[11px] text-gray-400">
-                              {gradeObj ? `${gradeObj.completedPct}% evaluado` : 'Sin notas'}
-                            </p>
-                          </div>
-
-                          <div className="text-right w-24">
-                            <p className="text-xs font-semibold text-gray-700">{pct}% asist.</p>
-                            <p className="text-[11px] text-gray-400">{missed} faltas</p>
-                          </div>
-
-                          <div className="w-20 bg-gray-100 h-1.5 rounded-full overflow-hidden">
-                            <div className={`h-full rounded-full ${isDanger ? 'bg-red-500' : 'bg-[#0071e3]'}`} style={{ width: `${pct}%` }} />
-                          </div>
-
-                          <div className="w-20 text-right">
-                            <span className={`inline-flex items-center gap-1 text-xs font-bold ${isDanger ? 'text-red-600' : 'text-emerald-600'}`}>
-                              {isDanger ? <AlertCircle className="w-3.5 h-3.5" /> : <CheckCircle2 className="w-3.5 h-3.5" />}
-                              {isDanger ? 'Crítico' : 'Al día'}
-                            </span>
-                          </div>
-                        </div>
-                      </div>
-                    );
-                  })}
+                    })}
+                  </div>
                 </div>
               </div>
             </div>
@@ -1604,7 +1608,7 @@ export default function DashboardPage() {
 
                   if (isConv) {
                     return (
-                      <div key={sub.id} className="px-6 py-4 flex items-center justify-between bg-emerald-50/20">
+                      <div key={sub.id} className="px-4 sm:px-6 py-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-emerald-50/20">
                         <div className="flex items-center gap-4">
                           <span className="text-xs font-mono font-bold text-emerald-700 bg-emerald-100 px-2 py-1 rounded-md border border-emerald-200">
                             {sub.code}
@@ -1614,7 +1618,7 @@ export default function DashboardPage() {
                             <p className="text-xs text-emerald-700 font-bold">Convalidada (Sin control de faltas)</p>
                           </div>
                         </div>
-                        <span className="text-xs font-bold bg-emerald-100 text-emerald-800 px-3 py-1 rounded-full">
+                        <span className="text-xs font-bold bg-emerald-100 text-emerald-800 px-3 py-1 rounded-full self-start sm:self-auto">
                           Convalidada
                         </span>
                       </div>
@@ -1622,7 +1626,7 @@ export default function DashboardPage() {
                   }
 
                   return (
-                    <div key={sub.id} className="px-6 py-4 flex items-center justify-between hover:bg-white/40 transition-colors">
+                    <div key={sub.id} className="px-4 sm:px-6 py-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 hover:bg-white/40 transition-colors">
                       <div className="flex items-center gap-4">
                         <span className="text-xs font-mono font-bold text-[#0071e3] bg-blue-50 px-2 py-1 rounded-md border border-blue-100">
                           {sub.code}
@@ -1635,8 +1639,8 @@ export default function DashboardPage() {
                         </div>
                       </div>
 
-                      <div className="flex items-center gap-6">
-                        <div className="text-right">
+                      <div className="flex items-center justify-between sm:justify-end gap-6 pt-2 sm:pt-0 border-t sm:border-t-0 border-gray-100">
+                        <div className="text-left sm:text-right">
                           <span className={`text-sm font-bold ${isDanger ? 'text-red-600' : 'text-gray-900'}`}>{pct}%</span>
                           <p className="text-[11px] text-gray-400">{missed} faltas</p>
                         </div>
@@ -1667,12 +1671,12 @@ export default function DashboardPage() {
 
           {activeTab === 'notas' && (
             <div className="space-y-4">
-              <div className="glass-panel rounded-2xl p-6 border border-gray-200/70 flex items-center justify-between">
+              <div className="glass-panel rounded-2xl p-6 border border-gray-200/70 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                 <div>
                   <h3 className="text-base font-bold text-gray-900">Expediente de Calificaciones</h3>
                   <p className="text-xs text-gray-400 mt-0.5">Desglosa pruebas oficiales y notas en directo</p>
                 </div>
-                <div className="text-right">
+                <div className="text-left sm:text-right">
                   <span className="text-[11px] uppercase tracking-wider font-bold text-gray-400">Media Semestre</span>
                   <p className="text-2xl font-black text-[#0071e3]">{courseGpa ? `${courseGpa}` : '—'}</p>
                 </div>
@@ -1687,7 +1691,7 @@ export default function DashboardPage() {
 
                   if (isConv) {
                     return (
-                      <div key={sub.id} className="glass-panel rounded-2xl border border-emerald-200 bg-emerald-50/20 p-5 flex items-center justify-between shadow-xs">
+                      <div key={sub.id} className="glass-panel rounded-2xl border border-emerald-200 bg-emerald-50/20 p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-xs">
                         <div className="flex items-center gap-4">
                           <span className="text-xs font-mono font-bold text-emerald-700 bg-emerald-100 px-2 py-1 rounded-md border border-emerald-200">
                             {sub.code}
@@ -1697,7 +1701,7 @@ export default function DashboardPage() {
                             <p className="text-xs text-emerald-700 font-bold">Asignatura Convalidada (No computa en media)</p>
                           </div>
                         </div>
-                        <span className="text-xs font-bold bg-emerald-100 text-emerald-800 px-3 py-1 rounded-full">
+                        <span className="text-xs font-bold bg-emerald-100 text-emerald-800 px-3 py-1 rounded-full self-start sm:self-auto">
                           Convalidada
                         </span>
                       </div>
@@ -1720,12 +1724,12 @@ export default function DashboardPage() {
                           </div>
                         </div>
 
-                        <div className="flex items-center gap-6">
+                        <div className="flex items-center gap-4 sm:gap-6">
                           <div className="text-right">
                             <span className="text-sm font-extrabold text-gray-900">
                               {gradeObj ? `${gradeObj.scaledToTen} / 10` : 'Sin notas'}
                             </span>
-                            <p className="text-[11px] text-gray-400">
+                            <p className="text-[11px] text-gray-400 hidden sm:block">
                               {gradeObj ? `${gradeObj.completedPct}% evaluado (${gradeObj.currentAccumulated} pts acumulados)` : '0% completado'}
                             </p>
                           </div>
@@ -1737,7 +1741,7 @@ export default function DashboardPage() {
                       </div>
 
                       {/* DESPLEGABLE CON ANIMACIÓN FLUIDA */}
-                      <div className={`transition-all duration-300 ease-in-out overflow-hidden ${isExpanded ? 'max-h-[1000px] opacity-100 border-t border-gray-100 bg-white/50 p-6' : 'max-h-0 opacity-0 p-0'}`}>
+                      <div className={`transition-all duration-300 ease-in-out overflow-hidden ${isExpanded ? 'max-h-[1500px] opacity-100 border-t border-gray-100 bg-white/50 p-4 sm:p-6' : 'max-h-0 opacity-0 p-0'}`}>
                         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                           {subCriteria.map((crit) => {
                             const currentVal = userGrades[crit.id];
@@ -1848,11 +1852,11 @@ export default function DashboardPage() {
         </main>
 
         <footer className="w-full border-t border-gray-200/60 bg-white/40 backdrop-blur-sm py-8 px-6 mt-12">
-          <div className="max-w-[1400px] mx-auto flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-gray-400">
-            <div className="flex items-center gap-2">
+          <div className="max-w-[1400px] mx-auto flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-gray-400 text-center sm:text-left">
+            <div className="flex items-center justify-center sm:justify-start gap-2">
               <span className="font-bold text-gray-700">UniNotas</span>
               <span>•</span>
-              <span>2n A Grau Màrqueting (EUM • Mediterrani)</span>
+              <span>2n A Grau Màrqueting (EUM)</span>
             </div>
 
             <nav className="flex flex-wrap items-center justify-center gap-4 text-[11px] font-semibold text-gray-500">
@@ -1874,7 +1878,7 @@ export default function DashboardPage() {
       {/* MODAL DE TOUR INICIAL / GUÍA DE AYUDA */}
       {(showTour || showHelpModal) && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-md animate-fade-in">
-          <div className="w-full max-w-lg bg-white/95 backdrop-blur-xl rounded-3xl p-7 shadow-2xl border border-white/80 space-y-6 relative overflow-hidden">
+          <div className="w-full max-w-lg bg-white/95 backdrop-blur-xl rounded-3xl p-6 sm:p-7 shadow-2xl border border-white/80 space-y-6 relative overflow-hidden max-h-[90vh] overflow-y-auto">
             
             <div className="flex items-center justify-between pb-3 border-b border-gray-100">
               <div className="flex items-center gap-2.5">
@@ -1882,7 +1886,7 @@ export default function DashboardPage() {
                   <GraduationCap className="w-5 h-5" />
                 </div>
                 <div>
-                  <h4 className="text-base font-extrabold text-gray-900">
+                  <h4 className="text-sm sm:text-base font-extrabold text-gray-900">
                     {showTour ? `Bienvenido a UniNotas (${tourStep}/4)` : 'Guía de Funcionalidades'}
                   </h4>
                   <p className="text-[11px] text-gray-400 font-medium">Todo lo que necesitas saber para dominar el curso</p>
@@ -1939,7 +1943,7 @@ export default function DashboardPage() {
               )}
             </div>
 
-            <div className="pt-3 border-t border-gray-100 flex items-center justify-between">
+            <div className="pt-3 border-t border-gray-100 flex flex-col sm:flex-row items-center justify-between gap-3">
               {showTour ? (
                 <>
                   <button
@@ -1949,7 +1953,7 @@ export default function DashboardPage() {
                   >
                     Saltar tutorial
                   </button>
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-2 w-full sm:w-auto justify-end">
                     {tourStep > 1 && (
                       <button
                         type="button"
@@ -1973,7 +1977,7 @@ export default function DashboardPage() {
                         onClick={handleFinishTour}
                         className="px-6 py-2.5 rounded-2xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-extrabold shadow-md cursor-pointer"
                       >
-                        ¡Empezar a usar UniNotas!
+                        ¡Empezar!
                       </button>
                     )}
                   </div>
@@ -1983,7 +1987,7 @@ export default function DashboardPage() {
                   <button
                     type="button"
                     onClick={() => setShowHelpModal(false)}
-                    className="px-6 py-2.5 rounded-2xl bg-[#0071e3] hover:bg-[#0077ed] text-white text-xs font-bold shadow-xs cursor-pointer"
+                    className="w-full sm:w-auto px-6 py-2.5 rounded-2xl bg-[#0071e3] hover:bg-[#0077ed] text-white text-xs font-bold shadow-xs cursor-pointer"
                   >
                     Cerrar Guía
                   </button>
@@ -2058,7 +2062,7 @@ export default function DashboardPage() {
             <div className="bg-gray-50 rounded-2xl p-4 border border-gray-200/70 space-y-1">
               <span className="text-[10px] uppercase font-bold text-gray-400 tracking-wider">Cuenta Activa</span>
               <p className="text-xs font-bold text-gray-900">{userEmail}</p>
-              <p className="text-[11px] text-gray-500">2n A Grau Màrqueting • EUM Mediterrani</p>
+              <p className="text-[11px] text-gray-500">2n A Grau Màrqueting • EUM</p>
             </div>
 
             <div className="space-y-2.5 bg-gray-50/80 p-4 rounded-2xl border border-gray-200/70">
@@ -2160,7 +2164,7 @@ export default function DashboardPage() {
 
       {showAddModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/25 backdrop-blur-sm">
-          <div className="w-full max-w-md bg-white rounded-3xl p-6 shadow-2xl border border-gray-200/80 space-y-5 animate-ios-item-1">
+          <div className="w-full max-w-md bg-white rounded-3xl p-6 shadow-2xl border border-gray-200/80 space-y-5 animate-ios-item-1 max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between pb-3 border-b border-gray-100">
               <h4 className="text-base font-bold text-gray-900">
                 {editingEventId ? 'Modificar Tarea o Examen' : 'Añadir Tarea o Examen'}
@@ -2183,7 +2187,7 @@ export default function DashboardPage() {
                 />
               </div>
 
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
                   <label className="text-xs font-bold text-gray-700">Asignatura</label>
                   <select
@@ -2216,7 +2220,7 @@ export default function DashboardPage() {
                   <label className="text-xs font-bold text-gray-700">Descripción / Detalle (opcional)</label>
                   <input
                     type="text"
-                    placeholder="Ej: Presentación grupal, Debate, Cuestionario online..."
+                    placeholder="Ej: Presentación grupal, Debate..."
                     value={otherDescription}
                     onChange={(e) => setOtherDescription(e.target.value)}
                     className="w-full mt-1.5 p-3 rounded-xl border border-blue-200 bg-blue-50/20 text-xs font-semibold focus:outline-none focus:border-[#0071e3]"
@@ -2225,7 +2229,7 @@ export default function DashboardPage() {
               )}
 
               {eventInClass ? (
-                <div className="grid grid-cols-2 gap-3">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div>
                     <label className="text-xs font-bold text-gray-700">Fecha en clase</label>
                     <input
@@ -2266,7 +2270,7 @@ export default function DashboardPage() {
                       <Clock className="w-3.5 h-3.5 text-amber-600" />
                       <span>Fecha y hora límite de entrega</span>
                     </label>
-                    <div className="grid grid-cols-2 gap-2 mt-1.5">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mt-1.5">
                       <input
                         type="date"
                         required
