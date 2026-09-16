@@ -30,7 +30,8 @@ import {
   Settings,
   HelpCircle,
   MessageSquareWarning,
-  CloudCheck
+  Pencil,
+  Trash2
 } from 'lucide-react';
 
 interface Subject {
@@ -193,6 +194,7 @@ export default function DashboardPage() {
   const [selectedMonth, setSelectedMonth] = useState<Date>(new Date(2026, 8, 1));
 
   const [showAddModal, setShowAddModal] = useState(false);
+  const [editingEventId, setEditingEventId] = useState<string | null>(null);
   const [eventTitle, setEventTitle] = useState('');
   const [otherDescription, setOtherDescription] = useState('');
   const [eventSubjectId, setEventSubjectId] = useState('');
@@ -294,6 +296,24 @@ export default function DashboardPage() {
     } finally {
       setLoading(false);
     }
+  };
+
+  const formatEuropeanDate = (dateStr: string) => {
+    if (!dateStr) return '';
+    const parts = dateStr.split('-');
+    if (parts.length === 3) {
+      return `${parts[2]}/${parts[1]}/${parts[0]}`;
+    }
+    return dateStr;
+  };
+
+  const formatCleanTime = (timeStr: string) => {
+    if (!timeStr) return '';
+    const parts = timeStr.split(':');
+    if (parts.length >= 2) {
+      return `${parts[0]}:${parts[1]}`;
+    }
+    return timeStr;
   };
 
   const handleFinishTour = async () => {
@@ -523,34 +543,87 @@ export default function DashboardPage() {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return;
 
-    const finalTitle = eventType === 'otro' && otherDescription.trim()
-      ? `${eventTitle.trim()} (${otherDescription.trim()})`
-      : eventTitle.trim();
+    let cleanTitle = eventTitle.trim();
+    if (eventType === 'otro' && otherDescription.trim()) {
+      cleanTitle = `${cleanTitle} (${otherDescription.trim()})`;
+    }
 
     setSyncStatus('guardando');
-    const { data: inserted, error } = await supabase.from('academic_events').insert({
-      user_id: user.id,
-      subject_id: eventSubjectId,
-      title: finalTitle,
-      event_type: eventType,
-      start_date: eventInClass ? eventDueDate : eventStartDate,
-      due_date: eventDueDate,
-      due_time: eventDueTime,
-      in_class: eventInClass
-    }).select().single();
 
-    if (inserted && !error) {
-      setEvents((prev) => [...prev, inserted]);
-      setEventTitle('');
-      setOtherDescription('');
-      setShowAddModal(false);
+    if (editingEventId) {
+      const { data: updated, error } = await supabase.from('academic_events').update({
+        subject_id: eventSubjectId,
+        title: cleanTitle,
+        event_type: eventType,
+        start_date: eventInClass ? eventDueDate : eventStartDate,
+        due_date: eventDueDate,
+        due_time: eventDueTime,
+        in_class: eventInClass
+      }).eq('id', editingEventId).select().single();
+
+      if (updated && !error) {
+        setEvents((prev) => prev.map((ev) => ev.id === editingEventId ? updated : ev));
+        setEventTitle('');
+        setOtherDescription('');
+        setEditingEventId(null);
+        setShowAddModal(false);
+      }
+    } else {
+      const { data: inserted, error } = await supabase.from('academic_events').insert({
+        user_id: user.id,
+        subject_id: eventSubjectId,
+        title: cleanTitle,
+        event_type: eventType,
+        start_date: eventInClass ? eventDueDate : eventStartDate,
+        due_date: eventDueDate,
+        due_time: eventDueTime,
+        in_class: eventInClass
+      }).select().single();
+
+      if (inserted && !error) {
+        setEvents((prev) => [...prev, inserted]);
+        setEventTitle('');
+        setOtherDescription('');
+        setShowAddModal(false);
+      }
     }
     setSyncStatus('sincronizado');
+  };
+
+  const handleOpenEditModal = (ev: AcademicEvent) => {
+    setEditingEventId(ev.id);
+    let titleToSet = ev.title;
+    let descToSet = '';
+
+    if (ev.event_type === 'otro' && ev.title.includes('(') && ev.title.endsWith(')')) {
+      const lastIndex = ev.title.lastIndexOf('(');
+      titleToSet = ev.title.substring(0, lastIndex).trim();
+      descToSet = ev.title.substring(lastIndex + 1, ev.title.length - 1).trim();
+    }
+
+    setEventTitle(titleToSet);
+    setOtherDescription(descToSet);
+    setEventSubjectId(ev.subject_id);
+    setEventType(ev.event_type);
+    setEventStartDate(ev.start_date || ev.due_date);
+    setEventDueDate(ev.due_date);
+    setEventDueTime(ev.due_time);
+    setEventInClass(ev.in_class);
+    setShowAddModal(true);
   };
 
   const handleToggleEvent = async (eventId: string, current: boolean) => {
     setEvents((prev) => prev.map((ev) => ev.id === eventId ? { ...ev, completed: !current } : ev));
     await supabase.from('academic_events').update({ completed: !current }).eq('id', eventId);
+  };
+
+  const handleDeleteEvent = async (eventId: string) => {
+    if (!window.confirm('¿Seguro que quieres eliminar este trabajo o examen?')) return;
+    
+    setSyncStatus('guardando');
+    setEvents((prev) => prev.filter((ev) => ev.id !== eventId));
+    await supabase.from('academic_events').delete().eq('id', eventId);
+    setSyncStatus('sincronizado');
   };
 
   const handleUpdateGroups = async (chineseG: string, englishG: string) => {
@@ -707,7 +780,13 @@ export default function DashboardPage() {
     dailyClasses.sort((a, b) => a.slot.startHour - b.slot.startHour);
   }
 
-  const dailyEvents = events.filter((e) => e.due_date === selIso || (e.start_date && e.start_date === selIso));
+  const dailyEvents = events.filter((e) => {
+    if (e.in_class) {
+      return e.due_date === selIso;
+    } else {
+      return e.due_date === selIso || (e.start_date && e.start_date === selIso);
+    }
+  });
 
   const getMonthDays = (year: number, month: number) => {
     const firstDay = new Date(year, month, 1);
@@ -1031,10 +1110,12 @@ export default function DashboardPage() {
 
                 <button
                   onClick={() => {
+                    setEditingEventId(null);
                     setEventStartDate(selIso);
                     setEventDueDate(selIso);
                     setEventInClass(true);
                     setOtherDescription('');
+                    setEventTitle('');
                     setShowAddModal(true);
                   }}
                   className="flex items-center gap-2 px-4 py-2.5 rounded-2xl bg-[#0071e3] hover:bg-[#0077ed] text-white text-xs font-bold transition-all shadow-md active:scale-95 cursor-pointer"
@@ -1145,7 +1226,8 @@ export default function DashboardPage() {
 
                               <button
                                 onClick={() => handleToggleEvent(ev.id, ev.completed)}
-                                className={`w-6 h-6 rounded-lg border flex items-center justify-center transition-colors cursor-pointer ${
+                                title="Marcar como completado"
+                                className={`w-6 h-6 rounded-lg border flex items-center justify-center transition-colors cursor-pointer shrink-0 ${
                                   ev.completed ? 'bg-emerald-500 border-emerald-500 text-white' : 'border-gray-300 hover:border-gray-400 bg-white'
                                 }`}
                               >
@@ -1157,23 +1239,42 @@ export default function DashboardPage() {
                               {ev.in_class ? (
                                 <div className="flex items-center gap-1.5 text-xs text-gray-700 font-semibold">
                                   <Clock className="w-3.5 h-3.5 text-[#0071e3]" />
-                                  <span>Hora de clase: {ev.due_time || 'Durante la sesión'}</span>
+                                  <span>Hora de clase: {formatCleanTime(ev.due_time) || 'Durante la sesión'}</span>
                                 </div>
                               ) : (
                                 <div className="space-y-1">
                                   {ev.start_date && (
                                     <div className="flex items-center gap-1.5 text-[11px] text-gray-500 opacity-60">
                                       <CalendarDays className="w-3 h-3" />
-                                      <span>Asignado / Inicio: {ev.start_date}</span>
+                                      <span>Asignado / Inicio: {formatEuropeanDate(ev.start_date)}</span>
                                     </div>
                                   )}
                                   <div className="flex items-center gap-1.5 text-xs text-amber-900 bg-amber-100/70 border border-amber-300/70 px-2.5 py-1 rounded-lg font-bold">
                                     <Clock className="w-3.5 h-3.5 text-amber-700 shrink-0" />
-                                    <span>Límite: {ev.due_date} hasta las {ev.due_time}</span>
+                                    <span>Límite: {formatEuropeanDate(ev.due_date)} hasta las {formatCleanTime(ev.due_time)}</span>
                                   </div>
                                 </div>
                               )}
                             </div>
+
+                            {/* BOTONES ABAJO DEL RECUADRO: MODIFICAR Y ELIMINAR */}
+                            <div className="pt-2.5 border-t border-gray-200/60 flex items-center justify-end gap-2">
+                              <button
+                                onClick={() => handleOpenEditModal(ev)}
+                                className="flex items-center gap-1 px-2.5 py-1.5 rounded-xl bg-white hover:bg-gray-100 text-gray-700 border border-gray-200 text-[11px] font-bold shadow-xs transition-colors cursor-pointer"
+                              >
+                                <Pencil className="w-3 h-3 text-[#0071e3]" />
+                                <span>Modificar</span>
+                              </button>
+                              <button
+                                onClick={() => handleDeleteEvent(ev.id)}
+                                className="flex items-center gap-1 px-2.5 py-1.5 rounded-xl bg-red-50 hover:bg-red-100 text-red-600 border border-red-200 text-[11px] font-bold shadow-xs transition-colors cursor-pointer"
+                              >
+                                <Trash2 className="w-3 h-3 text-red-500" />
+                                <span>Eliminar</span>
+                              </button>
+                            </div>
+
                           </div>
                         );
                       })
@@ -1214,8 +1315,10 @@ export default function DashboardPage() {
 
                   <button
                     onClick={() => {
+                      setEditingEventId(null);
                       setEventInClass(false);
                       setOtherDescription('');
+                      setEventTitle('');
                       setShowAddModal(true);
                     }}
                     className="flex items-center gap-2 px-4 py-2.5 rounded-2xl bg-[#0071e3] hover:bg-[#0077ed] text-white text-xs font-bold transition-all shadow-md active:scale-95 cursor-pointer"
@@ -1354,7 +1457,7 @@ export default function DashboardPage() {
                                     ev.event_type === 'examen' ? 'bg-red-100 text-red-700' : 'bg-blue-100 text-blue-700'
                                   }`}
                                 >
-                                  {ev.due_time} {ev.title}
+                                  {formatCleanTime(ev.due_time)} {ev.title}
                                 </span>
                               ))
                             )}
@@ -2059,7 +2162,9 @@ export default function DashboardPage() {
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/25 backdrop-blur-sm">
           <div className="w-full max-w-md bg-white rounded-3xl p-6 shadow-2xl border border-gray-200/80 space-y-5 animate-ios-item-1">
             <div className="flex items-center justify-between pb-3 border-b border-gray-100">
-              <h4 className="text-base font-bold text-gray-900">Añadir Tarea o Examen</h4>
+              <h4 className="text-base font-bold text-gray-900">
+                {editingEventId ? 'Modificar Tarea o Examen' : 'Añadir Tarea o Examen'}
+              </h4>
               <button onClick={() => setShowAddModal(false)} className="text-gray-400 hover:text-gray-600 cursor-pointer">
                 <X className="w-5 h-5" />
               </button>
@@ -2206,7 +2311,7 @@ export default function DashboardPage() {
                   type="submit"
                   className="px-5 py-2 rounded-xl bg-[#0071e3] hover:bg-[#0077ed] text-white text-xs font-bold shadow-xs cursor-pointer"
                 >
-                  Guardar Evento
+                  {editingEventId ? 'Actualizar Evento' : 'Guardar Evento'}
                 </button>
               </div>
             </form>
