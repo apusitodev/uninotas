@@ -28,8 +28,7 @@ import {
   BookmarkCheck,
   AlertTriangle,
   Settings,
-  HelpCircle,
-  MessageSquarePlus
+  HelpCircle
 } from 'lucide-react';
 
 interface Subject {
@@ -173,13 +172,9 @@ export default function DashboardPage() {
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [savingSettings, setSavingSettings] = useState(false);
 
-  // Estados del Tour, Guía y Feedback
   const [showTour, setShowTour] = useState(false);
   const [tourStep, setTourStep] = useState(1);
   const [showHelpModal, setShowHelpModal] = useState(false);
-  const [showFeedbackModal, setShowFeedbackModal] = useState(false);
-  const [feedbackText, setFeedbackText] = useState('');
-  const [feedbackSent, setFeedbackSent] = useState(false);
 
   const [activeTab, setActiveTab] = useState<'general' | 'diario' | 'calendario' | 'asistencia' | 'notas'>('general');
   const [activeSemester, setActiveSemester] = useState<number>(1);
@@ -300,30 +295,6 @@ export default function DashboardPage() {
     setShowTour(false);
     if (userId) {
       await supabase.from('profiles').update({ has_seen_tour: true }).eq('id', userId);
-    }
-  };
-
-  const handleSendFeedback = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!feedbackText.trim()) return;
-
-    try {
-      await supabase.from('feedback_reports').insert({
-        user_id: userId || null,
-        user_email: userEmail || 'Anónimo',
-        message: feedbackText.trim(),
-        page_url: activeTab
-      });
-
-      setFeedbackSent(true);
-      setFeedbackText('');
-      setTimeout(() => {
-        setFeedbackSent(false);
-        setShowFeedbackModal(false);
-      }, 2000);
-    } catch (err) {
-      console.error('Error enviando feedback:', err);
-      alert('Hubo un error al enviar el comentario.');
     }
   };
 
@@ -730,13 +701,7 @@ export default function DashboardPage() {
   return (
     <div className="min-h-screen bg-[#f4f5f8] text-gray-900 font-sans antialiased relative overflow-x-hidden">
       
-      <div 
-        onClick={() => setSidebarOpen(false)}
-        className={`fixed inset-0 z-40 bg-black/15 backdrop-blur-sm transition-opacity duration-300 ${
-          sidebarOpen ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'
-        }`}
-      />
-{/* CAPA DE DESENFOQUE DE FONDO (BLUR) */}
+      {/* CAPA DE DESENFOQUE DE FONDO */}
       <div 
         onClick={() => setSidebarOpen(false)}
         className={`fixed inset-0 z-40 bg-black/15 backdrop-blur-sm transition-opacity duration-300 ${
@@ -751,7 +716,6 @@ export default function DashboardPage() {
         }`}
       >
         <div className="space-y-7">
-          {/* CABECERA: 3 RAYAS GIRADAS 90 GRADOS HACIA ABAJO + TÍTULO MENÚ */}
           <div className="flex items-center gap-3.5 pt-1">
             <button
               onClick={() => setSidebarOpen(false)}
@@ -767,7 +731,6 @@ export default function DashboardPage() {
             <h2 className="text-2xl font-extrabold tracking-tight text-gray-900 leading-none">Menú</h2>
           </div>
 
-          {/* OPCIONES DE NAVEGACIÓN CON ENTRADA ESCALONADA */}
           <nav className="space-y-1.5">
             <button
               onClick={() => { setActiveTab('general'); setSidebarOpen(false); }}
@@ -821,7 +784,6 @@ export default function DashboardPage() {
           </nav>
         </div>
 
-        {/* PIE DEL MENÚ: UNINOTAS + UNIVERSIDAD + AJUSTES + SALIDA */}
         <div className={`border-t border-gray-200/60 pt-4 space-y-2.5 ${sidebarOpen ? 'animate-ios-item-4' : ''}`}>
           <div className="flex items-center gap-3 px-1">
             <div className="w-8 h-8 rounded-xl bg-white border border-gray-200/80 flex items-center justify-center text-[#0071e3] shadow-xs shrink-0">
@@ -837,10 +799,15 @@ export default function DashboardPage() {
           </div>
 
           <button
-            onClick={() => {
-              setSidebarOpen(false);
-              setSettingsOpen(true);
-            }}
+            onClick={() => { setSidebarOpen(false); setShowHelpModal(true); }}
+            className="w-full flex items-center justify-center gap-2 py-2 px-3 rounded-xl bg-gray-100 hover:bg-gray-200/80 text-xs font-semibold text-gray-700 transition-colors cursor-pointer"
+          >
+            <HelpCircle className="w-3.5 h-3.5 text-gray-600 shrink-0" />
+            <span>Guía y Funcionalidades</span>
+          </button>
+
+          <button
+            onClick={() => { setSidebarOpen(false); setSettingsOpen(true); }}
             className="w-full flex items-center justify-center gap-2 py-2 px-3 rounded-xl bg-gray-100 hover:bg-gray-200/80 text-xs font-semibold text-gray-700 transition-colors cursor-pointer"
           >
             <Settings className="w-3.5 h-3.5 text-gray-600 shrink-0" />
@@ -856,22 +823,23 @@ export default function DashboardPage() {
           </button>
         </div>
       </aside>
-      
-{/* BOTÓN FLOTANTE EXTERIOR (3 RAYAS) - SIEMPRE VISIBLE ARRIBA A LA IZQUIERDA */}
+
+      {/* BOTÓN FLOTANTE EXTERIOR (3 RAYAS CON ANIMACIÓN SUAVE Y FLUIDA) */}
       <button
         onClick={() => setSidebarOpen(true)}
         aria-label="Abrir menú"
-        className={`fixed top-5 left-6 z-[60] w-11 h-11 rounded-2xl glass-panel flex items-center justify-center cursor-pointer shadow-md hover:shadow-lg transition-all duration-300 bg-white/90 backdrop-blur-md border border-gray-200/80 ${
+        className={`fixed top-5 left-6 z-40 w-11 h-11 rounded-2xl glass-panel flex items-center justify-center cursor-pointer shadow-sm hover:shadow transition-all duration-300 ${
           sidebarOpen ? 'opacity-0 scale-90 pointer-events-none' : 'opacity-100 scale-100 pointer-events-auto'
         }`}
       >
-        <div className="flex flex-col items-center justify-center gap-1 w-5 h-5">
-          <span className="w-4 h-[2.5px] bg-gray-800 rounded-full" />
-          <span className="w-4 h-[2.5px] bg-gray-800 rounded-full" />
-          <span className="w-4 h-[2.5px] bg-gray-800 rounded-full" />
+        <div className="flex flex-col items-center justify-center gap-1 w-5 h-5 transition-transform duration-300 ease-in-out">
+          <span className="w-4 h-[2px] bg-gray-700 rounded-full" />
+          <span className="w-4 h-[2px] bg-gray-700 rounded-full" />
+          <span className="w-4 h-[2px] bg-gray-700 rounded-full" />
         </div>
       </button>
 
+      {/* CONTENIDO PRINCIPAL */}
       <div className="w-full flex flex-col min-w-0">
         <header className="px-8 pl-22 py-5 flex items-center justify-between border-b border-gray-200/60 bg-white/40 backdrop-blur-md sticky top-0 z-30">
           <div>
@@ -1763,58 +1731,6 @@ export default function DashboardPage() {
         </footer>
 
       </div>
-
-      {/* MODAL DE FEEDBACK / REPORTE DE FALLOS */}
-      {showFeedbackModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-md">
-          <div className="w-full max-w-md bg-white rounded-3xl p-6 shadow-2xl border border-gray-200/80 space-y-5 animate-ios-item-1">
-            <div className="flex items-center justify-between pb-3 border-b border-gray-100">
-              <h4 className="text-base font-extrabold text-gray-900">¿Algún fallo o mejora?</h4>
-              <button onClick={() => setShowFeedbackModal(false)} className="text-gray-400 hover:text-gray-600 cursor-pointer">
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-
-            {feedbackSent ? (
-              <div className="py-8 text-center space-y-2">
-                <CheckCircle2 className="w-10 h-10 text-emerald-500 mx-auto animate-bounce" />
-                <p className="text-sm font-bold text-gray-900">¡Mensaje enviado con éxito!</p>
-                <p className="text-xs text-gray-400">Muchas gracias por ayudar a mejorar UniNotas.</p>
-              </div>
-            ) : (
-              <form onSubmit={handleSendFeedback} className="space-y-4">
-                <div>
-                  <label className="text-xs font-bold text-gray-700 block mb-1">Cuéntanos qué pasa o qué te gustaría añadir:</label>
-                  <textarea
-                    required
-                    rows={4}
-                    placeholder="Ej: En la asignatura de Estadística el botón de sumar faltas no actualiza bien..."
-                    value={feedbackText}
-                    onChange={(e) => setFeedbackText(e.target.value)}
-                    className="w-full p-3 rounded-2xl border border-gray-200 text-xs font-semibold focus:outline-none focus:border-[#0071e3] bg-gray-50/50 resize-none"
-                  />
-                </div>
-
-                <div className="flex items-center justify-end gap-2 pt-2 border-t border-gray-100">
-                  <button
-                    type="button"
-                    onClick={() => setShowFeedbackModal(false)}
-                    className="px-4 py-2 rounded-xl text-xs font-bold text-gray-500 hover:bg-gray-100 cursor-pointer"
-                  >
-                    Cancelar
-                  </button>
-                  <button
-                    type="submit"
-                    className="px-5 py-2.5 rounded-xl bg-[#0071e3] hover:bg-[#0077ed] text-white text-xs font-bold shadow-xs cursor-pointer"
-                  >
-                    Enviar reporte
-                  </button>
-                </div>
-              </form>
-            )}
-          </div>
-        </div>
-      )}
 
       {/* MODAL DE TOUR INICIAL / GUÍA DE AYUDA */}
       {(showTour || showHelpModal) && (
