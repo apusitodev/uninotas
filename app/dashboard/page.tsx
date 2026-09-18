@@ -157,6 +157,18 @@ interface PendingSession {
   sessionDate: string;
 }
 
+const PartialGradeWarning = ({ completedPct }: { completedPct: number }) => {
+  if (completedPct >= 100) return null;
+  return (
+    <div className="relative group cursor-help inline-flex items-center ml-1.5 align-middle">
+      <AlertCircle className="w-3.5 h-3.5 text-amber-500 animate-pulse" />
+      <div className="absolute left-1/2 -translate-x-1/2 bottom-full mb-1.5 hidden group-hover:block bg-gray-900 text-white text-[10px] rounded-md px-2.5 py-1 whitespace-nowrap z-30 shadow-xl border border-gray-800">
+        Nota parcial ({completedPct}% evaluado): No definitiva.
+      </div>
+    </div>
+  );
+};
+
 export default function DashboardPage() {
   const router = useRouter();
   const [loading, setLoading] = useState(true);
@@ -183,7 +195,7 @@ export default function DashboardPage() {
   const [reportText, setReportText] = useState('');
 
   const [activeTab, setActiveTab] = useState<'general' | 'diario' | 'calendario' | 'asistencia' | 'notas'>('general');
-  const [activeSemester, setActiveSemester] = useState<number>(1);
+  const [activeSemester, setActiveSemester] = useState<number | 'total'>(1);
   const [sidebarOpen, setSidebarOpen] = useState<boolean>(false);
   const [notifOpen, setNotifOpen] = useState<boolean>(false);
   const [userEmail, setUserEmail] = useState<string>('');
@@ -721,7 +733,8 @@ export default function DashboardPage() {
     };
   };
 
-  const filteredSubjects = subjects.filter((s) => s.semester === activeSemester || s.is_annual);
+  
+  const filteredSubjects = subjects.filter((s) => activeSemester === 'total' || s.semester === activeSemester || s.is_annual);
 
   let totalElapsedGlobal = 0;
   let totalMissedGlobal = 0;
@@ -1040,7 +1053,7 @@ export default function DashboardPage() {
             <div className="inline-flex p-1 rounded-xl bg-gray-200/70 border border-gray-300/40">
               <button
                 onClick={() => setActiveSemester(1)}
-                className={`px-3 sm:px-4 py-1.5 rounded-lg text-[11px] sm:text-xs font-semibold transition-all cursor-pointer ${
+                className={`px-2.5 sm:px-3.5 py-1.5 rounded-lg text-[11px] sm:text-xs font-semibold transition-all cursor-pointer ${
                   activeSemester === 1 ? 'bg-white text-gray-900 shadow-xs' : 'text-gray-500 hover:text-gray-900'
                 }`}
               >
@@ -1048,11 +1061,19 @@ export default function DashboardPage() {
               </button>
               <button
                 onClick={() => setActiveSemester(2)}
-                className={`px-3 sm:px-4 py-1.5 rounded-lg text-[11px] sm:text-xs font-semibold transition-all cursor-pointer ${
+                className={`px-2.5 sm:px-3.5 py-1.5 rounded-lg text-[11px] sm:text-xs font-semibold transition-all cursor-pointer ${
                   activeSemester === 2 ? 'bg-white text-gray-900 shadow-xs' : 'text-gray-500 hover:text-gray-900'
                 }`}
               >
                 2n Sem.
+              </button>
+              <button
+                onClick={() => setActiveSemester('total')}
+                className={`px-2.5 sm:px-3.5 py-1.5 rounded-lg text-[11px] sm:text-xs font-semibold transition-all cursor-pointer ${
+                  activeSemester === 'total' ? 'bg-white text-gray-900 shadow-xs' : 'text-gray-500 hover:text-gray-900'
+                }`}
+              >
+                Curso Total
               </button>
             </div>
           </div>
@@ -1664,7 +1685,10 @@ export default function DashboardPage() {
                   <p className="text-xs text-gray-400 mt-0.5">Desglosa pruebas oficiales y notas en directo</p>
                 </div>
                 <div className="text-left sm:text-right">
-                  <span className="text-[11px] uppercase tracking-wider font-bold text-gray-400">Media Semestre</span>
+                  <div className="flex items-center gap-1.5 sm:justify-end">
+                    <span className="text-[11px] uppercase tracking-wider font-bold text-gray-400">Media Semestre</span>
+                    {courseGpa && <PartialGradeWarning completedPct={100} />}
+                  </div>
                   <p className="text-2xl font-black text-[#0071e3]">{courseGpa ? `${courseGpa}` : '—'}</p>
                 </div>
               </div>
@@ -1713,9 +1737,12 @@ export default function DashboardPage() {
 
                         <div className="flex items-center gap-4 sm:gap-6">
                           <div className="text-right">
-                            <span className="text-sm font-extrabold text-gray-900">
-                              {gradeObj ? `${gradeObj.scaledToTen} / 10` : 'Sin notas'}
-                            </span>
+                            <div className="flex items-center justify-end">
+                              <span className="text-sm font-extrabold text-gray-900">
+                                {gradeObj ? `${gradeObj.scaledToTen} / 10` : 'Sin notas'}
+                              </span>
+                              {gradeObj && <PartialGradeWarning completedPct={gradeObj.completedPct} />}
+                            </div>
                             <p className="text-[11px] text-gray-400 hidden sm:block">
                               {gradeObj ? `${gradeObj.completedPct}% evaluado (${gradeObj.currentAccumulated} pts acumulados)` : '0% completado'}
                             </p>
