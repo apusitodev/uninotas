@@ -158,12 +158,11 @@ interface PendingSession {
 }
 
 const PartialGradeWarning = ({ completedPct }: { completedPct: number }) => {
-  if (completedPct >= 100) return null;
   return (
     <div className="relative group cursor-help inline-flex items-center ml-1.5 align-middle">
       <AlertCircle className="w-3.5 h-3.5 text-amber-500 animate-pulse" />
       <div className="absolute left-1/2 -translate-x-1/2 bottom-full mb-1.5 hidden group-hover:block bg-gray-900 text-white text-[10px] rounded-md px-2.5 py-1 whitespace-nowrap z-30 shadow-xl border border-gray-800">
-        Nota parcial ({completedPct}% evaluado): No definitiva.
+        {completedPct === 0 ? 'Sin notas registradas (0% evaluado).' : `Nota parcial (${completedPct}% evaluado): No definitiva.`}
       </div>
     </div>
   );
@@ -1687,7 +1686,10 @@ export default function DashboardPage() {
                 <div className="text-left sm:text-right">
                   <div className="flex items-center gap-1.5 sm:justify-end">
                     <span className="text-[11px] uppercase tracking-wider font-bold text-gray-400">Media Semestre</span>
-                    {courseGpa && <PartialGradeWarning completedPct={100} />}
+                    <PartialGradeWarning completedPct={filteredSubjects.reduce((acc, sub) => {
+                      const g = getSubjectGrade(sub.id);
+                      return acc + (g?.completedPct || 0);
+                    }, 0) / (filteredSubjects.filter(s => !userSubjects[s.id]?.is_convalidated).length || 1)} />
                   </div>
                   <p className="text-2xl font-black text-[#0071e3]">{courseGpa ? `${courseGpa}` : '—'}</p>
                 </div>
@@ -1741,7 +1743,7 @@ export default function DashboardPage() {
                               <span className="text-sm font-extrabold text-gray-900">
                                 {gradeObj ? `${gradeObj.scaledToTen} / 10` : 'Sin notas'}
                               </span>
-                              {gradeObj && <PartialGradeWarning completedPct={gradeObj.completedPct} />}
+                              <PartialGradeWarning completedPct={gradeObj ? gradeObj.completedPct : 0} />
                             </div>
                             <p className="text-[11px] text-gray-400 hidden sm:block">
                               {gradeObj ? `${gradeObj.completedPct}% evaluado (${gradeObj.currentAccumulated} pts acumulados)` : '0% completado'}
