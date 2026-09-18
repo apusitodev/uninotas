@@ -716,18 +716,10 @@ export default function DashboardPage() {
     if (!hasAnyGrade) return null;
     return {
       currentAccumulated: Number(weightedSum.toFixed(2)),
-      scaledToTen: Number(((weightedSum / evaluatedWeight) * 10).toFixed(2)),
+      scaledToTen: evaluatedWeight > 0 ? Number((weightedSum / (evaluatedWeight / 100)).toFixed(2)) : 0,
       completedPct: evaluatedWeight
     };
   };
-
-  if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-[#f4f5f8] text-gray-400 text-xs font-medium tracking-wide">
-        Sincronizando expediente oficial...
-      </div>
-    );
-  }
 
   const filteredSubjects = subjects.filter((s) => s.semester === activeSemester || s.is_annual);
 
@@ -1664,7 +1656,7 @@ export default function DashboardPage() {
             </div>
           )}
 
-{activeTab === 'notas' && (
+          {activeTab === 'notas' && (
             <div className="space-y-4">
               <div className="glass-panel rounded-2xl p-6 border border-gray-200/70 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                 <div>
@@ -1769,11 +1761,11 @@ export default function DashboardPage() {
                                         max="10"
                                         placeholder="—"
                                         value={currentVal !== null && currentVal !== undefined ? currentVal : ''}
-                                        onChange={(e) => handleUpdateGrade(crit.id, e.target.value === '' ? '' : String(parseFloat(e.target.value)))}
+                                        onChange={(e) => handleUpdateGrade(crit.id, e.target.value)}
                                         className="w-16 text-center py-1.5 px-2 text-sm font-bold rounded-lg border border-gray-200 focus:outline-none focus:border-[#0071e3] bg-gray-50/50"
-                                      />  
-                                        <span className="text-xs text-gray-400 font-bold">/10</span>
-                                      </div>
+                                      />
+                                      <span className="text-xs text-gray-400 font-bold">/10</span>
+                                    </div>
                                   )}
                                 </div>
 
@@ -1808,7 +1800,7 @@ export default function DashboardPage() {
                                           max="10"
                                           placeholder="—"
                                           value={subItem.grade !== null && subItem.grade !== undefined ? subItem.grade : ''}
-                                          onChange={(e) => handleUpdateCustomSubGrade(subItem.id, crit.id, e.target.value === '' ? '' : String(parseFloat(e.target.value)))}
+                                          onChange={(e) => handleUpdateCustomSubGrade(subItem.id, crit.id, e.target.value)}
                                           className="w-14 text-center py-1 px-1.5 text-xs font-bold rounded-lg border border-gray-200 bg-white"
                                         />
                                         <span className="text-[10px] text-gray-400 font-bold">/10</span>
