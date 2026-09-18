@@ -219,6 +219,30 @@ export default function DashboardPage() {
     fetchInitialData();
   }, []);
 
+  useEffect(() => {
+    const handleBeforeInstallPrompt = (e: Event) => {
+      e.preventDefault();
+      setDeferredPrompt(e);
+      setShowInstallBtn(true);
+    };
+
+    window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+
+    return () => {
+      window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+    };
+  }, []);
+
+  const handleInstallClick = async () => {
+    if (!deferredPrompt) return;
+    deferredPrompt.prompt();
+    const { outcome } = await deferredPrompt.userChoice;
+    if (outcome === 'accepted') {
+      setDeferredPrompt(null);
+      setShowInstallBtn(false);
+    }
+  };
+
   const fetchInitialData = async () => {
     try {
       const { data: { user } } = await supabase.auth.getUser();
@@ -804,6 +828,26 @@ export default function DashboardPage() {
   };
   const monthDaysList = getMonthDays(selectedMonth.getFullYear(), selectedMonth.getMonth());
 
+const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
+const [showInstallBtn, setShowInstallBtn] = useState(false);
+
+  if (loading) {
+    return (
+      <div className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-[#f4f5f8]">
+        <div className="flex flex-col items-center space-y-4 p-8 rounded-3xl bg-white shadow-xl border border-gray-100 max-w-xs w-full mx-4">
+          <div className="relative flex items-center justify-center">
+            <div className="absolute h-12 w-12 rounded-full border-4 border-blue-100"></div>
+            <div className="h-12 w-12 animate-spin rounded-full border-4 border-[#0071e3] border-t-transparent"></div>
+          </div>
+          <div className="flex flex-col items-center space-y-1 text-center">
+            <h2 className="text-sm font-black tracking-tight text-gray-900">Uninotas</h2>
+            <p className="text-[11px] text-gray-400 font-medium animate-pulse">Sincronizando expediente...</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-[#f4f5f8] text-gray-900 font-sans antialiased relative overflow-x-hidden">
       
@@ -933,6 +977,17 @@ export default function DashboardPage() {
             <LogOut className="w-3.5 h-3.5 shrink-0" />
             <span>Cerrar sesión</span>
           </button>
+          {showInstallBtn && (
+            <button
+              onClick={handleInstallClick}
+              className="w-full flex items-center justify-center gap-2 bg-[#0071e3] hover:bg-[#005bb5] text-white font-semibold py-2 px-3 rounded-xl text-xs shadow-xs transition-all cursor-pointer mt-2"
+            >
+              <svg className="w-4 h-4 fill-current" viewBox="0 0 24 24">
+                <path d="M19 9h-4V3H9v6H5l7 7 7-7zM5 18v2h14v-2H5z"/>
+              </svg>
+              <span>Instalar App en el Móvil</span>
+            </button>
+          )}
         </div>
       </aside>
 
