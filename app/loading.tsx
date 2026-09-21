@@ -3,10 +3,12 @@ import React from 'react';
 
 export default function Loading() {
   return (
-    <div className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-[#f4f5f8]">
-      <div className="flex flex-col items-center space-y-4 p-8 rounded-3xl bg-white shadow-xl border border-gray-100 max-w-xs w-full mx-4">
-        
-        {/* Contenedor de la botella animada corporativa */}
+    <div className="fixed inset-0 z-50 flex flex-col items-center justify-between bg-[#f4f5f8] py-12">
+      {/* Espaciador superior */}
+      <div />
+
+      {/* Contenido central: Botella animada y texto */}
+      <div className="flex flex-col items-center space-y-4">
         <div className="flex items-center justify-center my-1">
           <svg
             viewBox="0 0 205 615"
@@ -32,11 +34,14 @@ export default function Loading() {
           `}</style>
         </div>
 
-        {/* Textos de carga */}
-        <div className="flex flex-col items-center space-y-1 text-center">
-          <h2 className="text-sm font-black tracking-tight text-gray-900">UniNotas</h2>
-          <p className="text-[11px] text-gray-400 font-medium animate-pulse">Sincronizando expediente...</p>
-        </div>
+        <p className="text-xs text-gray-400 font-medium tracking-wide animate-pulse">Sincronizando expediente...</p>
+      </div>
+
+      {/* Footer inferior */}
+      <div className="text-center">
+        <p className="text-[11px] text-gray-400 font-normal">
+          © 2026 UniNotas. Uso académico personal.
+        </p>
       </div>
     </div>
   );
