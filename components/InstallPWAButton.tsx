@@ -3,7 +3,7 @@ import { useState, useEffect } from 'react';
 import { Smartphone, X, Check } from 'lucide-react';
 
 interface InstallPWAButtonProps {
-  onAction?: () => void; // Para cerrar el menú lateral al hacer clic
+  onAction?: () => void;
 }
 
 export default function InstallPWAButton({ onAction }: InstallPWAButtonProps) {
@@ -24,8 +24,12 @@ export default function InstallPWAButton({ onAction }: InstallPWAButtonProps) {
   }, []);
 
   const handleInstallClick = () => {
-    if (onAction) onAction(); // Cierra el menú lateral
-    setShowModal(true);
+    // Si pasamos la acción de cerrar el menú, la ejecutamos
+    if (onAction) onAction();
+    // Abrimos el modal con un pequeño respiro para que el menú se cierre fluido
+    setTimeout(() => {
+      setShowModal(true);
+    }, 100);
   };
 
   const handleNativeInstall = async () => {
@@ -41,8 +45,8 @@ export default function InstallPWAButton({ onAction }: InstallPWAButtonProps) {
 
   return (
     <>
-      {/* Botón en el menú lateral */}
-      <div className="w-full">
+      {/* Forzamos que en pantallas medianas/grandes (PC) esté oculto (hidden) y en móvil sea flex */}
+      <div className="w-full block md:hidden">
         <button
           onClick={handleInstallClick}
           className="w-full flex items-center justify-center gap-2 py-2 px-3 rounded-xl bg-gray-100 hover:bg-gray-200/80 text-xs font-semibold text-gray-700 transition-colors cursor-pointer"
@@ -52,12 +56,11 @@ export default function InstallPWAButton({ onAction }: InstallPWAButtonProps) {
         </button>
       </div>
 
-      {/* Modal flotante idéntico a la Guía de Funcionalidades */}
+      {/* Modal flotante */}
       {showModal && (
-        <div className="fixed inset-0 z-[99999] flex items-center justify-center p-4 bg-black/40 backdrop-blur-md animate-fade-in">
-          <div className="w-full max-w-lg bg-white/95 backdrop-blur-xl rounded-3xl p-6 sm:p-7 shadow-2xl border border-white/80 space-y-6 relative overflow-hidden max-h-[90vh] overflow-y-auto">
+        <div className="fixed inset-0 z-[99999] flex items-center justify-center p-4 bg-black/40 backdrop-blur-md">
+          <div className="w-full max-w-lg bg-white/95 backdrop-blur-xl rounded-3xl p-6 sm:p-7 shadow-2xl border border-white/80 space-y-6 relative overflow-hidden">
             
-            {/* Cabecera */}
             <div className="flex items-center justify-between pb-3 border-b border-gray-100">
               <div className="flex items-center gap-2.5">
                 <div className="w-9 h-9 rounded-2xl bg-blue-50 border border-blue-100 flex items-center justify-center text-[#0071e3] shadow-xs">
@@ -67,7 +70,7 @@ export default function InstallPWAButton({ onAction }: InstallPWAButtonProps) {
                   <h4 className="text-sm sm:text-base font-extrabold text-gray-900">
                     Instalar UniNotas
                   </h4>
-                  <p className="text-[11px] text-gray-400 font-medium">Lleva tu expediente siempre en la pantalla de inicio</p>
+                  <p className="text-[11px] text-gray-400 font-medium">Lleva tu expediente en la pantalla de inicio</p>
                 </div>
               </div>
 
@@ -79,26 +82,24 @@ export default function InstallPWAButton({ onAction }: InstallPWAButtonProps) {
               </button>
             </div>
 
-            {/* Contenido según dispositivo */}
             <div className="space-y-4 py-1">
               {isIOS ? (
                 <div className="space-y-3 bg-blue-50/50 p-4 rounded-2xl border border-blue-100/80 text-xs text-gray-600 leading-relaxed">
                   <p className="font-bold text-[#0071e3]">Instalación en iPhone / iPad:</p>
                   <ol className="list-decimal list-inside space-y-1.5 font-medium">
-                    <li>Pulsa el botón de <b>Compartir</b> <span className="inline-block px-1 font-bold">⎋</span> en la barra inferior de Safari.</li>
-                    <li>Desplaza el menú y selecciona <b className="text-gray-900">"Añadir a pantalla de inicio"</b>.</li>
-                    <li>Confirma arriba a la derecha pulsando <b>Añadir</b>.</li>
+                    <li>Pulsa el botón de <b>Compartir</b> <span className="inline-block px-1 font-bold">⎋</span> en la barra de Safari.</li>
+                    <li>Selecciona <b className="text-gray-900">"Añadir a pantalla de inicio"</b>.</li>
+                    <li>Pulsa <b>Añadir</b> arriba a la derecha.</li>
                   </ol>
                 </div>
               ) : (
                 <div className="space-y-3 bg-blue-50/50 p-4 rounded-2xl border border-blue-100/80 text-xs text-gray-600 leading-relaxed">
                   <p className="font-bold text-[#0071e3]">Instalación en Android / PC:</p>
-                  <p className="font-medium">Si tu navegador es compatible, pulsa el botón de abajo para instalar la aplicación de forma automática en tu dispositivo.</p>
+                  <p className="font-medium">Pulsa el botón de abajo para instalar la aplicación de forma automática en tu dispositivo.</p>
                 </div>
               )}
             </div>
 
-            {/* Pie del modal */}
             <div className="pt-3 border-t border-gray-100 flex items-center justify-end gap-3">
               {!isIOS && deferredPrompt && (
                 <button
