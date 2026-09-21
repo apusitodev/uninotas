@@ -22,7 +22,7 @@ export default function Loading() {
               --pathlength: 1384;
               stroke-dashoffset: var(--pathlength);
               stroke-dasharray: 0 var(--pathlength);
-              animation: loader 8s cubic-bezier(0.5, 0.1, 0.5, 1) infinite both;
+              animation: loader 3s cubic-bezier(0.5, 0.1, 0.5, 1) infinite both;
             }
 
             @keyframes loader {
