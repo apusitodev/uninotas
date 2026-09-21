@@ -2,7 +2,11 @@
 import { useState, useEffect } from 'react';
 import { Smartphone, X, Check } from 'lucide-react';
 
-export default function InstallPWAButton() {
+interface InstallPWAButtonProps {
+  onAction?: () => void; // Para cerrar el menú lateral al hacer clic
+}
+
+export default function InstallPWAButton({ onAction }: InstallPWAButtonProps) {
   const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
   const [showModal, setShowModal] = useState(false);
   const [isIOS, setIsIOS] = useState(false);
@@ -19,42 +23,41 @@ export default function InstallPWAButton() {
     return () => window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
   }, []);
 
-  const handleInstallClick = async () => {
-    if (isIOS) {
-      setShowModal(true);
-      return;
-    }
+  const handleInstallClick = () => {
+    if (onAction) onAction(); // Cierra el menú lateral
+    setShowModal(true);
+  };
 
+  const handleNativeInstall = async () => {
     if (deferredPrompt) {
       deferredPrompt.prompt();
       const { outcome } = await deferredPrompt.userChoice;
       if (outcome === 'accepted') {
         setDeferredPrompt(null);
       }
-    } else {
-      setShowModal(true);
     }
+    setShowModal(false);
   };
 
   return (
     <>
-      {/* Botón oculto en ordenador (hidden), visible solo en móvil (flex) */}
-      <div className="md:hidden w-full">
+      {/* Botón en el menú lateral */}
+      <div className="w-full">
         <button
           onClick={handleInstallClick}
-          className="w-full flex items-center justify-center gap-2 py-2.5 px-3 rounded-xl bg-gray-100 hover:bg-gray-200/80 text-xs font-semibold text-gray-700 transition-colors cursor-pointer"
+          className="w-full flex items-center justify-center gap-2 py-2 px-3 rounded-xl bg-gray-100 hover:bg-gray-200/80 text-xs font-semibold text-gray-700 transition-colors cursor-pointer"
         >
           <Smartphone className="w-3.5 h-3.5 text-gray-600 shrink-0" />
           <span>Instalar App en el Móvil</span>
         </button>
       </div>
 
-      {/* Modal flotante idéntico a la Guía de Funcionalidades (con z-index máximo para salir por encima de todo) */}
+      {/* Modal flotante idéntico a la Guía de Funcionalidades */}
       {showModal && (
         <div className="fixed inset-0 z-[99999] flex items-center justify-center p-4 bg-black/40 backdrop-blur-md animate-fade-in">
           <div className="w-full max-w-lg bg-white/95 backdrop-blur-xl rounded-3xl p-6 sm:p-7 shadow-2xl border border-white/80 space-y-6 relative overflow-hidden max-h-[90vh] overflow-y-auto">
             
-            {/* Cabecera idéntica a la Guía */}
+            {/* Cabecera */}
             <div className="flex items-center justify-between pb-3 border-b border-gray-100">
               <div className="flex items-center gap-2.5">
                 <div className="w-9 h-9 rounded-2xl bg-blue-50 border border-blue-100 flex items-center justify-center text-[#0071e3] shadow-xs">
@@ -76,7 +79,7 @@ export default function InstallPWAButton() {
               </button>
             </div>
 
-            {/* Contenido interior */}
+            {/* Contenido según dispositivo */}
             <div className="space-y-4 py-1">
               {isIOS ? (
                 <div className="space-y-3 bg-blue-50/50 p-4 rounded-2xl border border-blue-100/80 text-xs text-gray-600 leading-relaxed">
@@ -95,17 +98,12 @@ export default function InstallPWAButton() {
               )}
             </div>
 
-            {/* Pie del modal idéntico al estilo de botones */}
+            {/* Pie del modal */}
             <div className="pt-3 border-t border-gray-100 flex items-center justify-end gap-3">
               {!isIOS && deferredPrompt && (
                 <button
                   type="button"
-                  onClick={async () => {
-                    deferredPrompt.prompt();
-                    const { outcome } = await deferredPrompt.userChoice;
-                    if (outcome === 'accepted') setDeferredPrompt(null);
-                    setShowModal(false);
-                  }}
+                  onClick={handleNativeInstall}
                   className="px-5 py-2.5 rounded-2xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-extrabold shadow-md cursor-pointer flex items-center gap-1.5 transition-colors"
                 >
                   <Check className="w-4 h-4" />

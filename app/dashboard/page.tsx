@@ -978,7 +978,7 @@ const [showInstallBtn, setShowInstallBtn] = useState(false);
             <LogOut className="w-3.5 h-3.5 shrink-0" />
             <span>Cerrar sesión</span>
           </button>
-          <InstallPWAButton />
+          <InstallPWAButton onAction={() => setSidebarOpen(false)} />
         </div>
       </aside>
 
