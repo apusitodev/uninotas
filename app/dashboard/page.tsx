@@ -33,6 +33,7 @@ import {
   Pencil,
   Trash2
 } from 'lucide-react';
+import InstallPWAButton from '@/components/InstallPWAButton';
 
 interface Subject {
   id: string;
@@ -977,17 +978,7 @@ const [showInstallBtn, setShowInstallBtn] = useState(false);
             <LogOut className="w-3.5 h-3.5 shrink-0" />
             <span>Cerrar sesión</span>
           </button>
-          {showInstallBtn && (
-            <button
-              onClick={handleInstallClick}
-              className="w-full flex items-center justify-center gap-2 bg-[#0071e3] hover:bg-[#005bb5] text-white font-semibold py-2 px-3 rounded-xl text-xs shadow-xs transition-all cursor-pointer mt-2"
-            >
-              <svg className="w-4 h-4 fill-current" viewBox="0 0 24 24">
-                <path d="M19 9h-4V3H9v6H5l7 7 7-7zM5 18v2h14v-2H5z"/>
-              </svg>
-              <span>Instalar App en el Móvil</span>
-            </button>
-          )}
+          <InstallPWAButton />
         </div>
       </aside>
 
