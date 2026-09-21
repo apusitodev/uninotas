@@ -8,7 +8,6 @@ export default function InstallPWAButton() {
   const [isIOS, setIsIOS] = useState(false);
 
   useEffect(() => {
-    // Detectar si es dispositivo iOS
     const iosCheck = /iPad|iPhone|iPod/.test(navigator.userAgent) && !(window as any).MSStream;
     setIsIOS(iosCheck);
 
@@ -39,15 +38,18 @@ export default function InstallPWAButton() {
 
   return (
     <>
-      <button
-        onClick={handleInstallClick}
-        className="w-full flex items-center justify-center gap-2 py-2 px-3 rounded-xl bg-gray-100 hover:bg-gray-200/80 text-xs font-semibold text-gray-700 transition-colors cursor-pointer"
-      >
-        <Smartphone className="w-3.5 h-3.5 text-gray-600 shrink-0" />
-        <span>Instalar App en el Móvil</span>
-      </button>
+      {/* Botón estrictamente oculto en desktop (hidden), visible solo en móvil (flex) */}
+      <div className="md:hidden w-full">
+        <button
+          onClick={handleInstallClick}
+          className="w-full flex items-center justify-center gap-2 py-2.5 px-3 rounded-xl bg-gray-100 hover:bg-gray-200/80 text-xs font-semibold text-gray-700 transition-colors cursor-pointer"
+        >
+          <Smartphone className="w-3.5 h-3.5 text-gray-600 shrink-0" />
+          <span>Instalar App en el Móvil</span>
+        </button>
+      </div>
 
-      {/* Modal con el estilo idéntico al de la Guía y Funcionalidades */}
+      {/* Modal flotante con diseño idéntico al de la Guía de Funcionalidades */}
       {showModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-md animate-fade-in">
           <div className="w-full max-w-lg bg-white/95 backdrop-blur-xl rounded-3xl p-6 sm:p-7 shadow-2xl border border-white/80 space-y-6 relative overflow-hidden max-h-[90vh] overflow-y-auto">
@@ -74,12 +76,12 @@ export default function InstallPWAButton() {
               </button>
             </div>
 
-            {/* Contenido explicativo según el dispositivo */}
-            <div className="space-y-4 py-2">
+            {/* Contenido interior */}
+            <div className="space-y-4 py-1">
               {isIOS ? (
                 <div className="space-y-3 bg-blue-50/50 p-4 rounded-2xl border border-blue-100/80 text-xs text-gray-600 leading-relaxed">
                   <p className="font-bold text-[#0071e3]">Instalación en iPhone / iPad:</p>
-                  <ol className="list-decimal list-inside space-y-1.5">
+                  <ol className="list-decimal list-inside space-y-1.5 font-medium">
                     <li>Pulsa el botón de <b>Compartir</b> <span className="inline-block px-1 font-bold">⎋</span> en la barra inferior de Safari.</li>
                     <li>Desplaza el menú y selecciona <b className="text-gray-900">"Añadir a pantalla de inicio"</b>.</li>
                     <li>Confirma arriba a la derecha pulsando <b>Añadir</b>.</li>
@@ -88,12 +90,12 @@ export default function InstallPWAButton() {
               ) : (
                 <div className="space-y-3 bg-blue-50/50 p-4 rounded-2xl border border-blue-100/80 text-xs text-gray-600 leading-relaxed">
                   <p className="font-bold text-[#0071e3]">Instalación en Android / PC:</p>
-                  <p>Si tu navegador es compatible, pulsa el botón de abajo para instalar la aplicación de forma automática en tu dispositivo.</p>
+                  <p className="font-medium">Si tu navegador es compatible, pulsa el botón de abajo para instalar la aplicación de forma automática en tu dispositivo.</p>
                 </div>
               )}
             </div>
 
-            {/* Pie del modal idéntico al de la Guía */}
+            {/* Pie del modal idéntico al estilo de botones de cierre */}
             <div className="pt-3 border-t border-gray-100 flex items-center justify-end gap-3">
               {!isIOS && deferredPrompt && (
                 <button
@@ -104,7 +106,7 @@ export default function InstallPWAButton() {
                     if (outcome === 'accepted') setDeferredPrompt(null);
                     setShowModal(false);
                   }}
-                  className="px-5 py-2.5 rounded-2xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-extrabold shadow-md cursor-pointer flex items-center gap-1.5"
+                  className="px-5 py-2.5 rounded-2xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-extrabold shadow-md cursor-pointer flex items-center gap-1.5 transition-colors"
                 >
                   <Check className="w-4 h-4" />
                   <span>Instalar ahora</span>
@@ -113,9 +115,9 @@ export default function InstallPWAButton() {
               <button
                 type="button"
                 onClick={() => setShowModal(false)}
-                className="px-6 py-2.5 rounded-2xl bg-[#0071e3] hover:bg-[#0077ed] text-white text-xs font-bold shadow-xs cursor-pointer"
+                className="px-6 py-2.5 rounded-2xl bg-[#0071e3] hover:bg-[#0077ed] text-white text-xs font-bold shadow-xs cursor-pointer transition-colors"
               >
-                ¡Entendido!
+                Cerrar Ventana
               </button>
             </div>
 
