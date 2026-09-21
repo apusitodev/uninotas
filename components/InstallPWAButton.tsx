@@ -38,7 +38,7 @@ export default function InstallPWAButton() {
 
   return (
     <>
-      {/* Botón oculto en pantallas grandes (ordenador), solo visible en móvil */}
+      {/* Botón oculto en ordenador (hidden), visible solo en móvil (flex) */}
       <div className="md:hidden w-full">
         <button
           onClick={handleInstallClick}
@@ -49,9 +49,9 @@ export default function InstallPWAButton() {
         </button>
       </div>
 
-      {/* Modal flotante con idéntico diseño, blur y estructura que la Guía de Funcionalidades */}
+      {/* Modal flotante idéntico a la Guía de Funcionalidades (con z-index máximo para salir por encima de todo) */}
       {showModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-md animate-fade-in">
+        <div className="fixed inset-0 z-[99999] flex items-center justify-center p-4 bg-black/40 backdrop-blur-md animate-fade-in">
           <div className="w-full max-w-lg bg-white/95 backdrop-blur-xl rounded-3xl p-6 sm:p-7 shadow-2xl border border-white/80 space-y-6 relative overflow-hidden max-h-[90vh] overflow-y-auto">
             
             {/* Cabecera idéntica a la Guía */}
@@ -76,7 +76,7 @@ export default function InstallPWAButton() {
               </button>
             </div>
 
-            {/* Contenido interior explicativo */}
+            {/* Contenido interior */}
             <div className="space-y-4 py-1">
               {isIOS ? (
                 <div className="space-y-3 bg-blue-50/50 p-4 rounded-2xl border border-blue-100/80 text-xs text-gray-600 leading-relaxed">
@@ -95,7 +95,7 @@ export default function InstallPWAButton() {
               )}
             </div>
 
-            {/* Pie del modal idéntico al de la Guía */}
+            {/* Pie del modal idéntico al estilo de botones */}
             <div className="pt-3 border-t border-gray-100 flex items-center justify-end gap-3">
               {!isIOS && deferredPrompt && (
                 <button

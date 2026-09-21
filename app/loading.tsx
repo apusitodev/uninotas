@@ -1,10 +1,11 @@
 'use client';
-import React from "react";
+
+import React from 'react';
 
 export default function Loading() {
   return (
-    <div className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-[#f4f5f8]">
-      <div className="flex flex-col items-center space-y-4 p-8 rounded-3xl bg-white shadow-xl border border-gray-100 max-w-xs w-full mx-4">
+    <div className="fixed inset-0 z-[9999] flex flex-col items-center justify-center bg-[#f4f5f8]">
+      <div className="flex flex-col items-center space-y-4 p-8 rounded-3xl bg-white shadow-2xl border border-gray-100 max-w-xs w-full mx-4">
         
         {/* Botella con animación y color azul corporativo #0071e3 */}
         <div className="flex items-center justify-center my-1">
@@ -33,7 +34,7 @@ export default function Loading() {
           `}</style>
         </div>
 
-        {/* Texto debajo tal cual lo pediste */}
+        {/* Textos institucionales */}
         <div className="flex flex-col items-center space-y-1 text-center">
           <h2 className="text-sm font-black tracking-tight text-gray-900">Uninotas</h2>
           <p className="text-[11px] text-gray-400 font-medium animate-pulse">Sincronizando expediente...</p>
