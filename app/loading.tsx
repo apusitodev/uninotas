@@ -1,5 +1,6 @@
-import React from "react";
 'use client';
+import React from "react";
+
 export default function Loading() {
   return (
     <div className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-[#f4f5f8]">
