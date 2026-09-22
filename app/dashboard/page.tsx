@@ -1075,11 +1075,8 @@ const [showInstallBtn, setShowInstallBtn] = useState(false);
 
               {notifOpen && (
                 <>
-                  {/* Fondo oscuro translúcido para cerrar al pulsar fuera */}
-                  <div className="fixed inset-0 z-40 bg-black/30 backdrop-blur-xs" onClick={() => setNotifOpen(false)} />
-                  
-                  {/* Ventana de notificaciones adaptada a móvil y PC */}
-                  <div className="absolute left-4 right-4 sm:left-auto sm:right-0 top-14 sm:w-96 bg-white/95 backdrop-blur-xl rounded-3xl p-5 shadow-2xl border border-gray-200/80 z-50 animate-ios-item-1 max-w-lg mx-auto sm:mx-0">
+                  <div className="fixed inset-0 z-40" onClick={() => setNotifOpen(false)} />
+                  <div className="fixed sm:absolute inset-x-4 sm:inset-x-auto sm:right-0 top-20 sm:top-12 w-auto sm:w-96 bg-white/95 backdrop-blur-xl rounded-3xl p-4 sm:p-5 shadow-2xl border border-gray-200/80 z-50 animate-ios-item-1 max-w-md mx-auto sm:mx-0">
                     <div className="flex items-center justify-between pb-3 border-b border-gray-100 mb-3">
                       <div className="flex items-center gap-2">
                         <span className="text-xs sm:text-sm font-extrabold text-gray-900">Asistencias Pendientes</span>
@@ -1089,10 +1086,7 @@ const [showInstallBtn, setShowInstallBtn] = useState(false);
                           </span>
                         )}
                       </div>
-                      <button 
-                        onClick={() => setNotifOpen(false)} 
-                        className="text-gray-400 hover:text-gray-600 text-xs font-bold cursor-pointer p-1 rounded-lg hover:bg-gray-100 transition-colors"
-                      >
+                      <button onClick={() => setNotifOpen(false)} className="text-gray-400 hover:text-gray-600 text-xs font-bold cursor-pointer p-1">
                         Cerrar
                       </button>
                     </div>
