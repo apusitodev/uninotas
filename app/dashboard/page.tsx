@@ -1075,18 +1075,24 @@ const [showInstallBtn, setShowInstallBtn] = useState(false);
 
               {notifOpen && (
                 <>
-                  <div className="fixed inset-0 z-40" onClick={() => setNotifOpen(false)} />
-                  <div className="absolute left-4 right-4 sm:left-auto sm:right-0 top-12 sm:w-96 bg-white/95 backdrop-blur-xl rounded-2xl p-4 sm:p-5 shadow-2xl border border-gray-200/80 z-50 animate-ios-item-1">
-                    <div className="flex items-center justify-between pb-3 border-b border-gray-100">
+                  {/* Fondo oscuro translúcido para cerrar al pulsar fuera */}
+                  <div className="fixed inset-0 z-40 bg-black/30 backdrop-blur-xs" onClick={() => setNotifOpen(false)} />
+                  
+                  {/* Ventana de notificaciones adaptada a móvil y PC */}
+                  <div className="absolute left-4 right-4 sm:left-auto sm:right-0 top-14 sm:w-96 bg-white/95 backdrop-blur-xl rounded-3xl p-5 shadow-2xl border border-gray-200/80 z-50 animate-ios-item-1 max-w-lg mx-auto sm:mx-0">
+                    <div className="flex items-center justify-between pb-3 border-b border-gray-100 mb-3">
                       <div className="flex items-center gap-2">
-                        <span className="text-xs font-bold text-gray-900">Asistencias Pendientes</span>
+                        <span className="text-xs sm:text-sm font-extrabold text-gray-900">Asistencias Pendientes</span>
                         {pendingSessions.length > 0 && (
                           <span className="text-[10px] font-bold bg-blue-100 text-[#0071e3] px-2 py-0.5 rounded-full">
                             {pendingSessions.length}
                           </span>
                         )}
                       </div>
-                      <button onClick={() => setNotifOpen(false)} className="text-gray-400 hover:text-gray-600 text-xs cursor-pointer">
+                      <button 
+                        onClick={() => setNotifOpen(false)} 
+                        className="text-gray-400 hover:text-gray-600 text-xs font-bold cursor-pointer p-1 rounded-lg hover:bg-gray-100 transition-colors"
+                      >
                         Cerrar
                       </button>
                     </div>
