@@ -1076,7 +1076,7 @@ const [showInstallBtn, setShowInstallBtn] = useState(false);
               {notifOpen && (
                 <>
                   <div className="fixed inset-0 z-40" onClick={() => setNotifOpen(false)} />
-                  <div className="absolute right-0 top-12 w-80 sm:w-96 bg-white/95 backdrop-blur-xl rounded-2xl p-4 sm:p-5 shadow-2xl border border-gray-200/80 z-50 animate-ios-item-1">
+                  <div className="absolute left-4 right-4 sm:left-auto sm:right-0 top-12 sm:w-96 bg-white/95 backdrop-blur-xl rounded-2xl p-4 sm:p-5 shadow-2xl border border-gray-200/80 z-50 animate-ios-item-1">
                     <div className="flex items-center justify-between pb-3 border-b border-gray-100">
                       <div className="flex items-center gap-2">
                         <span className="text-xs font-bold text-gray-900">Asistencias Pendientes</span>
