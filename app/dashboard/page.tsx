@@ -1846,7 +1846,7 @@ const [showInstallBtn, setShowInstallBtn] = useState(false);
                       </div>
 
                       <div className={`transition-all duration-300 ease-in-out overflow-hidden ${isExpanded ? 'max-h-[1500px] opacity-100 border-t border-gray-100 bg-white/50 p-4 sm:p-6' : 'max-h-0 opacity-0 p-0'}`}>
-                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 items-start">
                           {subCriteria.map((crit) => {
                             const currentVal = userGrades[crit.id];
                             const subItems = customSubCriteria[crit.id] || [];
