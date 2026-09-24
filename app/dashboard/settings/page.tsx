@@ -18,7 +18,7 @@ import {
   Trash2,
   AlertTriangle,
   MessageSquareWarning,
-  Check
+  Bell
 } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 
@@ -29,10 +29,10 @@ interface Subject {
 }
 
 const GROUPS_INFO = [
-  { id: 'G1', label: 'Grupo 1', room: 'Aula 101' },
-  { id: 'G2', label: 'Grupo 2', room: 'Aula 102' },
-  { id: 'G3', label: 'Grupo 3', room: 'Aula 103' },
-  { id: 'G4', label: 'Grupo 4', room: 'Aula 104' },
+  { id: 'A', label: 'Grupo A', room: 'Aula A41' },
+  { id: 'B', label: 'Grupo B', room: 'Aula A42' },
+  { id: 'C', label: 'Grupo C', room: 'Aula A43' },
+  { id: 'D', label: 'Grupo D', room: 'Aula A44' },
 ];
 
 const DAYS_OF_WEEK = [
@@ -49,12 +49,20 @@ export default function SettingsPage() {
   const [savedMessage, setSavedMessage] = useState(false);
   const [loading, setLoading] = useState(false);
 
-  // Estados reales de Supabase
-  const [userEmail, setUserEmail] = useState('');
   const [subjects, setSubjects] = useState<Subject[]>([]);
-  const [userSubjects, setUserSubjects] = useState<Record<string, any>>({});
-  const [userChineseGroup, setUserChineseGroup] = useState('G1');
-  const [userEnglishGroup, setUserEnglishGroup] = useState('G1');
+  const [userChineseGroup, setUserChineseGroup] = useState('A');
+  const [userEnglishGroup, setUserEnglishGroup] = useState('A');
+
+  // Estado para controlar qué días tiene clase cada asignatura
+  const [classDays, setClassDays] = useState<Record<string, Record<string, boolean>>>({
+    'EST101': { lunes: true, miercoles: true, martes: false, jueves: false, viernes: false },
+    'EPP101': { lunes: false, martes: true, miercoles: false, jueves: true, viernes: false },
+    'PUB101': { lunes: true, martes: true, miercoles: true, jueves: true, viernes: true },
+    'DPM101': { lunes: false, martes: false, miercoles: true, jueves: true, viernes: false },
+    'EDL101': { lunes: true, martes: false, miercoles: false, jueves: false, viernes: true },
+    'XIN201': { lunes: false, martes: true, miercoles: true, jueves: false, viernes: false },
+    'ANG201': { lunes: true, martes: false, miercoles: false, jueves: true, viernes: false },
+  });
 
   useEffect(() => {
     loadUserData();
@@ -67,32 +75,40 @@ export default function SettingsPage() {
         router.push('/login');
         return;
       }
-      setUserEmail(session.user.email || '');
 
-      // Cargar asignaturas
       const { data: subsData } = await supabase.from('subjects').select('*');
-      if (subsData) setSubjects(subsData);
-
-      // Cargar configuración de usuario
-      const { data: userData } = await supabase
-        .from('user_settings')
-        .select('*')
-        .eq('user_id', session.user.id)
-        .single();
-
-      if (userData) {
-        if (userData.chinese_group) setUserChineseGroup(userData.chinese_group);
-        if (userData.english_group) setUserEnglishGroup(userData.english_group);
+      if (subsData && subsData.length > 0) {
+        setSubjects(subsData);
+      } else {
+        // Datos por defecto si Supabase está vacío de momento
+        setSubjects([
+          { id: 'EST101', name: 'Estadística I', credits: 6 },
+          { id: 'EPP101', name: 'Estrategies productes i preus', credits: 6 },
+          { id: 'PUB101', name: 'Publicitat, promoció i RRPP', credits: 6 },
+          { id: 'DPM101', name: 'Desenvol. productes i marques', credits: 6 },
+          { id: 'EDL101', name: 'Estratègies distribució i logística', credits: 6 },
+          { id: 'XIN201', name: 'Xinès II', credits: 3 },
+          { id: 'ANG201', name: 'Anglès II', credits: 3 },
+        ]);
       }
     } catch (error) {
-      console.error('Error cargando datos de configuración:', error);
+      console.error('Error cargando datos:', error);
     }
+  };
+
+  const toggleDay = (subjectId: string, dayId: string) => {
+    setClassDays(prev => ({
+      ...prev,
+      [subjectId]: {
+        ...(prev[subjectId] || {}),
+        [dayId]: !(prev[subjectId]?.[dayId])
+      }
+    }));
   };
 
   const handleSaveAll = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
-    // Simulación de guardado síncrono con Supabase
     setTimeout(() => {
       setLoading(false);
       setSavedMessage(true);
@@ -100,58 +116,55 @@ export default function SettingsPage() {
     }, 600);
   };
 
+  const handleLogout = async () => {
+    await supabase.auth.signOut();
+    router.push('/login');
+  };
+
   const handleDeleteAccount = async () => {
     const confirmDelete = window.confirm('¿Estás totalmente seguro de que quieres eliminar tu cuenta y todos tus datos permanentemente?');
     if (!confirmDelete) return;
-    
-    alert('Por seguridad, contacta con soporte para la eliminación definitiva de la base de datos.');
+    alert('Por seguridad, contacta con soporte para la eliminación definitiva.');
   };
 
   return (
     <div className="min-h-screen bg-[#f4f5f8] text-gray-900 font-sans antialiased p-4 sm:p-8">
       <div className="max-w-7xl mx-auto space-y-6">
         
-        {/* Cabecera superior idéntica al dashboard */}
-        <div className="flex items-center justify-between">
-          <button
-            onClick={() => router.push('/dashboard')}
-            className="flex items-center gap-2 px-4 py-2 rounded-2xl bg-white border border-gray-200/80 text-xs font-bold text-gray-700 hover:bg-gray-50 transition-colors shadow-xs cursor-pointer"
-          >
-            <ArrowLeft className="w-4 h-4" />
-            <span>Volver al Dashboard</span>
-          </button>
-
-          <div className="flex items-center gap-2">
-            <span className="text-[10px] font-extrabold uppercase tracking-widest text-[#0071e3] bg-blue-50 px-3 py-1 rounded-full border border-blue-100">
-              UniNotas • Configuración Global
-            </span>
-          </div>
-        </div>
-
-        {/* Título de la página con ancho completo */}
-        <div className="bg-white/80 backdrop-blur-xl border border-gray-200/80 rounded-3xl p-6 sm:p-8 shadow-xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 w-full">
+        {/* Cabecera idéntica a las páginas principales (con título a la izquierda y notificaciones a la derecha) */}
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 bg-white/80 backdrop-blur-xl border border-gray-200/80 rounded-3xl p-6 shadow-xl w-full">
           <div className="flex items-center gap-4">
-            <div className="w-12 h-12 rounded-2xl bg-blue-50 border border-blue-100 flex items-center justify-center text-[#0071e3] shadow-xs">
-              <Settings className="w-6 h-6" />
-            </div>
+            <button
+              onClick={() => router.push('/dashboard')}
+              className="w-10 h-10 rounded-2xl bg-gray-100 hover:bg-gray-200 flex items-center justify-center text-gray-700 transition-colors cursor-pointer shadow-xs"
+              title="Volver al Dashboard"
+            >
+              <ArrowLeft className="w-5 h-5" />
+            </button>
             <div>
               <h1 className="text-2xl font-black tracking-tight text-gray-900">Configuración del Expediente</h1>
               <p className="text-xs text-gray-400 font-medium">Centro de control, asignaturas, horarios interactivos y personalización</p>
             </div>
           </div>
 
-          {savedMessage && (
-            <div className="flex items-center gap-2 bg-emerald-50 border border-emerald-200 text-emerald-700 px-4 py-2 rounded-2xl text-xs font-bold animate-fade-in">
-              <CheckCircle2 className="w-4 h-4" />
-              <span>¡Cambios guardados con éxito!</span>
+          <div className="flex items-center gap-3">
+            {savedMessage && (
+              <div className="flex items-center gap-2 bg-emerald-50 border border-emerald-200 text-emerald-700 px-3 py-1.5 rounded-2xl text-xs font-bold animate-fade-in">
+                <CheckCircle2 className="w-4 h-4" />
+                <span>¡Guardado!</span>
+              </div>
+            )}
+            <div className="w-10 h-10 rounded-2xl bg-gray-100 flex items-center justify-center text-gray-600 relative shadow-xs">
+              <Bell className="w-4 h-4" />
+              <span className="absolute top-2 right-2 w-2 h-2 rounded-full bg-red-500" />
             </div>
-          )}
+          </div>
         </div>
 
-        {/* Contenedor principal de pestañas y contenido de ancho completo */}
+        {/* Contenido Principal con Pestañas y Formularios */}
         <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
           
-          {/* Menú Lateral de Pestañas */}
+          {/* Menú Lateral de Configuración */}
           <div className="lg:col-span-1 space-y-2">
             <button
               onClick={() => setActiveTab('academic')}
@@ -194,16 +207,16 @@ export default function SettingsPage() {
             </button>
           </div>
 
-          {/* Panel de Contenido Dinámico de Ancho Completo */}
+          {/* Panel Dinámico */}
           <div className="lg:col-span-4">
             <form onSubmit={handleSaveAll} className="bg-white/90 backdrop-blur-xl border border-gray-200/80 rounded-3xl p-6 sm:p-8 shadow-xl space-y-6 w-full">
               
-              {/* PESTAÑA 1: ASIGNATURAS Y HORARIOS INTERACTIVOS */}
+              {/* ASIGNATURAS Y HORARIOS */}
               {activeTab === 'academic' && (
                 <div className="space-y-6">
                   <div>
                     <h2 className="text-lg font-black text-gray-900">Gestión de Asignaturas y Horarios</h2>
-                    <p className="text-xs text-gray-400 font-medium">Configura los nombres oficiales, créditos ECTS y selecciona interactivamente tus días y horas de clase.</p>
+                    <p className="text-xs text-gray-400 font-medium">Modifica los nombres oficiales, créditos ECTS y activa los días de clase reales.</p>
                   </div>
 
                   <div className="space-y-4">
@@ -228,24 +241,34 @@ export default function SettingsPage() {
                           </div>
                         </div>
 
-                        {/* Calendario Semanal Interactivo para seleccionar días y horas */}
+                        {/* Selector interactivo de días de clase (Activar/Desactivar por día) */}
                         <div className="space-y-2 pt-2 border-t border-gray-200/60">
                           <label className="text-[10px] uppercase font-bold text-gray-400 tracking-wider flex items-center gap-1.5">
                             <Calendar className="w-3.5 h-3.5 text-[#0071e3]" />
-                            <span>Horario Semanal Interactivo (Selecciona días y hora)</span>
+                            <span>Días lectivos (Haz clic para activar o desactivar el día de clase)</span>
                           </label>
 
                           <div className="grid grid-cols-2 sm:grid-cols-5 gap-2">
-                            {DAYS_OF_WEEK.map((day) => (
-                              <div key={day.id} className="p-2.5 rounded-xl bg-white border border-gray-200 flex flex-col gap-2 shadow-2xs">
-                                <span className="text-xs font-extrabold text-gray-800 text-center">{day.label}</span>
-                                <input 
-                                  type="time" 
-                                  defaultValue="09:00"
-                                  className="text-[11px] font-bold text-center bg-gray-50 border border-gray-200 rounded-lg p-1 text-gray-700 outline-none focus:border-[#0071e3]"
-                                />
-                              </div>
-                            ))}
+                            {DAYS_OF_WEEK.map((day) => {
+                              const isActive = classDays[sub.id]?.[day.id] ?? false;
+                              return (
+                                <button
+                                  key={day.id}
+                                  type="button"
+                                  onClick={() => toggleDay(sub.id, day.id)}
+                                  className={`p-2.5 rounded-xl border text-center transition-all cursor-pointer flex flex-col items-center gap-1 ${
+                                    isActive 
+                                      ? 'bg-blue-50 border-[#0071e3] text-[#0071e3] font-bold shadow-xs' 
+                                      : 'bg-white border-gray-200 text-gray-400 hover:border-gray-300'
+                                  }`}
+                                >
+                                  <span className="text-xs">{day.label}</span>
+                                  <span className={`text-[9px] uppercase px-1.5 py-0.5 rounded-full ${isActive ? 'bg-[#0071e3] text-white font-extrabold' : 'bg-gray-100 text-gray-500'}`}>
+                                    {isActive ? 'Sí tiene' : 'No tiene'}
+                                  </span>
+                                </button>
+                              );
+                            })}
                           </div>
                         </div>
                       </div>
@@ -254,22 +277,21 @@ export default function SettingsPage() {
                 </div>
               )}
 
-              {/* PESTAÑA 2: PESOS Y EVALUACIÓN */}
+              {/* PESOS Y EVALUACIÓN */}
               {activeTab === 'weights' && (
                 <div className="space-y-6">
                   <div>
                     <h2 className="text-lg font-black text-gray-900">Pesos de Evaluación</h2>
-                    <p className="text-xs text-gray-400 font-medium">Configura los porcentajes de exámenes y trabajos de cada materia con validación automática al 100%.</p>
+                    <p className="text-xs text-gray-400 font-medium">Configura los porcentajes de exámenes y trabajos de cada materia.</p>
                   </div>
-
                   <div className="p-4 rounded-2xl bg-amber-50 border border-amber-200 text-amber-800 text-xs font-semibold flex items-center gap-3">
                     <ShieldAlert className="w-5 h-5 shrink-0" />
-                    <span>El sistema verifica automáticamente que la suma de los apartados de cada asignatura sea exactamente el 100%.</span>
+                    <span>El sistema verifica automáticamente que la suma de los apartados sea exactamente el 100%.</span>
                   </div>
                 </div>
               )}
 
-              {/* PESTAÑA 3: IDIOMAS Y GRUPOS */}
+              {/* IDIOMAS Y GRUPOS (Con Grupos A, B, C, D) */}
               {activeTab === 'languages' && (
                 <div className="space-y-6">
                   <div>
@@ -319,25 +341,24 @@ export default function SettingsPage() {
                 </div>
               )}
 
-              {/* PESTAÑA 4: PREFERENCIAS */}
+              {/* PREFERENCIAS */}
               {activeTab === 'preferences' && (
                 <div className="space-y-6">
                   <div>
                     <h2 className="text-lg font-black text-gray-900">Preferencias de la Aplicación</h2>
-                    <p className="text-xs text-gray-400 font-medium">Personaliza el aspecto visual y las notificaciones en vivo.</p>
+                    <p className="text-xs text-gray-400 font-medium">Personaliza el aspecto visual y las notificaciones.</p>
                   </div>
-
                   <div className="p-4 rounded-2xl bg-gray-50 border border-gray-200/70 flex items-center justify-between">
                     <div>
                       <p className="text-xs font-bold text-gray-900">Modo Oscuro Automático</p>
-                      <p className="text-[11px] text-gray-400">Adaptar los contrastes de la interfaz de usuario.</p>
+                      <p className="text-[11px] text-gray-400">Adaptar los contrastes de la interfaz.</p>
                     </div>
                     <span className="text-[10px] font-bold bg-blue-50 text-[#0071e3] px-3 py-1 rounded-full border border-blue-100">Próximamente</span>
                   </div>
                 </div>
               )}
 
-              {/* PESTAÑA 5: CUENTA Y SOPORTE */}
+              {/* CUENTA Y SOPORTE (Con Cerrar Sesión y Zona de Peligro Separada) */}
               {activeTab === 'account' && (
                 <div className="space-y-6">
                   <div>
@@ -346,6 +367,7 @@ export default function SettingsPage() {
                   </div>
 
                   <div className="space-y-4">
+                    {/* Botón de Reportar Problema */}
                     <div className="p-4 rounded-2xl bg-blue-50/60 border border-blue-100 flex items-center justify-between">
                       <div className="flex items-center gap-3">
                         <MessageSquareWarning className="w-5 h-5 text-[#0071e3]" />
@@ -363,31 +385,53 @@ export default function SettingsPage() {
                       </button>
                     </div>
 
-                    <div className="p-4 rounded-2xl bg-red-50/60 border border-red-200/80 flex items-center justify-between">
+                    {/* Botón de Cerrar Sesión */}
+                    <div className="p-4 rounded-2xl bg-gray-50 border border-gray-200/70 flex items-center justify-between">
                       <div className="flex items-center gap-3">
-                        <AlertTriangle className="w-5 h-5 text-red-600" />
+                        <LogOut className="w-5 h-5 text-gray-600" />
                         <div>
-                          <p className="text-xs font-bold text-red-900">Zona de peligro: Eliminar cuenta</p>
-                          <p className="text-[11px] text-red-600">Esta acción borrará todo tu expediente y notas de forma permanente.</p>
+                          <p className="text-xs font-bold text-gray-900">Cerrar sesión actual</p>
+                          <p className="text-[11px] text-gray-500">Finalizarás tu sesión en este dispositivo de forma segura.</p>
                         </div>
                       </div>
                       <button
                         type="button"
-                        onClick={handleDeleteAccount}
-                        className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-red-600 hover:bg-red-700 text-white text-xs font-bold transition-colors cursor-pointer shadow-xs"
+                        onClick={handleLogout}
+                        className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-gray-200 hover:bg-gray-300 text-gray-800 text-xs font-bold transition-colors cursor-pointer"
                       >
-                        <Trash2 className="w-4 h-4" />
-                        <span>Eliminar cuenta</span>
+                        <LogOut className="w-4 h-4" />
+                        <span>Cerrar sesión</span>
                       </button>
+                    </div>
+
+                    {/* ZONA DE PELIGRO: Eliminar cuenta en grid independiente y separado */}
+                    <div className="pt-4 border-t border-gray-200/80">
+                      <div className="p-5 rounded-2xl bg-red-50/80 border border-red-200 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                        <div className="flex items-center gap-3">
+                          <AlertTriangle className="w-5 h-5 text-red-600 shrink-0" />
+                          <div>
+                            <p className="text-xs font-bold text-red-900">Zona de peligro: Eliminar cuenta permanentemente</p>
+                            <p className="text-[11px] text-red-600">Esta acción borrará todo tu expediente, notas y asistencias sin opción de recuperación.</p>
+                          </div>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={handleDeleteAccount}
+                          className="flex items-center gap-1.5 px-4 py-2.5 rounded-xl bg-red-600 hover:bg-red-700 text-white text-xs font-bold transition-colors cursor-pointer shadow-xs shrink-0"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                          <span>Eliminar cuenta</span>
+                        </button>
+                      </div>
                     </div>
                   </div>
                 </div>
               )}
 
-              {/* Botón de Guardar General inferior */}
+              {/* Botón Inferior de Guardar */}
               <div className="pt-4 border-t border-gray-100 flex items-center justify-between">
                 <p className="text-[11px] text-gray-400 font-medium">
-                  {loading ? 'Sincronizando con Supabase...' : 'Todos los cambios se guardan al instante'}
+                  {loading ? 'Guardando cambios...' : 'Cambios listos para sincronizar'}
                 </p>
                 <button
                   type="submit"
