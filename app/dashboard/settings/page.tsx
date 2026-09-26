@@ -25,7 +25,8 @@ interface Subject {
   id: string;
   name: string;
   credits: number;
-  criteria?: Array<{ id: string; name: string; weight: number }>; //
+  is_convalidated?: boolean; 
+  criteria?: Array<{ id: string; name: string; weight: number }>; 
 }
 
 const GROUPS_INFO = [
@@ -126,6 +127,10 @@ export default function SettingsPage() {
     setSubjects(prev => prev.map(s => s.id === id ? { ...s, name: val } : s));
   };
 
+  const handleToggleConvalidated = (id: string, val: boolean) => {
+    setSubjects(prev => prev.map(s => s.id === id ? { ...s, is_convalidated: val } : s));
+  };
+
   const toggleDayActive = (subjectId: string, dayId: string) => {
     setScheduleConfig(prev => {
       const subDays = prev[subjectId] || {};
@@ -162,13 +167,14 @@ const handleSaveAll = async (e: React.FormEvent) => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('No hay usuario autenticado');
 
+      // 1. Validar que los pesos sumen 100% en todas las asignaturas
       for (const sub of subjects) {
         const criteriaList = sub.criteria || [
           { name: 'Examen / Prueba Final', weight: 50 },
           { name: 'Trabajos y Entregas', weight: 50 }
         ];
         const totalWeight = criteriaList.reduce((acc: number, curr: any) => acc + (Number(curr.weight) || 0), 0);
-        
+
         if (totalWeight !== 100) {
           alert(`⚠️ Error en "${sub.name}": Los apartados suman ${totalWeight}%. Deben sumar exactamente un 100% para continuar.`);
           setLoading(false);
@@ -176,20 +182,18 @@ const handleSaveAll = async (e: React.FormEvent) => {
           return;
         }
       }
-      
-      // 🛡️ Validación del Punto 6: Comprobar si hay asignaturas con 0 créditos o vacías
+
+      // 2. Validación de créditos vacíos o a 0
       const invalidSubject = subjects.find(s => !s.credits || Number(s.credits) <= 0);
       if (invalidSubject) {
-        const confirmSave = window.confirm(
-          `⚠️ La asignatura "${invalidSubject.name}" tiene 0 créditos ECTS. ¿Deseas guardar de todos modos?`
-        );
+        const confirmSave = window.confirm(`⚠️ La asignatura "${invalidSubject.name}" tiene 0 créditos ECTS. ¿Deseas guardar de todos modos?`);
         if (!confirmSave) {
           setLoading(false);
-          return; // Detiene el guardado si el usuario cancela
+          return;
         }
       }
 
-      // 1. Guardar los grupos de idiomas en los metadatos del usuario de Supabase
+      // 3. Guardar grupos de idiomas en los metadatos del usuario
       const { error: metaError } = await supabase.auth.updateUser({
         data: {
           chinese_group: userChineseGroup,
@@ -199,12 +203,12 @@ const handleSaveAll = async (e: React.FormEvent) => {
 
       if (metaError) throw metaError;
 
-      // 2. Guardar o actualizar los créditos, nombres, horarios y pesos de las asignaturas
+      // 4. Guardar asignaturas, créditos, nombres, horarios, pesos y convalidaciones en Supabase
       for (const sub of subjects) {
         const subSchedule = scheduleConfig[sub.id] || {};
-        const subWeights = sub.criteria || [
-          { id: 'ex', name: 'Examen / Prueba Final', weight: 50 },
-          { id: 'trab', name: 'Trabajos y Entregas', weight: 50 }
+        const subCriteria = sub.criteria || [
+          { name: 'Examen / Prueba Final', weight: 50 },
+          { name: 'Trabajos y Entregas', weight: 50 }
         ];
 
         const { error: subError } = await supabase
@@ -215,7 +219,8 @@ const handleSaveAll = async (e: React.FormEvent) => {
             credits: Number(sub.credits) || 0,
             custom_name: sub.name,
             schedule: subSchedule,
-            weights: subWeights, // <--- Añade esta línea aquí
+            weights: subCriteria,
+            is_convalidated: sub.is_convalidated || false,
             updated_at: new Date().toISOString(),
           }, { onConflict: 'user_id,subject_id' });
 
@@ -375,6 +380,32 @@ const handleSaveAll = async (e: React.FormEvent) => {
                                 />
                             </div>
                             </div>
+                            
+                            {/* Checkbox para marcar como convalidada */}
+                            <div className="flex items-center gap-2 pt-1">
+                                <label className="flex items-center gap-2 text-xs font-bold text-gray-700 cursor-pointer select-none bg-white px-3 py-2 rounded-xl border border-gray-200 hover:bg-gray-50 transition-colors w-fit shadow-2xs">
+                                <input
+                                    type="checkbox"
+                                    checked={sub.is_convalidated || false}
+                                    onChange={(e) => handleToggleConvalidated(sub.id, e.target.checked)}
+                                    className="w-4 h-4 text-[#0071e3] rounded-md border-gray-300 focus:ring-[#0071e3] cursor-pointer"
+                                />
+                                <span>Asignatura convalidada (Sin clases ni exámenes)</span>
+                                </label>
+                            </div>
+
+                            {/* Si está convalidada, ocultamos el horario y mostramos el aviso. Si no, mostramos el horario interactivo normal */}
+                            {sub.is_convalidated ? (
+                                <div className="p-4 rounded-2xl bg-purple-50 border border-purple-200 text-purple-900 text-xs font-bold flex items-center justify-between">
+                                <span>✨ Esta asignatura está convalidada. No requiere horario ni asistencias.</span>
+                                <span className="px-2.5 py-1 bg-purple-100 text-purple-700 rounded-lg text-[10px] uppercase font-black">Convalidada</span>
+                                </div>
+                            ) : (
+                                <div className="space-y-3 pt-2">
+                                <span className="text-xs font-black text-gray-900 uppercase tracking-wider">Horario y días lectivos</span>
+                                {/* A AQUÍ VA TU BLOQUE DE HORARIOS QUE YA TENÍAS */}
+                                </div>
+                            )}
 
                             {/* Horarios interactivos específicos por día */}
                             <div className="space-y-3 pt-3 border-t border-gray-200/60">
@@ -477,7 +508,7 @@ const handleSaveAll = async (e: React.FormEvent) => {
                           <div className={`flex items-center gap-1.5 px-3 py-1 rounded-xl text-[11px] font-bold ${
                             isValid100 
                               ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' 
-                              : 'bg-amber-50 text-amber-800 border border-amber-200 animate-pulse'
+                              : 'bg-amber-50 text-amber-800 border border-amber-200'
                           }`}>
                             <ShieldAlert className="w-3.5 h-3.5 shrink-0" />
                             <span>Total: {totalWeight}% {isValid100 ? '✓ (Correcto)' : '⚠️ (Debe sumar 100%)'}</span>
