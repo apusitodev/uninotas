@@ -76,44 +76,52 @@ export default function SettingsPage() {
   // Cargar los datos reales de Supabase al abrir la página de ajustes
   useEffect(() => {
     const fetchUserSettings = async () => {
-      try {
-        const { data: { user } } = await supabase.auth.getUser();
-        if (!user) return;
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
 
-        // 1. Cargar las asignaturas, créditos, nombres y pesos del usuario
-        const { data: userSubjectsData, error: usError } = await supabase
-          .from('user_subjects')
-          .select('subject_id, credits, custom_name, schedule, weights')
-          .eq('user_id', user.id);
+      const { data: userSubjectsData, error: userError } = await supabase
+        .from('user_subjects')
+        .select('subject_id, credits, custom_name, schedule, weights')
+        .eq('user_id', user.id);
 
-        if (!usError && userSubjectsData && userSubjectsData.length > 0) {
-          setSubjects((prevSubjects) =>
-            prevSubjects.map((sub) => {
-              const found = userSubjectsData.find((item: any) => item.subject_id === sub.id);
-              if (found) {
-                return {
-                  ...sub,
-                  credits: found.credits ?? sub.credits,
-                  name: found.custom_name ?? sub.name,
-                  criteria: found.weights ?? sub.criteria,
-                };
+      if (!userError && userSubjectsData && userSubjectsData.length > 0) {
+        const loadedSchedules: any = {};
+        
+        setSubjects((prevSubjects) =>
+          prevSubjects.map((sub) => {
+            const found = userSubjectsData.find((item: any) => item.subject_id === sub.id);
+            if (found) {
+              // Cargamos el horario de esta asignatura si existe en Supabase
+              if (found.schedule) {
+                loadedSchedules[sub.id] = found.schedule;
               }
-              return sub;
-            })
-          );
-        }
+              return {
+                ...sub,
+                credits: found.credits ?? sub.credits,
+                name: found.custom_name ?? sub.name,
+                criteria: found.weights ?? sub.criteria,
+              };
+            }
+            return sub;
+          })
+        );
 
-        // 2. Cargar los grupos de idiomas de los metadatos del usuario
-        const metadata = user.user_metadata;
-        if (metadata) {
-          if (metadata.chinese_group) setUserChineseGroup(metadata.chinese_group);
-          if (metadata.english_group) setUserEnglishGroup(metadata.english_group);
+        // Actualizamos el estado de los horarios con lo que viene de la base de datos
+        if (Object.keys(loadedSchedules).length > 0) {
+          setScheduleConfig(loadedSchedules);
         }
-
-      } catch (err) {
-        console.error('Error cargando la configuración de Supabase:', err);
       }
-    };
+
+      const metadata = user.user_metadata;
+      if (metadata) {
+        if (metadata.chinese_group) setUserChineseGroup(metadata.chinese_group);
+        if (metadata.english_group) setUserEnglishGroup(metadata.english_group);
+      }
+    } catch (err) {
+      console.error('Error cargando la configuración de Supabase:', err);
+    }
+  };
 
     fetchUserSettings();
   }, []);
@@ -211,19 +219,48 @@ const handleSaveAll = async (e: React.FormEvent) => {
           { name: 'Trabajos y Entregas', weight: 50 }
         ];
 
-        const { error: subError } = await supabase
+        // Comprobamos si ya existe el registro para este usuario y asignatura
+        const { data: existing } = await supabase
           .from('user_subjects')
-          .upsert({
-            user_id: user.id,
-            subject_id: sub.id,
-            credits: Number(sub.credits) || 0,
-            custom_name: sub.name,
-            schedule: subSchedule,
-            weights: subCriteria,
-            is_convalidated: sub.is_convalidated || false,
-            updated_at: new Date().toISOString(),
-          }, { onConflict: 'user_id,subject_id' });
+          .select('id')
+          .eq('user_id', user.id)
+          .eq('subject_id', sub.id)
+          .maybeSingle();
 
+        let subError = null;
+
+        if (existing) {
+          // Si ya existe, hacemos un UPDATE limpio
+          const { error } = await supabase
+            .from('user_subjects')
+            .update({
+              credits: Number(sub.credits) || 0,
+              custom_name: sub.name,
+              schedule: subSchedule,
+              weights: subCriteria,
+              is_convalidated: sub.is_convalidated || false,
+              updated_at: new Date().toISOString(),
+            })
+            .eq('user_id', user.id)
+            .eq('subject_id', sub.id);
+          subError = error;
+        } else {
+          // Si no existe, hacemos un INSERT
+          const { error } = await supabase
+            .from('user_subjects')
+            .insert({
+              user_id: user.id,
+              subject_id: sub.id,
+              credits: Number(sub.credits) || 0,
+              custom_name: sub.name,
+              schedule: subSchedule,
+              weights: subCriteria,
+              is_convalidated: sub.is_convalidated || false,
+              updated_at: new Date().toISOString(),
+            });
+          subError = error;
+        }
+        
         if (subError) {
           console.error(`Error guardando la asignatura ${sub.id}:`, subError);
         }
