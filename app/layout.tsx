@@ -18,13 +18,25 @@ export const metadata: Metadata = {
   manifest: "/manifest.json", 
 };
 
-export default function RootLayout({ children }: LayoutProps<"/">) {
+export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html
-      lang="en"
+      lang="es"
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
-      <body className="min-h-full flex flex-col">{children}</body>
+      <body className="min-h-screen bg-[#f4f5f8] flex flex-col justify-between font-sans text-gray-900">
+        
+        {/* Contenedor dinámico de tus páginas */}
+        <div className="flex-1 w-full">
+          {children}
+        </div>
+
+        {/* Footer global anclado al fondo */}
+        <footer className="w-full max-w-7xl mx-auto py-6 px-4 text-center text-xs text-gray-400 border-t border-gray-200/60 mt-auto">
+          <p>© 2026 UniNotas. Uso académico personal.</p>
+        </footer>
+
+      </body>
     </html>
   );
 }
