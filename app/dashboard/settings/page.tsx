@@ -82,7 +82,7 @@ export default function SettingsPage() {
 
       const { data: userSubjectsData, error: userError } = await supabase
         .from('user_subjects')
-        .select('subject_id, credits, custom_name, schedule, weights')
+        .select('subject_id, schedule, weights, is_convalidated')
         .eq('user_id', user.id);
 
       if (!userError && userSubjectsData && userSubjectsData.length > 0) {
@@ -97,11 +97,11 @@ export default function SettingsPage() {
                 loadedSchedules[sub.id] = found.schedule;
               }
               return {
-                ...sub,
-                credits: found.credits ?? sub.credits,
-                name: found.custom_name ?? sub.name,
-                criteria: found.weights ?? sub.criteria,
-              };
+              ...sub,
+              schedule: found.schedule ?? sub.schedule,
+              criteria: found.weights ?? sub.criteria,
+              is_convalidated: found.is_convalidated ?? sub.is_convalidated,
+            };
             }
             return sub;
           })
@@ -219,48 +219,17 @@ const handleSaveAll = async (e: React.FormEvent) => {
           { name: 'Trabajos y Entregas', weight: 50 }
         ];
 
-        // Comprobamos si ya existe el registro para este usuario y asignatura
-        const { data: existing } = await supabase
+        // 5. Guardar horarios, pesos y convalidaciones en Supabase de forma limpia
+        const { error: subError } = await supabase
           .from('user_subjects')
-          .select('id')
-          .eq('user_id', user.id)
-          .eq('subject_id', sub.id)
-          .maybeSingle();
+          .upsert({
+            user_id: user.id,
+            subject_id: sub.id,
+            schedule: subSchedule,
+            weights: subCriteria,
+            is_convalidated: sub.is_convalidated || false,
+          }, { onConflict: 'user_id,subject_id' });
 
-        let subError = null;
-
-        if (existing) {
-          // Si ya existe, hacemos un UPDATE limpio
-          const { error } = await supabase
-            .from('user_subjects')
-            .update({
-              credits: Number(sub.credits) || 0,
-              custom_name: sub.name,
-              schedule: subSchedule,
-              weights: subCriteria,
-              is_convalidated: sub.is_convalidated || false,
-              updated_at: new Date().toISOString(),
-            })
-            .eq('user_id', user.id)
-            .eq('subject_id', sub.id);
-          subError = error;
-        } else {
-          // Si no existe, hacemos un INSERT
-          const { error } = await supabase
-            .from('user_subjects')
-            .insert({
-              user_id: user.id,
-              subject_id: sub.id,
-              credits: Number(sub.credits) || 0,
-              custom_name: sub.name,
-              schedule: subSchedule,
-              weights: subCriteria,
-              is_convalidated: sub.is_convalidated || false,
-              updated_at: new Date().toISOString(),
-            });
-          subError = error;
-        }
-        
         if (subError) {
           console.error(`Error guardando la asignatura ${sub.id}:`, subError);
         }
