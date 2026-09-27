@@ -98,7 +98,6 @@ export default function SettingsPage() {
               }
               return {
               ...sub,
-              schedule: found.schedule ?? sub.schedule,
               criteria: found.weights ?? sub.criteria,
               is_convalidated: found.is_convalidated ?? sub.is_convalidated,
             };
