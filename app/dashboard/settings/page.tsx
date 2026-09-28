@@ -210,7 +210,7 @@ const handleSaveAll = async (e: React.FormEvent) => {
 
       if (metaError) throw metaError;
 
-      // 4. Guardar asignaturas, créditos, nombres, horarios, pesos y convalidaciones en Supabase de forma segura
+      // 4. Guardar horarios, pesos y convalidaciones en Supabase de forma exacta
       for (const sub of subjects) {
         const subSchedule = scheduleConfig[sub.id] || {};
         const subCriteria = sub.criteria || [
@@ -223,8 +223,6 @@ const handleSaveAll = async (e: React.FormEvent) => {
           .upsert({
             user_id: user.id,
             subject_id: String(sub.id),
-            credits: Number(sub.credits) || 0,
-            custom_name: String(sub.name || ''),
             schedule: subSchedule,
             weights: subCriteria,
             is_convalidated: Boolean(sub.is_convalidated),
