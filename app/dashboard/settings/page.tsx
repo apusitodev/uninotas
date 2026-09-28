@@ -210,7 +210,7 @@ const handleSaveAll = async (e: React.FormEvent) => {
 
       if (metaError) throw metaError;
 
-      // 4. Guardar horarios, pesos y convalidaciones en Supabase de forma exacta
+      // 4. Guardar horarios, pesos y convalidaciones en Supabase sin campos fantasmas
       for (const sub of subjects) {
         const subSchedule = scheduleConfig[sub.id] || {};
         const subCriteria = sub.criteria || [
@@ -226,7 +226,6 @@ const handleSaveAll = async (e: React.FormEvent) => {
             schedule: subSchedule,
             weights: subCriteria,
             is_convalidated: Boolean(sub.is_convalidated),
-            updated_at: new Date().toISOString(),
           }, { onConflict: 'user_id,subject_id' });
 
         if (subError) {
