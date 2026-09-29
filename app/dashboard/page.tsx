@@ -49,8 +49,11 @@ interface Subject {
 
 interface UserSubject {
   subject_id: string;
-  missed_classes: number;
-  is_convalidated: boolean;
+  missed_classes?: number;
+  is_convalidated?: boolean;
+  period_type?: string;
+  weights?: any;
+  schedule?: any;
 }
 
 interface EvaluationCriteria {
@@ -181,6 +184,7 @@ export default function DashboardPage() {
   const [customSubCriteria, setCustomSubCriteria] = useState<Record<string, CustomSubItem[]>>({});
   const [events, setEvents] = useState<AcademicEvent[]>([]);
   const [expandedSubject, setExpandedSubject] = useState<string | null>(null);
+  const [systemType, setSystemType] = useState<string>('semester');
 
   const [userChineseGroup, setUserChineseGroup] = useState<string>('A');
   const [userEnglishGroup, setUserEnglishGroup] = useState<string>('A');
@@ -259,7 +263,7 @@ export default function DashboardPage() {
 
       const { data: profile } = await supabase
         .from('profiles')
-        .select('chinese_group, english_group, has_seen_tour')
+        .select('chinese_group, english_group, has_seen_tour, system_type')
         .eq('id', user.id)
         .single();
 
@@ -270,6 +274,7 @@ export default function DashboardPage() {
 
       setUserChineseGroup(profile.chinese_group);
       setUserEnglishGroup(profile.english_group);
+      setSystemType(profile.system_type || 'semester');
 
       if (!profile.has_seen_tour) {
         setShowTour(true);
@@ -297,7 +302,13 @@ export default function DashboardPage() {
           } else {
             const { data: inserted } = await supabase
               .from('user_subjects')
-              .insert({ user_id: user.id, subject_id: sub.id, missed_classes: 0, is_convalidated: false })
+              .insert({ 
+                user_id: user.id,
+                subject_id: sub.id,
+                missed_classes: 0,
+                is_convalidated: false,
+                period_type: 'full_year'
+              })
               .select()
               .single();
             if (inserted) subMap[sub.id] = inserted;
@@ -761,7 +772,23 @@ export default function DashboardPage() {
   };
 
   
-  const filteredSubjects = subjects.filter((s) => activeSemester === 'total' || s.semester === activeSemester || s.is_annual);
+  const filteredSubjects = subjects.filter((sub) => {
+    const userSub = userSubjects[sub.id];
+    const period = userSub?.period_type || 'full_year'; // Por defecto curso total
+
+    // Si está seleccionado 'total', mostramos todas
+    if (activeSemester === 'total') return true;
+
+    // Si el usuario filtra por el semestre correspondiente
+    if (activeSemester === 1) {
+      return period === 'semester_1' || period === 'quarter_1' || period === 'quarter_2' || period === 'full_year';
+    }
+    if (activeSemester === 2) {
+      return period === 'semester_2' || period === 'quarter_3' || period === 'full_year';
+    }
+
+    return true;
+  });
 
   let totalElapsedGlobal = 0;
   let totalMissedGlobal = 0;
@@ -1009,22 +1036,53 @@ const [showInstallBtn, setShowInstallBtn] = useState(false);
             </div>
 
             <div className="inline-flex p-1 rounded-xl bg-gray-200/70 border border-gray-300/40">
-              <button
-                onClick={() => setActiveSemester(1)}
-                className={`px-2.5 sm:px-3.5 py-1.5 rounded-lg text-[11px] sm:text-xs font-semibold transition-all cursor-pointer ${
-                  activeSemester === 1 ? 'bg-white text-gray-900 shadow-xs' : 'text-gray-500 hover:text-gray-900'
-                }`}
-              >
-                1r Sem.
-              </button>
-              <button
-                onClick={() => setActiveSemester(2)}
-                className={`px-2.5 sm:px-3.5 py-1.5 rounded-lg text-[11px] sm:text-xs font-semibold transition-all cursor-pointer ${
-                  activeSemester === 2 ? 'bg-white text-gray-900 shadow-xs' : 'text-gray-500 hover:text-gray-900'
-                }`}
-              >
-                2n Sem.
-              </button>
+              {systemType === 'quarter' ? (
+                <>
+                  <button
+                    onClick={() => setActiveSemester(1)}
+                    className={`px-2.5 sm:px-3.5 py-1.5 rounded-lg text-[11px] sm:text-xs font-semibold transition-all cursor-pointer ${
+                      activeSemester === 1 ? 'bg-white text-gray-900 shadow-xs' : 'text-gray-500 hover:text-gray-900'
+                    }`}
+                  >
+                    1r Trim.
+                  </button>
+                  <button
+                    onClick={() => setActiveSemester(2)}
+                    className={`px-2.5 sm:px-3.5 py-1.5 rounded-lg text-[11px] sm:text-xs font-semibold transition-all cursor-pointer ${
+                      activeSemester === 2 ? 'bg-white text-gray-900 shadow-xs' : 'text-gray-500 hover:text-gray-900'
+                    }`}
+                  >
+                    2n Trim.
+                  </button>
+                  <button
+                    onClick={() => setActiveSemester(3)}
+                    className={`px-2.5 sm:px-3.5 py-1.5 rounded-lg text-[11px] sm:text-xs font-semibold transition-all cursor-pointer ${
+                      activeSemester === 3 ? 'bg-white text-gray-900 shadow-xs' : 'text-gray-500 hover:text-gray-900'
+                    }`}
+                  >
+                    3r Trim.
+                  </button>
+                </>
+              ) : (
+                <>
+                  <button
+                    onClick={() => setActiveSemester(1)}
+                    className={`px-2.5 sm:px-3.5 py-1.5 rounded-lg text-[11px] sm:text-xs font-semibold transition-all cursor-pointer ${
+                      activeSemester === 1 ? 'bg-white text-gray-900 shadow-xs' : 'text-gray-500 hover:text-gray-900'
+                    }`}
+                  >
+                    1r Sem.
+                  </button>
+                  <button
+                    onClick={() => setActiveSemester(2)}
+                    className={`px-2.5 sm:px-3.5 py-1.5 rounded-lg text-[11px] sm:text-xs font-semibold transition-all cursor-pointer ${
+                      activeSemester === 2 ? 'bg-white text-gray-900 shadow-xs' : 'text-gray-500 hover:text-gray-900'
+                    }`}
+                  >
+                    2n Sem.
+                  </button>
+                </>
+              )}
               <button
                 onClick={() => setActiveSemester('total')}
                 className={`px-2.5 sm:px-3.5 py-1.5 rounded-lg text-[11px] sm:text-xs font-semibold transition-all cursor-pointer ${

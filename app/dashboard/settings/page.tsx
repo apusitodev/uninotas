@@ -26,6 +26,7 @@ interface Subject {
   name: string;
   credits: number;
   is_convalidated?: boolean; 
+  period_type?: string;
   criteria?: Array<{ id: string; name: string; weight: number }>; 
 }
 
@@ -50,81 +51,71 @@ export default function SettingsPage() {
   const [savedMessage, setSavedMessage] = useState(false);
   const [loading, setLoading] = useState(false);
 
-  const [subjects, setSubjects] = useState<Subject[]>([
-    { id: 'EST101', name: 'Estadística I', credits: 6 },
-    { id: 'EPP101', name: 'Estrategies productes i preus', credits: 6 },
-    { id: 'PUB101', name: 'Publicitat, promoció i RRPP', credits: 6 },
-    { id: 'DPM101', name: 'Desenvol. productes i marques', credits: 6 },
-    { id: 'EDL101', name: 'Estratègies distribució i logística', credits: 6 },
-    { id: 'XIN201', name: 'Xinès II', credits: 3 },
-    { id: 'ANG201', name: 'Anglès II', credits: 3 },
-  ]);
+  const [subjects, setSubjects] = useState<Subject[]>([]);
 
-  const [scheduleConfig, setScheduleConfig] = useState<Record<string, Record<string, { active: boolean; startTime: string; endTime: string }>>>({
-    'EST101': { lunes: { active: true, startTime: '16:00', endTime: '19:00' }, miercoles: { active: true, startTime: '19:00', endTime: '20:30' }, martes: { active: false, startTime: '09:00', endTime: '11:00' }, jueves: { active: false, startTime: '09:00', endTime: '11:00' }, viernes: { active: false, startTime: '09:00', endTime: '11:00' } },
-    'EPP101': { martes: { active: true, startTime: '16:00', endTime: '19:00' }, jueves: { active: true, startTime: '16:00', endTime: '19:00' }, lunes: { active: false, startTime: '09:00', endTime: '11:00' }, miercoles: { active: false, startTime: '09:00', endTime: '11:00' }, viernes: { active: false, startTime: '09:00', endTime: '11:00' } },
-    'PUB101': { lunes: { active: true, startTime: '09:00', endTime: '11:00' }, miercoles: { active: true, startTime: '09:00', endTime: '11:00' }, martes: { active: false, startTime: '09:00', endTime: '11:00' }, jueves: { active: false, startTime: '09:00', endTime: '11:00' }, viernes: { active: false, startTime: '09:00', endTime: '11:00' } },
-    'DPM101': { jueves: { active: true, startTime: '16:00', endTime: '19:00' }, lunes: { active: false, startTime: '09:00', endTime: '11:00' }, martes: { active: false, startTime: '09:00', endTime: '11:00' }, miercoles: { active: false, startTime: '09:00', endTime: '11:00' }, viernes: { active: false, startTime: '09:00', endTime: '11:00' } },
-    'EDL101': { viernes: { active: true, startTime: '16:00', endTime: '19:00' }, lunes: { active: false, startTime: '09:00', endTime: '11:00' }, martes: { active: false, startTime: '09:00', endTime: '11:00' }, miercoles: { active: false, startTime: '09:00', endTime: '11:00' }, jueves: { active: false, startTime: '09:00', endTime: '11:00' } },
-    'XIN201': { miercoles: { active: true, startTime: '19:00', endTime: '20:30' }, lunes: { active: false, startTime: '09:00', endTime: '11:00' }, martes: { active: false, startTime: '09:00', endTime: '11:00' }, jueves: { active: false, startTime: '09:00', endTime: '11:00' }, viernes: { active: false, startTime: '09:00', endTime: '11:00' } },
-    'ANG201': { martes: { active: true, startTime: '19:00', endTime: '20:30' }, lunes: { active: false, startTime: '09:00', endTime: '11:00' }, miercoles: { active: false, startTime: '09:00', endTime: '11:00' }, jueves: { active: false, startTime: '09:00', endTime: '11:00' }, viernes: { active: false, startTime: '09:00', endTime: '11:00' } },
-  });
+  const [scheduleConfig, setScheduleConfig] = useState<Record<string, Record<string, { active: boolean; startTime: string; endTime: string }>>>({});
 
   const [userChineseGroup, setUserChineseGroup] = useState('A');
   const [userEnglishGroup, setUserEnglishGroup] = useState('A');
 
-  // Cargar los datos reales de Supabase al abrir la página de ajustes
+  // Cargar los datos reales de Supabase desde la tabla unificada user_subjects al abrir ajustes
   useEffect(() => {
     const fetchUserSettings = async () => {
-    try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return;
+      try {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) return;
 
-      const { data: userSubjectsData, error: userError } = await supabase
-        .from('user_subjects')
-        .select('subject_id, schedule, weights, is_convalidated')
-        .eq('user_id', user.id);
+        const { data: userSubjectsData, error: userError } = await supabase
+          .from('user_subjects')
+          .select('subject_id, name, ects, schedule, weights, is_convalidated, period_type')
+          .eq('user_id', user.id);
 
-      if (!userError && userSubjectsData && userSubjectsData.length > 0) {
-        const loadedSchedules: any = {};
-        
-        setSubjects((prevSubjects) =>
-          prevSubjects.map((sub) => {
-            const found = userSubjectsData.find((item: any) => item.subject_id === sub.id);
-            if (found) {
-              // Cargamos el horario de esta asignatura si existe en Supabase
-              if (found.schedule) {
-                loadedSchedules[sub.id] = found.schedule;
-              }
-              return {
-              ...sub,
-              criteria: found.weights ?? sub.criteria,
-              is_convalidated: found.is_convalidated ?? sub.is_convalidated,
-            };
+        if (!userError && userSubjectsData && userSubjectsData.length > 0) {
+          const loadedSubjects: Subject[] = [];
+          const loadedSchedules: any = {};
+
+          userSubjectsData.forEach((item: any) => {
+            loadedSubjects.push({
+              id: item.subject_id,
+              name: item.name || item.subject_id,
+              credits: item.ects ?? 6,
+              is_convalidated: item.is_convalidated ?? false,
+              period_type: item.period_type ?? 'semester_1',
+              criteria: item.weights ?? [
+                { id: 'ex', name: 'Examen / Prueba Final', weight: 50 },
+                { id: 'trab', name: 'Trabajos y Entregas', weight: 50 }
+              ],
+            });
+
+            if (item.schedule) {
+              loadedSchedules[item.subject_id] = item.schedule;
             }
-            return sub;
-          })
-        );
+          });
 
-        // Actualizamos el estado de los horarios con lo que viene de la base de datos
-        if (Object.keys(loadedSchedules).length > 0) {
-          setScheduleConfig(loadedSchedules);
+          setSubjects(loadedSubjects);
+          if (Object.keys(loadedSchedules).length > 0) {
+            setScheduleConfig(loadedSchedules);
+          }
         }
-      }
 
-      const metadata = user.user_metadata;
-      if (metadata) {
-        if (metadata.chinese_group) setUserChineseGroup(metadata.chinese_group);
-        if (metadata.english_group) setUserEnglishGroup(metadata.english_group);
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('chinese_group, english_group')
+          .eq('id', user.id)
+          .single();
+
+        if (profile) {
+          if (profile.chinese_group) setUserChineseGroup(profile.chinese_group);
+          if (profile.english_group) setUserEnglishGroup(profile.english_group);
+        }
+      } catch (err) {
+        console.error('Error cargando la configuración de Supabase:', err);
       }
-    } catch (err) {
-      console.error('Error cargando la configuración de Supabase:', err);
-    }
-  };
+    };
 
     fetchUserSettings();
   }, []);
-
+  
   const handleCreditChange = (id: string, val: string) => {
     const num = parseFloat(val) || 0;
     setSubjects(prev => prev.map(s => s.id === id ? { ...s, credits: num } : s));
@@ -226,6 +217,7 @@ const handleSaveAll = async (e: React.FormEvent) => {
             schedule: subSchedule,
             weights: subCriteria,
             is_convalidated: Boolean(sub.is_convalidated),
+            period_type: sub.period_type || 'semester_1',
           }, { onConflict: 'user_id,subject_id' });
 
         if (subError) {
@@ -396,6 +388,28 @@ const handleSaveAll = async (e: React.FormEvent) => {
                                 />
                                 <span>Asignatura convalidada (Sin clases ni exámenes)</span>
                                 </label>
+                            </div>
+
+                            {/* Selector de Periodo Académico */}
+                            <div className="w-full mt-3 pt-3 border-t border-gray-200/60">
+                              <label className="text-[10px] uppercase font-bold text-gray-400 tracking-wider block mb-1">
+                                Periodo / Duración Académica
+                              </label>
+                              <select
+                                value={sub.period_type || 'semester_1'}
+                                onChange={(e) => {
+                                  const updated = subjects.map(s => s.id === sub.id ? { ...s, period_type: e.target.value } : s);
+                                  setSubjects(updated);
+                                }}
+                                className="w-full px-3 py-2 bg-white border border-gray-200 rounded-xl text-xs font-bold text-gray-900 focus:outline-none focus:border-[#0071e3]"
+                              >
+                                <option value="semester_1">1r Semestre</option>
+                                <option value="semester_2">2n Semestre</option>
+                                <option value="quarter_1">1r Trimestre</option>
+                                <option value="quarter_2">2n Trimestre</option>
+                                <option value="quarter_3">3r Trimestre</option>
+                                <option value="full_year">Todo el curso</option>
+                              </select>
                             </div>
 
                             {/* Si está convalidada, ocultamos el horario y mostramos el aviso. Si no, mostramos el horario interactivo normal */}
