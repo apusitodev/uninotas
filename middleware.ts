@@ -41,7 +41,7 @@ export async function middleware(request: NextRequest) {
   }
 
   // 2. Tu correo de administrador/tester
-  const MY_ADMIN_EMAIL = 'paubassols@gmail.com'; 
+  const MY_ADMIN_EMAIL = 'paubassolsros@gmail.com'; 
 
   // 3. Si eres tú, te dejamos pasar a cualquier parte
   if (user && user.email === MY_ADMIN_EMAIL) {
