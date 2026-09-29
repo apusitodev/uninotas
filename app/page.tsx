@@ -63,7 +63,17 @@ export default function LoginPage() {
           localStorage.setItem('rememberMe', 'true');
         }
 
-        router.push('/dashboard');
+        // Comprobar si el usuario ya tiene asignaturas guardadas
+        const { data: existingSubjects } = await supabase
+          .from('user_subjects')
+          .select('subject_id')
+          .eq('user_id', (await supabase.auth.getUser()).data.user?.id);
+
+        if (existingSubjects && existingSubjects.length > 0) {
+          router.push('/dashboard');
+        } else {
+          router.push('/onboarding');
+        }
         
       } else if (authMode === 'signup') {
         if (formData.password !== formData.confirmPassword) {
