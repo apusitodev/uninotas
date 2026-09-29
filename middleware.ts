@@ -35,24 +35,24 @@ export async function middleware(request: NextRequest) {
   const url = request.nextUrl.clone();
   const path = url.pathname;
 
-  // Si ya estás en la página de mantenimiento, permite el acceso libre
-  if (path.startsWith('/maintenance')) {
+  // 1. Permitir acceso libre a la página de mantenimiento y a la raíz (donde está el login)
+  if (path.startsWith('/maintenance') || path === '/') {
     return response;
   }
 
-  // Tu correo de administrador/tester
+  // 2. Tu correo de administrador/tester
   const MY_ADMIN_EMAIL = 'paubassols@gmail.com'; 
 
-  // Si eres tú, te dejamos pasar
+  // 3. Si eres tú, te dejamos pasar a cualquier parte
   if (user && user.email === MY_ADMIN_EMAIL) {
     return response;
   }
 
-  // Para el resto del mundo, redirigir a mantenimiento
+  // 4. Para cualquier otro usuario que intente entrar al dashboard u otras páginas, redirigir a mantenimiento
   url.pathname = '/maintenance';
   return NextResponse.redirect(url);
 }
 
 export const config = {
-  matcher: ['/((?!_next/static|_next/image|favicon.ico|api/auth|login).*)'],
+  matcher: ['/((?!_next/static|_next/image|favicon.ico|api/auth).*)'],
 };
