@@ -64,10 +64,22 @@ export default function LoginPage() {
         }
 
         // Comprobar si el usuario ya tiene asignaturas guardadas
-        const { data: existingSubjects } = await supabase
+        const currentUser = (await supabase.auth.getUser()).data.user;
+        console.log("Usuario actual ID:", currentUser?.id);
+
+        const { data: existingSubjects, error } = await supabase
           .from('user_subjects')
-          .select('subject_id')
-          .eq('user_id', (await supabase.auth.getUser()).data.user?.id);
+          .select('*')
+          .eq('user_id', currentUser?.id);
+
+        console.log("Asignaturas encontradas en BD:", existingSubjects);
+        console.log("Error de Supabase si lo hay:", error);
+
+        if (existingSubjects && existingSubjects.length > 0) {
+          router.push('/dashboard');
+        } else {
+          router.push('/onboarding');
+        }
 
         if (existingSubjects && existingSubjects.length > 0) {
           router.push('/dashboard');
