@@ -67,19 +67,13 @@ export default function LoginPage() {
         const currentUser = (await supabase.auth.getUser()).data.user;
         console.log("Usuario actual ID:", currentUser?.id);
 
-        const { data: existingSubjects, error } = await supabase
+        const { data: existingSubjects, error: subjectsError } = await supabase
           .from('user_subjects')
           .select('*')
           .eq('user_id', currentUser?.id);
 
         console.log("Asignaturas encontradas en BD:", existingSubjects);
-        console.log("Error de Supabase si lo hay:", error);
-
-        if (existingSubjects && existingSubjects.length > 0) {
-          router.push('/dashboard');
-        } else {
-          router.push('/onboarding');
-        }
+        console.log("Error de Supabase si lo hay:", subjectsError);
 
         if (existingSubjects && existingSubjects.length > 0) {
           router.push('/dashboard');
