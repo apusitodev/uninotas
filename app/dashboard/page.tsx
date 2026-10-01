@@ -37,8 +37,8 @@ import {
 import Sidebar from '@/components/Sidebar';
 
 interface Subject {
-  id: string;          // UUID del registro en user_subjects
-  subject_id: string;  // ID interno o código de la asignatura
+  id: string; 
+  subject_id: string;
   name: string;
   code: string;
   ects: number;
@@ -47,6 +47,9 @@ interface Subject {
   missed_classes?: number;
   schedule?: any;
   weights?: any;
+  min_attendance_pct?: number; // Añadido opcional
+  is_annual?: boolean;         // Añadido opcional
+  total_sessions?: number;     // Añadido opcional
 }
 
 interface UserSubject {
@@ -1546,7 +1549,8 @@ const [showInstallBtn, setShowInstallBtn] = useState(false);
                       const missed = userSubjects[sub.id]?.missed_classes || 0;
                       const attended = Math.max(0, elapsed - missed);
                       const pct = elapsed > 0 ? Math.round((attended / elapsed) * 100) : 100;
-                      const isDanger = pct < sub.min_attendance_pct && elapsed > 0;
+                      const minPct = sub.min_attendance_pct ?? 60;
+                      const isDanger = pct < minPct && elapsed > 0;
                       const gradeObj = getSubjectGrade(sub.id);
 
                       if (isConv) {
@@ -1630,7 +1634,8 @@ const [showInstallBtn, setShowInstallBtn] = useState(false);
                   const missed = userSubjects[sub.id]?.missed_classes || 0;
                   const attended = Math.max(0, elapsed - missed);
                   const pct = elapsed > 0 ? Math.round((attended / elapsed) * 100) : 100;
-                  const isDanger = pct < sub.min_attendance_pct && elapsed > 0;
+                  const minPct = sub.min_attendance_pct ?? 60;
+                  const isDanger = pct < minPct && elapsed > 0;
 
                   if (isConv) {
                     return (

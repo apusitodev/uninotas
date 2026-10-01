@@ -40,7 +40,7 @@ const DAYS_OF_WEEK = [
 
 export default function SettingsPage() {
   const router = useRouter();
-  const [activeTab, setActiveTab] = useState<'academic' | 'weights' | 'preferences' | 'account'>('academic');
+  const [activeTab, setActiveTab] = useState<'academic' | 'weights' | 'preferences' | 'account' | 'languages'>('academic');
   const [savedMessage, setSavedMessage] = useState(false);
   const [loading, setLoading] = useState(false);
 
@@ -272,14 +272,6 @@ const handleSaveAll = async (e: React.FormEvent) => {
           >
             <Award className="w-4 h-4" />
             <span>Pesos y Evaluación</span>
-          </button>
-
-          <button
-            onClick={() => setActiveTab('languages')}
-            className={`flex items-center gap-2 px-4 py-2.5 rounded-2xl text-xs font-bold transition-all cursor-pointer whitespace-nowrap ${activeTab === 'languages' ? 'bg-[#0071e3] text-white shadow-md' : 'bg-white border border-gray-200/80 text-gray-600 hover:bg-gray-50'}`}
-          >
-            <Globe className="w-4 h-4" />
-            <span>Idiomas y Grupos</span>
           </button>
 
           <button
