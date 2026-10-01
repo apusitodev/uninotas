@@ -49,7 +49,7 @@ export default function OnboardingPage() {
       // Comprobar si ya completó el onboarding
       const { data: profile } = await supabase
         .from('profiles')
-        .select('has_seen_tour, system_type')
+        .select('has_seen_tour, academic_system')
         .eq('id', user.id)
         .single();
 
@@ -135,7 +135,7 @@ const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
       // 1. Guardar o actualizar perfil del usuario incluyendo el tipo de sistema académico
       await supabase.from('profiles').upsert({
         id: userId,
-        system_type: systemType,
+        academic_system: systemType,
         has_seen_tour: true,
       });
 
