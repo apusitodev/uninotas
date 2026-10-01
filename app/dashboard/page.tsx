@@ -37,14 +37,16 @@ import {
 import Sidebar from '@/components/Sidebar';
 
 interface Subject {
-  id: string;
+  id: string;          // UUID del registro en user_subjects
+  subject_id: string;  // ID interno o código de la asignatura
   name: string;
   code: string;
-  semester: number;
   ects: number;
-  total_sessions: number;
-  min_attendance_pct: number;
-  is_annual: boolean;
+  period_type: string;
+  is_convalidated?: boolean;
+  missed_classes?: number;
+  schedule?: any;
+  weights?: any;
 }
 
 interface UserSubject {

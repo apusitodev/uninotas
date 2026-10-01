@@ -5,13 +5,6 @@ import { useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
 import { GraduationCap, CheckCircle2, ArrowRight, Plus, Trash2, Upload, Calendar } from 'lucide-react';
 
-const GROUPS_INFO = [
-  { id: 'A', label: 'Grupo A', room: 'Aula A41' },
-  { id: 'B', label: 'Grupo B', room: 'Aula A42' },
-  { id: 'C', label: 'Grupo C', room: 'Aula A43' },
-  { id: 'D', label: 'Grupo D', room: 'Aula A44' },
-];
-
 interface CustomSubjectInput {
   id: string;
   name: string;
@@ -29,8 +22,6 @@ export default function OnboardingPage() {
   const [parsingFile, setParsingFile] = useState(false);
   
   // Preferencias de perfil
-  const [chineseGroup, setChineseGroup] = useState<string>('A');
-  const [englishGroup, setEnglishGroup] = useState<string>('A');
   const [systemType, setSystemType] = useState<string>('semester'); // 'semester' o 'quarter'
 
   // Lista dinámica de asignaturas creadas por el usuario
@@ -144,8 +135,6 @@ const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
       // 1. Guardar o actualizar perfil del usuario incluyendo el tipo de sistema académico
       await supabase.from('profiles').upsert({
         id: userId,
-        chinese_group: chineseGroup,
-        english_group: englishGroup,
         system_type: systemType,
         has_seen_tour: true,
       });
@@ -225,45 +214,6 @@ const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
               >
                 Por Trimestres (1r, 2n y 3r Trimestre)
               </button>
-            </div>
-          </div>
-
-          {/* Grupos de Idiomas */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div className="space-y-2 bg-gray-50/80 p-5 rounded-2xl border border-gray-200/70">
-              <label className="text-xs font-extrabold text-gray-800 uppercase tracking-wider block">Grupo de Idioma I</label>
-              <div className="grid grid-cols-4 gap-2">
-                {GROUPS_INFO.map(g => (
-                  <button
-                    key={`ch_${g.id}`}
-                    type="button"
-                    onClick={() => setChineseGroup(g.id)}
-                    className={`py-2 rounded-xl text-center text-xs font-bold transition-all cursor-pointer border ${
-                      chineseGroup === g.id ? 'bg-[#0071e3] text-white border-[#0071e3]' : 'bg-white text-gray-700 border-gray-200'
-                    }`}
-                  >
-                    {g.id}
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            <div className="space-y-2 bg-gray-50/80 p-5 rounded-2xl border border-gray-200/70">
-              <label className="text-xs font-extrabold text-gray-800 uppercase tracking-wider block">Grupo de Idioma II</label>
-              <div className="grid grid-cols-4 gap-2">
-                {GROUPS_INFO.map(g => (
-                  <button
-                    key={`en_${g.id}`}
-                    type="button"
-                    onClick={() => setEnglishGroup(g.id)}
-                    className={`py-2 rounded-xl text-center text-xs font-bold transition-all cursor-pointer border ${
-                      englishGroup === g.id ? 'bg-[#0071e3] text-white border-[#0071e3]' : 'bg-white text-gray-700 border-gray-200'
-                    }`}
-                  >
-                    {g.id}
-                  </button>
-                ))}
-              </div>
             </div>
           </div>
 

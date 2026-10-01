@@ -28,14 +28,7 @@ interface Subject {
   is_convalidated?: boolean; 
   period_type?: string;
   criteria?: Array<{ id: string; name: string; weight: number }>; 
-}
-
-const GROUPS_INFO = [
-  { id: 'A', label: 'Grupo A', room: 'Aula A41' },
-  { id: 'B', label: 'Grupo B', room: 'Aula A42' },
-  { id: 'C', label: 'Grupo C', room: 'Aula A43' },
-  { id: 'D', label: 'Grupo D', room: 'Aula A44' },
-];
+};
 
 const DAYS_OF_WEEK = [
   { id: 'lunes', label: 'Lunes' },
@@ -47,16 +40,13 @@ const DAYS_OF_WEEK = [
 
 export default function SettingsPage() {
   const router = useRouter();
-  const [activeTab, setActiveTab] = useState<'academic' | 'weights' | 'languages' | 'preferences' | 'account'>('academic');
+  const [activeTab, setActiveTab] = useState<'academic' | 'weights' | 'preferences' | 'account'>('academic');
   const [savedMessage, setSavedMessage] = useState(false);
   const [loading, setLoading] = useState(false);
 
   const [subjects, setSubjects] = useState<Subject[]>([]);
 
   const [scheduleConfig, setScheduleConfig] = useState<Record<string, Record<string, { active: boolean; startTime: string; endTime: string }>>>({});
-
-  const [userChineseGroup, setUserChineseGroup] = useState('A');
-  const [userEnglishGroup, setUserEnglishGroup] = useState('A');
 
   // Cargar los datos reales de Supabase desde la tabla unificada user_subjects al abrir ajustes
   useEffect(() => {
@@ -98,16 +88,6 @@ export default function SettingsPage() {
           }
         }
 
-        const { data: profile } = await supabase
-          .from('profiles')
-          .select('chinese_group, english_group')
-          .eq('id', user.id)
-          .single();
-
-        if (profile) {
-          if (profile.chinese_group) setUserChineseGroup(profile.chinese_group);
-          if (profile.english_group) setUserEnglishGroup(profile.english_group);
-        }
       } catch (err) {
         console.error('Error cargando la configuración de Supabase:', err);
       }
@@ -191,16 +171,6 @@ const handleSaveAll = async (e: React.FormEvent) => {
         }
       }
 
-      // 3. Guardar grupos de idiomas en los metadatos del usuario
-      const { error: metaError } = await supabase.auth.updateUser({
-        data: {
-          chinese_group: userChineseGroup,
-          english_group: userEnglishGroup,
-        }
-      });
-
-      if (metaError) throw metaError;
-
       // 4. Guardar horarios, pesos y convalidaciones en Supabase sin campos fantasmas
       for (const sub of subjects) {
         const subSchedule = scheduleConfig[sub.id] || {};
@@ -251,7 +221,6 @@ const handleSaveAll = async (e: React.FormEvent) => {
     switch (activeTab) {
       case 'academic': return 'Asignaturas y Horarios';
       case 'weights': return 'Pesos y Evaluación';
-      case 'languages': return 'Idiomas y Grupos';
       case 'preferences': return 'Preferencias';
       case 'account': return 'Cuenta y Soporte';
     }
@@ -609,55 +578,6 @@ const handleSaveAll = async (e: React.FormEvent) => {
                       </div>
                     );
                   })}
-                </div>
-              </div>
-            )}
-
-            {activeTab === 'languages' && (
-              <div className="space-y-6">
-                <div>
-                  <h2 className="text-lg font-black text-gray-900">Idiomas y Grupos</h2>
-                  <p className="text-xs text-gray-400 font-medium">Selecciona tus grupos asignados (A, B, C o D).</p>
-                </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <div className="p-5 rounded-2xl bg-gray-50 border border-gray-200/70 space-y-3">
-                    <span className="text-xs font-extrabold text-gray-800 uppercase tracking-wider">Grupo de Xinès II</span>
-                    <div className="grid grid-cols-2 gap-2">
-                      {GROUPS_INFO.map((g) => (
-                        <button
-                          key={`ch_${g.id}`}
-                          type="button"
-                          onClick={() => setUserChineseGroup(g.id)}
-                          className={`p-3 rounded-xl border text-center transition-all cursor-pointer ${
-                            userChineseGroup === g.id ? 'border-[#0071e3] bg-[#0071e3] text-white font-bold shadow-xs' : 'border-gray-200 bg-white text-gray-700'
-                          }`}
-                        >
-                          <p className="text-xs font-black">{g.label}</p>
-                          <p className={`text-[10px] mt-0.5 ${userChineseGroup === g.id ? 'text-white/80' : 'text-gray-400'}`}>{g.room}</p>
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-
-                  <div className="p-5 rounded-2xl bg-gray-50 border border-gray-200/70 space-y-3">
-                    <span className="text-xs font-extrabold text-gray-800 uppercase tracking-wider">Grupo de Anglès II</span>
-                    <div className="grid grid-cols-2 gap-2">
-                      {GROUPS_INFO.map((g) => (
-                        <button
-                          key={`en_${g.id}`}
-                          type="button"
-                          onClick={() => setUserEnglishGroup(g.id)}
-                          className={`p-3 rounded-xl border text-center transition-all cursor-pointer ${
-                            userEnglishGroup === g.id ? 'border-[#0071e3] bg-[#0071e3] text-white font-bold shadow-xs' : 'border-gray-200 bg-white text-gray-700'
-                          }`}
-                        >
-                          <p className="text-xs font-black">{g.label}</p>
-                          <p className={`text-[10px] mt-0.5 ${userEnglishGroup === g.id ? 'text-white/80' : 'text-gray-400'}`}>{g.room}</p>
-                        </button>
-                      ))}
-                    </div>
-                  </div>
                 </div>
               </div>
             )}
