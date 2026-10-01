@@ -199,12 +199,23 @@ export default function DashboardPage() {
         setShowTour(true);
       }
 
-      // Cargar festivos dinámicamente desde Supabase
-      const { data: holidaysData } = await supabase.from('holidays').select('*');
+      // Cargar festivos desde academic_events en lugar de la tabla holidays eliminada
+      const { data: eventsData } = await supabase
+        .from('academic_events')
+        .select('*')
+        .eq('user_id', user.id);
+
       const holidayMap: Record<string, string> = {};
-      if (holidaysData) {
-        holidaysData.forEach((h: any) => {
-          holidayMap[h.date] = h.description || h.title || 'Festivo';
+      if (eventsData) {
+        eventsData.forEach((e: any) => {
+          if (
+            e.event_type === 'festivo' || 
+            e.event_type === 'no_lectivo' || 
+            e.title?.toLowerCase().includes('festiu') || 
+            e.title?.toLowerCase().includes('festivo')
+          ) {
+            holidayMap[e.due_date] = e.title;
+          }
         });
       }
       setHolidays(holidayMap);
