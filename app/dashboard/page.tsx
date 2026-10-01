@@ -37,28 +37,20 @@ import {
 import Sidebar from '@/components/Sidebar';
 
 interface Subject {
-  id: string; 
+  id: string;
   subject_id: string;
   name: string;
   code: string;
+  semester: number;
   ects: number;
-  period_type: string;
-  is_convalidated?: boolean;
-  missed_classes?: number;
-  schedule?: any;
-  weights?: any;
-  min_attendance_pct?: number; // Añadido opcional
-  is_annual?: boolean;         // Añadido opcional
-  total_sessions?: number;     // Añadido opcional
-}
-
-interface UserSubject {
-  subject_id: string;
-  missed_classes?: number;
-  is_convalidated?: boolean;
+  total_sessions: number;
+  min_attendance_pct: number;
+  is_annual: boolean;
   period_type?: string;
-  weights?: any;
   schedule?: any;
+  weights?: any;
+  is_convalidated?: boolean;
+  missed_classes?: number;
 }
 
 interface EvaluationCriteria {
@@ -100,64 +92,6 @@ interface CustomSubItem {
   grade: number | null;
 }
 
-const GROUPS_INFO = [
-  { id: 'A', room: 'A41', label: 'Grupo A' },
-  { id: 'B', room: 'A42', label: 'Grupo B' },
-  { id: 'C', room: 'A51', label: 'Grupo C' },
-  { id: 'D', room: 'A52', label: 'Grupo D' },
-];
-
-const LANGUAGE_ROOMS: Record<string, Record<string, string>> = {
-  'ANG201': { 'A': 'A41', 'B': 'A42', 'C': 'A51', 'D': 'A52' },
-  'XIN201': { 'A': 'A41', 'B': 'A42', 'C': 'A51', 'D': 'A52' },
-};
-
-const S1_SCHEDULE_CLEAN: Record<string, { name: string; slots: ClassSlot[] }> = {
-  'EST101': {
-    name: 'Estadística I',
-    slots: [{ day: 1, startTime: '16:00', endTime: '19:00', startHour: 16, startMinute: 0, endHour: 19, endMinute: 0, defaultClassroom: 'A41' }]
-  },
-  'EPP101': {
-    name: 'Estratègies productes i preus',
-    slots: [{ day: 2, startTime: '16:00', endTime: '19:00', startHour: 16, startMinute: 0, endHour: 19, endMinute: 0, defaultClassroom: 'A41' }]
-  },
-  'PUB101': {
-    name: 'Publicitat, promoció i RRPP',
-    slots: [{ day: 3, startTime: '16:00', endTime: '19:00', startHour: 16, startMinute: 0, endHour: 19, endMinute: 0, defaultClassroom: 'A41' }]
-  },
-  'DPM101': {
-    name: 'Desenvol. productes i marques',
-    slots: [{ day: 4, startTime: '16:00', endTime: '19:00', startHour: 16, startMinute: 0, endHour: 19, endMinute: 0, defaultClassroom: 'A41' }]
-  },
-  'EDL101': {
-    name: 'Estratègies distribució i logística',
-    slots: [{ day: 5, startTime: '16:00', endTime: '19:00', startHour: 16, startMinute: 0, endHour: 19, endMinute: 0, defaultClassroom: 'A41' }]
-  },
-  'XIN201': {
-    name: 'Xinès II',
-    slots: [
-      { day: 1, startTime: '19:00', endTime: '20:30', startHour: 19, startMinute: 0, endHour: 20, endMinute: 30, defaultClassroom: 'A41', isLanguage: true },
-      { day: 3, startTime: '19:00', endTime: '20:30', startHour: 19, startMinute: 0, endHour: 20, endMinute: 30, defaultClassroom: 'A41', isLanguage: true }
-    ]
-  },
-  'ANG201': {
-    name: 'Anglès II',
-    slots: [
-      { day: 2, startTime: '19:00', endTime: '20:30', startHour: 19, startMinute: 0, endHour: 20, endMinute: 30, defaultClassroom: 'A41', isLanguage: true },
-      { day: 4, startTime: '19:00', endTime: '20:30', startHour: 19, startMinute: 0, endHour: 20, endMinute: 30, defaultClassroom: 'A41', isLanguage: true }
-    ]
-  },
-};
-
-const S1_HOLIDAYS_INFO: Record<string, string> = {
-  '2026-09-24': 'La Mercè (Festiu local)',
-  '2026-09-25': 'Dia no lectiu',
-  '2026-10-12': 'Festa Nacional d\'Espanya',
-  '2026-11-05': 'EUM Business Summit',
-  '2026-12-07': 'Dia no lectiu',
-  '2026-12-08': 'Immaculada Concepció',
-};
-
 const DAYS_NAMES = ['Diumenge', 'Dilluns', 'Dimarts', 'Dimecres', 'Dijous', 'Divendres', 'Dissabte'];
 
 interface PendingSession {
@@ -183,23 +117,20 @@ export default function DashboardPage() {
   const [loading, setLoading] = useState(true);
   const [userId, setUserId] = useState<string>('');
   const [subjects, setSubjects] = useState<Subject[]>([]);
-  const [userSubjects, setUserSubjects] = useState<Record<string, UserSubject>>({});
   const [criteria, setCriteria] = useState<EvaluationCriteria[]>([]);
   const [userGrades, setUserGrades] = useState<Record<string, number | null>>({});
   const [customSubCriteria, setCustomSubCriteria] = useState<Record<string, CustomSubItem[]>>({});
   const [events, setEvents] = useState<AcademicEvent[]>([]);
+  const [holidays, setHolidays] = useState<Record<string, string>>({});
+  const [scheduleMap, setScheduleMap] = useState<Record<string, { name: string; slots: ClassSlot[] }>>({});
   const [expandedSubject, setExpandedSubject] = useState<string | null>(null);
   const [systemType, setSystemType] = useState<string>('semester');
-
-  const [userChineseGroup, setUserChineseGroup] = useState<string>('A');
-  const [userEnglishGroup, setUserEnglishGroup] = useState<string>('A');
 
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [savingSettings, setSavingSettings] = useState(false);
   const [syncStatus, setSyncStatus] = useState<'sincronizado' | 'guardando'>('sincronizado');
 
   const [showInstallModal, setShowInstallModal] = useState(false);
-
   const [showTour, setShowTour] = useState(false);
   const [tourStep, setTourStep] = useState(1);
   const [showHelpModal, setShowHelpModal] = useState(false);
@@ -228,6 +159,9 @@ export default function DashboardPage() {
   const [eventDueTime, setEventDueTime] = useState('23:59');
   const [eventInClass, setEventInClass] = useState(true);
 
+  const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
+  const [showInstallBtn, setShowInstallBtn] = useState(false);
+
   useEffect(() => {
     fetchInitialData();
   }, []);
@@ -238,23 +172,11 @@ export default function DashboardPage() {
       setDeferredPrompt(e);
       setShowInstallBtn(true);
     };
-
     window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
-
     return () => {
       window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
     };
   }, []);
-
-  const handleInstallClick = async () => {
-    if (!deferredPrompt) return;
-    deferredPrompt.prompt();
-    const { outcome } = await deferredPrompt.userChoice;
-    if (outcome === 'accepted') {
-      setDeferredPrompt(null);
-      setShowInstallBtn(false);
-    }
-  };
 
   const fetchInitialData = async () => {
     try {
@@ -268,73 +190,93 @@ export default function DashboardPage() {
 
       const { data: profile } = await supabase
         .from('profiles')
-        .select('chinese_group, english_group, has_seen_tour, system_type')
+        .select('has_seen_tour, academic_system')
         .eq('id', user.id)
         .single();
 
-      if (!profile || !profile.chinese_group || !profile.english_group) {
-        router.push('/onboarding');
-        return;
-      }
-
-      setUserChineseGroup(profile.chinese_group);
-      setUserEnglishGroup(profile.english_group);
-      setSystemType(profile.system_type || 'semester');
-
-      if (!profile.has_seen_tour) {
+      setSystemType(profile?.academic_system || 'semester');
+      if (profile && !profile.has_seen_tour) {
         setShowTour(true);
       }
 
-      const { data: subjectsData } = await supabase
-        .from('subjects')
+      // Cargar festivos dinámicamente desde Supabase
+      const { data: holidaysData } = await supabase.from('holidays').select('*');
+      const holidayMap: Record<string, string> = {};
+      if (holidaysData) {
+        holidaysData.forEach((h: any) => {
+          holidayMap[h.date] = h.description || h.title || 'Festivo';
+        });
+      }
+      setHolidays(holidayMap);
+
+      // Cargar asignaturas y datos de usuario desde user_subjects (Adiós a la tabla subjects)
+      const { data: userSubData } = await supabase
+        .from('user_subjects')
         .select('*')
-        .order('semester', { ascending: true });
+        .eq('user_id', user.id);
 
-      if (subjectsData) {
-        setSubjects(subjectsData);
-        if (subjectsData.length > 0) setEventSubjectId(subjectsData[0].id);
+      if (userSubData && userSubData.length > 0) {
+        const loadedSubjects: Subject[] = userSubData.map((item: any, idx: number) => ({
+          id: item.id,
+          subject_id: item.subject_id || item.id,
+          name: item.name || item.custom_name || 'Asignatura',
+          code: item.code || `ASG${idx + 1}`,
+          semester: item.semester || 1,
+          ects: item.ects || 6,
+          total_sessions: item.total_sessions || 30,
+          min_attendance_pct: item.min_attendance_pct ?? 60,
+          is_annual: item.is_annual || false,
+          period_type: item.period_type || 'semester_1',
+          is_convalidated: item.is_convalidated || false,
+          missed_classes: item.missed_classes || 0,
+          schedule: item.schedule || [],
+          weights: item.weights || []
+        }));
 
-        const { data: userSubData } = await supabase
-          .from('user_subjects')
-          .select('*')
-          .eq('user_id', user.id);
+        setSubjects(loadedSubjects);
+        if (loadedSubjects.length > 0) setEventSubjectId(loadedSubjects[0].id);
 
-        const subMap: Record<string, UserSubject> = {};
-        for (const sub of subjectsData) {
-          const existing = userSubData?.find((u: UserSubject) => u.subject_id === sub.id);
-          if (existing) {
-            subMap[sub.id] = existing;
-          } else {
-            const { data: inserted } = await supabase
-              .from('user_subjects')
-              .insert({ 
-                user_id: user.id,
-                subject_id: sub.id,
-                missed_classes: 0,
-                is_convalidated: false,
-                period_type: 'full_year'
-              })
-              .select()
-              .single();
-            if (inserted) subMap[sub.id] = inserted;
+        // Construir mapa de horarios dinámicos a partir del campo schedule de cada asignatura
+        const schedMap: Record<string, { name: string; slots: ClassSlot[] }> = {};
+        loadedSubjects.forEach(sub => {
+          if (sub.code && Array.isArray(sub.schedule)) {
+            schedMap[sub.code] = {
+              name: sub.name,
+              slots: sub.schedule
+            };
           }
-        }
-        setUserSubjects(subMap);
+        });
+        setScheduleMap(schedMap);
 
-        const { data: criteriaData } = await supabase.from('evaluation_criteria').select('*');
-        if (criteriaData) setCriteria(criteriaData);
+        // Cargar categorías de evaluación vinculadas
+        const userSubjectIds = loadedSubjects.map(s => s.id);
+        const { data: criteriaData } = await supabase
+          .from('evaluation_categories')
+          .select('*')
+          .in('subject_id', userSubjectIds);
+
+        if (criteriaData) {
+          const mappedCriteria: EvaluationCriteria[] = criteriaData.map((c: any) => ({
+            id: c.id,
+            subject_id: c.subject_id,
+            name: c.name,
+            weight_pct: c.weight_pct,
+            min_grade: c.min_grade || 5
+          }));
+          setCriteria(mappedCriteria);
+        }
 
         const { data: gradesData } = await supabase.from('user_grades').select('*').eq('user_id', user.id);
         const gradeMap: Record<string, number | null> = {};
         if (gradesData) {
-          gradesData.forEach((g: { criteria_id: string; grade: number | null }) => { gradeMap[g.criteria_id] = g.grade; });
+          gradesData.forEach((g: any) => { gradeMap[g.criteria_id] = g.grade; });
         }
         setUserGrades(gradeMap);
 
         const { data: subCritData } = await supabase.from('custom_sub_criteria').select('*').eq('user_id', user.id);
         const subCritMap: Record<string, CustomSubItem[]> = {};
         if (subCritData) {
-          subCritData.forEach((sc: CustomSubItem & { criteria_id: string }) => {
+          subCritData.forEach((sc: any) => {
             if (!subCritMap[sc.criteria_id]) subCritMap[sc.criteria_id] = [];
             subCritMap[sc.criteria_id].push(sc);
           });
@@ -344,7 +286,7 @@ export default function DashboardPage() {
         const { data: eventsData } = await supabase.from('academic_events').select('*').eq('user_id', user.id);
         if (eventsData) setEvents(eventsData);
 
-        await calculatePendingSessions(subjectsData, user.id);
+        await calculatePendingSessions(loadedSubjects, user.id, schedMap, holidayMap);
       }
     } catch (err) {
       console.error(err);
@@ -356,18 +298,14 @@ export default function DashboardPage() {
   const formatEuropeanDate = (dateStr: string) => {
     if (!dateStr) return '';
     const parts = dateStr.split('-');
-    if (parts.length === 3) {
-      return `${parts[2]}/${parts[1]}/${parts[0]}`;
-    }
+    if (parts.length === 3) return `${parts[2]}/${parts[1]}/${parts[0]}`;
     return dateStr;
   };
 
   const formatCleanTime = (timeStr: string) => {
     if (!timeStr) return '';
     const parts = timeStr.split(':');
-    if (parts.length >= 2) {
-      return `${parts[0]}:${parts[1]}`;
-    }
+    if (parts.length >= 2) return `${parts[0]}:${parts[1]}`;
     return timeStr;
   };
 
@@ -378,14 +316,14 @@ export default function DashboardPage() {
     }
   };
 
-  const calculatePendingSessions = async (allSubjects: Subject[], currentUserId: string) => {
+  const calculatePendingSessions = async (allSubjects: Subject[], currentUserId: string, sched: Record<string, { name: string; slots: ClassSlot[] }>, hols: Record<string, string>) => {
     const { data: answeredLogs } = await supabase
       .from('attendance_logs')
       .select('subject_code, session_date')
       .eq('user_id', currentUserId);
 
     const answeredSet = new Set(
-      (answeredLogs || []).map((l: { subject_code: string; session_date: string }) => `${l.subject_code}_${l.session_date}`)
+      (answeredLogs || []).map((l: any) => `${l.subject_code}_${l.session_date}`)
     );
 
     const start = new Date(2026, 8, 14);
@@ -399,8 +337,8 @@ export default function DashboardPage() {
       const dayOfWeek = cur.getDay();
       const isoStr = cur.toISOString().split('T')[0];
 
-      if (!S1_HOLIDAYS_INFO[isoStr] && dayOfWeek >= 1 && dayOfWeek <= 5) {
-        for (const [code, item] of Object.entries(S1_SCHEDULE_CLEAN)) {
+      if (!hols[isoStr] && dayOfWeek >= 1 && dayOfWeek <= 5) {
+        for (const [code, item] of Object.entries(sched)) {
           for (const slot of item.slots) {
             if (slot.day === dayOfWeek) {
               let isFinished = false;
@@ -455,7 +393,7 @@ export default function DashboardPage() {
   };
 
   const getElapsedSessions = (code: string): number => {
-    const item = S1_SCHEDULE_CLEAN[code];
+    const item = scheduleMap[code];
     if (!item) return 0;
 
     const start = new Date(2026, 8, 14);
@@ -470,7 +408,7 @@ export default function DashboardPage() {
       const dayOfWeek = cur.getDay();
       const isoStr = cur.toISOString().split('T')[0];
 
-      if (!S1_HOLIDAYS_INFO[isoStr]) {
+      if (!holidays[isoStr]) {
         for (const slot of item.slots) {
           if (slot.day === dayOfWeek) {
             if (isoStr < todayStr) {
@@ -488,36 +426,29 @@ export default function DashboardPage() {
   };
 
   const handleUpdateMissedClasses = async (subjectId: string, delta: number) => {
-    const current = userSubjects[subjectId]?.missed_classes || 0;
+    const sub = subjects.find(s => s.id === subjectId);
+    if (!sub) return;
+
+    const current = sub.missed_classes || 0;
     const nextVal = Math.max(0, current + delta);
 
-    setUserSubjects((prev) => ({
-      ...prev,
-      [subjectId]: { ...prev[subjectId], missed_classes: nextVal }
-    }));
+    setSubjects((prev) => prev.map(s => s.id === subjectId ? { ...s, missed_classes: nextVal } : s));
 
     setSyncStatus('guardando');
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return;
-
-    await supabase.from('user_subjects').update({ missed_classes: nextVal }).eq('user_id', user.id).eq('subject_id', subjectId);
+    await supabase.from('user_subjects').update({ missed_classes: nextVal }).eq('id', subjectId);
     setSyncStatus('sincronizado');
   };
 
   const handleToggleConvalidation = async (subjectId: string) => {
-    const current = userSubjects[subjectId]?.is_convalidated || false;
-    const nextVal = !current;
+    const sub = subjects.find(s => s.id === subjectId);
+    if (!sub) return;
 
-    setUserSubjects((prev) => ({
-      ...prev,
-      [subjectId]: { ...prev[subjectId], is_convalidated: nextVal }
-    }));
+    const nextVal = !sub.is_convalidated;
+
+    setSubjects((prev) => prev.map(s => s.id === subjectId ? { ...s, is_convalidated: nextVal } : s));
 
     setSyncStatus('guardando');
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return;
-
-    await supabase.from('user_subjects').update({ is_convalidated: nextVal }).eq('user_id', user.id).eq('subject_id', subjectId);
+    await supabase.from('user_subjects').update({ is_convalidated: nextVal }).eq('id', subjectId);
     setSyncStatus('sincronizado');
   };
 
@@ -526,11 +457,8 @@ export default function DashboardPage() {
     setUserGrades((prev) => ({ ...prev, [criteriaId]: parsed }));
 
     setSyncStatus('guardando');
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return;
-
     await supabase.from('user_grades').upsert({
-      user_id: user.id,
+      user_id: userId,
       criteria_id: criteriaId,
       grade: parsed
     }, { onConflict: 'user_id,criteria_id' });
@@ -595,9 +523,6 @@ export default function DashboardPage() {
     e.preventDefault();
     if (!eventTitle.trim()) return;
 
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return;
-
     let cleanTitle = eventTitle.trim();
     if (eventType === 'otro' && otherDescription.trim()) {
       cleanTitle = `${cleanTitle} (${otherDescription.trim()})`;
@@ -625,7 +550,7 @@ export default function DashboardPage() {
       }
     } else {
       const { data: inserted, error } = await supabase.from('academic_events').insert({
-        user_id: user.id,
+        user_id: userId,
         subject_id: eventSubjectId,
         title: cleanTitle,
         event_type: eventType,
@@ -674,27 +599,9 @@ export default function DashboardPage() {
 
   const handleDeleteEvent = async (eventId: string) => {
     if (!window.confirm('¿Seguro que quieres eliminar este trabajo o examen?')) return;
-    
     setSyncStatus('guardando');
     setEvents((prev) => prev.filter((ev) => ev.id !== eventId));
     await supabase.from('academic_events').delete().eq('id', eventId);
-    setSyncStatus('sincronizado');
-  };
-
-  const handleUpdateGroups = async (chineseG: string, englishG: string) => {
-    setUserChineseGroup(chineseG);
-    setUserEnglishGroup(englishG);
-    setSavingSettings(true);
-    setSyncStatus('guardando');
-
-    if (userId) {
-      await supabase.from('profiles').update({
-        chinese_group: chineseG,
-        english_group: englishG,
-      }).eq('id', userId);
-    }
-
-    setSavingSettings(false);
     setSyncStatus('sincronizado');
   };
 
@@ -721,21 +628,7 @@ export default function DashboardPage() {
     }
   };
 
-  const handleLogout = async () => {
-    await supabase.auth.signOut();
-    router.push('/');
-  };
-
   const getClassroomDisplay = (code: string, defaultRoom: string, isLanguage?: boolean) => {
-    if (!isLanguage) return defaultRoom;
-    if (code === 'XIN201') {
-      const room = LANGUAGE_ROOMS['XIN201'][userChineseGroup] || defaultRoom;
-      return `${room} (Grupo ${userChineseGroup})`;
-    }
-    if (code === 'ANG201') {
-      const room = LANGUAGE_ROOMS['ANG201'][userEnglishGroup] || defaultRoom;
-      return `${room} (Grupo ${userEnglishGroup})`;
-    }
     return defaultRoom;
   };
 
@@ -776,32 +669,25 @@ export default function DashboardPage() {
     };
   };
 
-  
   const filteredSubjects = subjects.filter((sub) => {
-    const userSub = userSubjects[sub.id];
-    const period = userSub?.period_type || 'full_year'; // Por defecto curso total
-
-    // Si está seleccionado 'total', mostramos todas
+    const period = sub.period_type || 'full_year';
     if (activeSemester === 'total') return true;
-
-    // Si el usuario filtra por el semestre correspondiente
     if (activeSemester === 1) {
       return period === 'semester_1' || period === 'quarter_1' || period === 'quarter_2' || period === 'full_year';
     }
     if (activeSemester === 2) {
       return period === 'semester_2' || period === 'quarter_3' || period === 'full_year';
     }
-
     return true;
   });
 
   let totalElapsedGlobal = 0;
   let totalMissedGlobal = 0;
   filteredSubjects.forEach((sub) => {
-    const isConv = userSubjects[sub.id]?.is_convalidated;
+    const isConv = sub.is_convalidated;
     if (!isConv) {
       const elapsed = getElapsedSessions(sub.code);
-      const missed = userSubjects[sub.id]?.missed_classes || 0;
+      const missed = sub.missed_classes || 0;
       totalElapsedGlobal += elapsed;
       totalMissedGlobal += Math.min(missed, elapsed);
     }
@@ -815,7 +701,7 @@ export default function DashboardPage() {
   let totalEctsWithGrade = 0;
   let weightedGradeSum = 0;
   filteredSubjects.forEach((sub) => {
-    const isConv = userSubjects[sub.id]?.is_convalidated;
+    const isConv = sub.is_convalidated;
     if (!isConv) {
       const res = getSubjectGrade(sub.id);
       if (res && res.scaledToTen !== null) {
@@ -828,13 +714,13 @@ export default function DashboardPage() {
 
   const selDayOfWeek = selectedDay.getDay();
   const selIso = selectedDay.toISOString().split('T')[0];
-  const isSelectedHoliday = S1_HOLIDAYS_INFO[selIso];
+  const isSelectedHoliday = holidays[selIso];
 
   const dailyClasses: { code: string; name: string; slot: ClassSlot }[] = [];
   if (!isSelectedHoliday && selDayOfWeek >= 1 && selDayOfWeek <= 5) {
-    for (const [code, item] of Object.entries(S1_SCHEDULE_CLEAN)) {
+    for (const [code, item] of Object.entries(scheduleMap)) {
       const sub = subjects.find(s => s.code === code);
-      const isConv = sub ? userSubjects[sub.id]?.is_convalidated : false;
+      const isConv = sub ? sub.is_convalidated : false;
       if (!isConv) {
         for (const slot of item.slots) {
           if (slot.day === selDayOfWeek) dailyClasses.push({ code, name: item.name, slot });
@@ -864,59 +750,22 @@ export default function DashboardPage() {
   };
   const monthDaysList = getMonthDays(selectedMonth.getFullYear(), selectedMonth.getMonth());
 
-const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
-const [showInstallBtn, setShowInstallBtn] = useState(false);
-
   if (loading) {
-      return (
-        <div className="fixed inset-0 z-50 flex flex-col items-center justify-between bg-[#f4f5f8] py-12">
-          {/* Espaciador superior */}
-          <div />
-
-          {/* Contenido central: Botella animada y texto */}
-          <div className="flex flex-col items-center space-y-4">
-            <div className="flex items-center justify-center my-1">
-              <svg
-                viewBox="0 0 205 615"
-                className="cola w-[45px] fill-transparent stroke-[#0071e3] stroke-[15px] stroke-linecap-round"
-              >
-                <path d="M47 595c-8 0-26-6-26-34V261c0-17 9-29 16-38s16-28 16-28L68 59l-4-5s3-30 7-36 14-6 32-6 28 0 32 6 7 36 7 36l-4 5 15 136s9 19 16 28 16 21 16 38v300c0 28-18 34-26 34H47z" />
-              </svg>
-
-              <style>{`
-                .cola {
-                  --pathlength: 1384;
-                  stroke-dashoffset: var(--pathlength);
-                  stroke-dasharray: 0 var(--pathlength);
-                  animation: loader 3s cubic-bezier(0.5, 0.1, 0.5, 1) infinite both;
-                }
-
-                @keyframes loader {
-                  90%, 100% {
-                    stroke-dashoffset: 0;
-                    stroke-dasharray: var(--pathlength) 0;
-                  }
-                }
-              `}</style>
-            </div>
-
-            <p className="text-xs text-gray-400 font-medium tracking-wide animate-pulse">Sincronizando expediente...</p>
-          </div>
-
-          {/* Footer inferior */}
-          <div className="text-center">
-            <p className="text-[11px] text-gray-400 font-normal">
-              © 2026 UniNotas. Uso académico personal.
-            </p>
-          </div>
+    return (
+      <div className="fixed inset-0 z-50 flex flex-col items-center justify-between bg-[#f4f5f8] py-12">
+        <div />
+        <div className="flex flex-col items-center space-y-4">
+          <p className="text-xs text-gray-400 font-medium tracking-wide animate-pulse">Sincronizando expediente...</p>
         </div>
-      );
-    }
+        <div className="text-center">
+          <p className="text-[11px] text-gray-400">© 2026 UniNotas. Uso académico personal.</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-[#f4f5f8] text-gray-900 font-sans antialiased relative overflow-x-hidden">
-      
-      {/* Menú lateral modular */}
       <Sidebar
         sidebarOpen={sidebarOpen}
         setSidebarOpen={setSidebarOpen}
@@ -952,8 +801,6 @@ const [showInstallBtn, setShowInstallBtn] = useState(false);
               {activeTab === 'notas' && 'Expediente y Calificaciones'}
             </h2>
             <div className="flex flex-wrap items-center gap-2 mt-0.5">
-              <p className="text-[11px] sm:text-xs text-gray-400">2n A Grau Màrqueting • 16:00 a 20:30</p>
-              <span className="text-[10px] text-gray-400 hidden sm:inline">•</span>
               <span className={`text-[10px] font-semibold flex items-center gap-1 ${syncStatus === 'guardando' ? 'text-amber-600 animate-pulse' : 'text-emerald-600'}`}>
                 {syncStatus === 'guardando' ? 'Sincronizando...' : 'Supabase Al Día'}
               </span>
@@ -1041,53 +888,22 @@ const [showInstallBtn, setShowInstallBtn] = useState(false);
             </div>
 
             <div className="inline-flex p-1 rounded-xl bg-gray-200/70 border border-gray-300/40">
-              {systemType === 'quarter' ? (
-                <>
-                  <button
-                    onClick={() => setActiveSemester(1)}
-                    className={`px-2.5 sm:px-3.5 py-1.5 rounded-lg text-[11px] sm:text-xs font-semibold transition-all cursor-pointer ${
-                      activeSemester === 1 ? 'bg-white text-gray-900 shadow-xs' : 'text-gray-500 hover:text-gray-900'
-                    }`}
-                  >
-                    1r Trim.
-                  </button>
-                  <button
-                    onClick={() => setActiveSemester(2)}
-                    className={`px-2.5 sm:px-3.5 py-1.5 rounded-lg text-[11px] sm:text-xs font-semibold transition-all cursor-pointer ${
-                      activeSemester === 2 ? 'bg-white text-gray-900 shadow-xs' : 'text-gray-500 hover:text-gray-900'
-                    }`}
-                  >
-                    2n Trim.
-                  </button>
-                  <button
-                    onClick={() => setActiveSemester(3)}
-                    className={`px-2.5 sm:px-3.5 py-1.5 rounded-lg text-[11px] sm:text-xs font-semibold transition-all cursor-pointer ${
-                      activeSemester === 3 ? 'bg-white text-gray-900 shadow-xs' : 'text-gray-500 hover:text-gray-900'
-                    }`}
-                  >
-                    3r Trim.
-                  </button>
-                </>
-              ) : (
-                <>
-                  <button
-                    onClick={() => setActiveSemester(1)}
-                    className={`px-2.5 sm:px-3.5 py-1.5 rounded-lg text-[11px] sm:text-xs font-semibold transition-all cursor-pointer ${
-                      activeSemester === 1 ? 'bg-white text-gray-900 shadow-xs' : 'text-gray-500 hover:text-gray-900'
-                    }`}
-                  >
-                    1r Sem.
-                  </button>
-                  <button
-                    onClick={() => setActiveSemester(2)}
-                    className={`px-2.5 sm:px-3.5 py-1.5 rounded-lg text-[11px] sm:text-xs font-semibold transition-all cursor-pointer ${
-                      activeSemester === 2 ? 'bg-white text-gray-900 shadow-xs' : 'text-gray-500 hover:text-gray-900'
-                    }`}
-                  >
-                    2n Sem.
-                  </button>
-                </>
-              )}
+              <button
+                onClick={() => setActiveSemester(1)}
+                className={`px-2.5 sm:px-3.5 py-1.5 rounded-lg text-[11px] sm:text-xs font-semibold transition-all cursor-pointer ${
+                  activeSemester === 1 ? 'bg-white text-gray-900 shadow-xs' : 'text-gray-500 hover:text-gray-900'
+                }`}
+              >
+                1r Sem.
+              </button>
+              <button
+                onClick={() => setActiveSemester(2)}
+                className={`px-2.5 sm:px-3.5 py-1.5 rounded-lg text-[11px] sm:text-xs font-semibold transition-all cursor-pointer ${
+                  activeSemester === 2 ? 'bg-white text-gray-900 shadow-xs' : 'text-gray-500 hover:text-gray-900'
+                }`}
+              >
+                2n Sem.
+              </button>
               <button
                 onClick={() => setActiveSemester('total')}
                 className={`px-2.5 sm:px-3.5 py-1.5 rounded-lg text-[11px] sm:text-xs font-semibold transition-all cursor-pointer ${
@@ -1181,7 +997,6 @@ const [showInstallBtn, setShowInstallBtn] = useState(false);
 
                         const isOngoing = isToday && now >= classStart && now < classEnd;
                         const isFinished = isToday ? now >= classEnd : selectedDay < now;
-
                         const classroomText = getClassroomDisplay(code, slot.defaultClassroom, slot.isLanguage);
 
                         return (
@@ -1287,7 +1102,6 @@ const [showInstallBtn, setShowInstallBtn] = useState(false);
                               )}
                             </div>
 
-                            {/* BOTONES ABAJO DEL RECUADRO: MODIFICAR Y ELIMINAR */}
                             <div className="pt-2.5 border-t border-gray-200/60 flex items-center justify-end gap-2">
                               <button
                                 onClick={() => handleOpenEditModal(ev)}
@@ -1359,16 +1173,15 @@ const [showInstallBtn, setShowInstallBtn] = useState(false);
                 </div>
               </div>
 
-              {/* VISTA SEMANAL ADAPTADA A MÓVIL */}
               {calendarMode === 'semanal' && (
                 <div className="glass-panel rounded-2xl border border-gray-200/70 overflow-hidden shadow-xs">
                   <div className="grid grid-cols-1 sm:grid-cols-5 divide-y sm:divide-y-0 sm:divide-x divide-gray-200/70">
                     {['Dilluns', 'Dimarts', 'Dimecres', 'Dijous', 'Divendres'].map((dayName, index) => {
                       const dayNum = index + 1;
                       const daySlots: { code: string; name: string; slot: ClassSlot }[] = [];
-                      for (const [code, item] of Object.entries(S1_SCHEDULE_CLEAN)) {
+                      for (const [code, item] of Object.entries(scheduleMap)) {
                         const sub = subjects.find(s => s.code === code);
-                        const isConv = sub ? userSubjects[sub.id]?.is_convalidated : false;
+                        const isConv = sub ? sub.is_convalidated : false;
                         if (!isConv) {
                           for (const slot of item.slots) {
                             if (slot.day === dayNum) daySlots.push({ code, name: item.name, slot });
@@ -1381,7 +1194,6 @@ const [showInstallBtn, setShowInstallBtn] = useState(false);
                         <div key={dayName} className="p-4 space-y-3 bg-white/40">
                           <div className="text-center pb-2 border-b border-gray-200/60 bg-gray-50/60 -mx-4 -mt-4 p-3 mb-3">
                             <p className="text-xs font-bold text-gray-800">{dayName}</p>
-                            <p className="text-[10px] text-gray-400">16:00 a 20:30</p>
                           </div>
 
                           {daySlots.length === 0 ? (
@@ -1410,7 +1222,6 @@ const [showInstallBtn, setShowInstallBtn] = useState(false);
                 </div>
               )}
 
-              {/* VISTA MENSUAL ADAPTADA A MÓVIL */}
               {calendarMode === 'mensual' && (
                 <div className="glass-panel rounded-2xl p-4 sm:p-6 border border-gray-200/70 space-y-4 shadow-xs overflow-hidden">
                   <div className="flex items-center justify-between pb-3 border-b border-gray-100">
@@ -1446,7 +1257,7 @@ const [showInstallBtn, setShowInstallBtn] = useState(false);
                       if (!dayDate) return <div key={`empty_${idx}`} className="h-14 sm:h-20 rounded-xl bg-transparent" />;
 
                       const iso = dayDate.toISOString().split('T')[0];
-                      const holiday = S1_HOLIDAYS_INFO[iso];
+                      const holiday = holidays[iso];
                       const isWeekend = dayDate.getDay() === 0 || dayDate.getDay() === 6;
                       const isToday = dayDate.toDateString() === new Date().toDateString();
                       const dayEvents = events.filter((e) => e.due_date === iso);
@@ -1544,9 +1355,9 @@ const [showInstallBtn, setShowInstallBtn] = useState(false);
                 <div className="divide-y divide-gray-100 overflow-x-auto">
                   <div className="min-w-[700px]">
                     {filteredSubjects.map((sub) => {
-                      const isConv = userSubjects[sub.id]?.is_convalidated;
+                      const isConv = sub.is_convalidated;
                       const elapsed = getElapsedSessions(sub.code);
-                      const missed = userSubjects[sub.id]?.missed_classes || 0;
+                      const missed = sub.missed_classes || 0;
                       const attended = Math.max(0, elapsed - missed);
                       const pct = elapsed > 0 ? Math.round((attended / elapsed) * 100) : 100;
                       const minPct = sub.min_attendance_pct ?? 60;
@@ -1629,9 +1440,9 @@ const [showInstallBtn, setShowInstallBtn] = useState(false);
               </div>
               <div className="divide-y divide-gray-100">
                 {filteredSubjects.map((sub) => {
-                  const isConv = userSubjects[sub.id]?.is_convalidated;
+                  const isConv = sub.is_convalidated;
                   const elapsed = getElapsedSessions(sub.code);
-                  const missed = userSubjects[sub.id]?.missed_classes || 0;
+                  const missed = sub.missed_classes || 0;
                   const attended = Math.max(0, elapsed - missed);
                   const pct = elapsed > 0 ? Math.round((attended / elapsed) * 100) : 100;
                   const minPct = sub.min_attendance_pct ?? 60;
@@ -1713,7 +1524,7 @@ const [showInstallBtn, setShowInstallBtn] = useState(false);
                     <PartialGradeWarning completedPct={filteredSubjects.reduce((acc, sub) => {
                       const g = getSubjectGrade(sub.id);
                       return acc + (g?.completedPct || 0);
-                    }, 0) / (filteredSubjects.filter(s => !userSubjects[s.id]?.is_convalidated).length || 1)} />
+                    }, 0) / (filteredSubjects.filter(s => !s.is_convalidated).length || 1)} />
                   </div>
                   <p className="text-2xl font-black text-[#0071e3]">{courseGpa ? `${courseGpa}` : '—'}</p>
                 </div>
@@ -1721,7 +1532,7 @@ const [showInstallBtn, setShowInstallBtn] = useState(false);
 
               <div className="space-y-3">
                 {filteredSubjects.map((sub) => {
-                  const isConv = userSubjects[sub.id]?.is_convalidated;
+                  const isConv = sub.is_convalidated;
                   const subCriteria = criteria.filter((c) => c.subject_id === sub.id);
                   const gradeObj = getSubjectGrade(sub.id);
                   const isExpanded = expandedSubject === sub.id;
@@ -1895,358 +1706,15 @@ const [showInstallBtn, setShowInstallBtn] = useState(false);
             <div className="flex items-center justify-center sm:justify-start gap-2">
               <span className="font-bold text-gray-700">UniNotas</span>
               <span>•</span>
-              <span>2n A Grau Màrqueting (EUM)</span>
+              <span>Uso Académico Personal</span>
             </div>
-
-            <nav className="flex flex-wrap items-center justify-center gap-4 text-[11px] font-semibold text-gray-500">
-              <Link href="/legal/aviso-legal" className="hover:text-gray-900 transition-colors">Aviso Legal</Link>
-              <Link href="/legal/privacidad" className="hover:text-gray-900 transition-colors">Política de Privacidad</Link>
-              <Link href="/legal/cookies" className="hover:text-gray-900 transition-colors">Cookies</Link>
-              <Link href="/legal/terminos" className="hover:text-gray-900 transition-colors">Términos y Condiciones</Link>
-              <Link href="/sitemap.xml" target="_blank" className="hover:text-gray-900 transition-colors">Sitemap</Link>
-            </nav>
 
             <p className="text-[11px] text-gray-400">
               © {new Date().getFullYear()} UniNotas. Uso académico personal.
             </p>
           </div>
         </footer>
-
       </div>
-
-      {(showTour || showHelpModal) && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-md animate-fade-in">
-          <div className="w-full max-w-lg bg-white/95 backdrop-blur-xl rounded-3xl p-6 sm:p-7 shadow-2xl border border-white/80 space-y-6 relative overflow-hidden max-h-[90vh] overflow-y-auto">
-            
-            <div className="flex items-center justify-between pb-3 border-b border-gray-100">
-              <div className="flex items-center gap-2.5">
-                <div className="w-9 h-9 rounded-2xl bg-blue-50 border border-blue-100 flex items-center justify-center text-[#0071e3] shadow-xs">
-                  <GraduationCap className="w-5 h-5" />
-                </div>
-                <div>
-                  <h4 className="text-sm sm:text-base font-extrabold text-gray-900">
-                    {showTour ? `Bienvenido a UniNotas (${tourStep}/4)` : 'Guía de Funcionalidades'}
-                  </h4>
-                  <p className="text-[11px] text-gray-400 font-medium">Todo lo que necesitas saber para dominar el curso</p>
-                </div>
-              </div>
-
-              <button 
-                onClick={() => {
-                  setShowTour(false);
-                  setShowHelpModal(false);
-                  if (showTour) handleFinishTour();
-                }} 
-                className="text-gray-400 hover:text-gray-600 cursor-pointer p-1.5 rounded-xl hover:bg-gray-100 transition-colors"
-              >
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-
-            <div className="space-y-4 py-2">
-              {(showHelpModal || tourStep === 1) && (
-                <div className="space-y-2 bg-blue-50/50 p-4 rounded-2xl border border-blue-100/80">
-                  <h5 className="text-xs font-black uppercase tracking-wider text-[#0071e3]">1. Resumen Global y GPA</h5>
-                  <p className="text-xs text-gray-600 leading-relaxed">
-                    En la pantalla principal verás tu **media ponderada en directo** (calculada automáticamente con los créditos ECTS de cada asignatura) y el porcentaje de asistencia global frente al **límite crítico del 60%**.
-                  </p>
-                </div>
-              )}
-
-              {(showHelpModal || tourStep === 2) && (
-                <div className="space-y-2 bg-purple-50/50 p-4 rounded-2xl border border-purple-100/80">
-                  <h5 className="text-xs font-black uppercase tracking-wider text-purple-700">2. Control de Asistencia y Notificaciones</h5>
-                  <p className="text-xs text-gray-600 leading-relaxed">
-                    La campana superior te avisará de clases pasadas para que confirmes si fuiste o faltaste. También puedes usar la pestaña **Control de Asistencia** con los botones `+` y `-` para regular tus faltas manualmente.
-                  </p>
-                </div>
-              )}
-
-              {(showHelpModal || tourStep === 3) && (
-                <div className="space-y-2 bg-emerald-50/50 p-4 rounded-2xl border border-emerald-100/80">
-                  <h5 className="text-xs font-black uppercase tracking-wider text-emerald-700">3. Calificaciones y Trabajos Personalizados</h5>
-                  <p className="text-xs text-gray-600 leading-relaxed">
-                    En **Calificaciones**, despliega cualquier asignatura. Puedes meter notas sueltas o pulsar **"+ Añadir trabajo"** para crear tantas prácticas como tengas; la app calculará la media del apartado y su peso final ella solita.
-                  </p>
-                </div>
-              )}
-
-              {(showHelpModal || tourStep === 4) && (
-                <div className="space-y-2 bg-amber-50/50 p-4 rounded-2xl border border-amber-100/80">
-                  <h5 className="text-xs font-black uppercase tracking-wider text-amber-700">4. Horario Diario, Convalidaciones y Ajustes</h5>
-                  <p className="text-xs text-gray-600 leading-relaxed">
-                    Consulta las aulas (A41, A42...) en el **Horario Diario**, revisa festivos oficiales en el **Calendario**, o modifica tus grupos de idiomas y asignaturas convalidadas desde los **Ajustes del perfil**.
-                  </p>
-                </div>
-              )}
-            </div>
-
-            <div className="pt-3 border-t border-gray-100 flex flex-col sm:flex-row items-center justify-between gap-3">
-              {showTour ? (
-                <>
-                  <button
-                    type="button"
-                    onClick={handleFinishTour}
-                    className="text-xs font-bold text-gray-400 hover:text-gray-600 cursor-pointer transition-colors"
-                  >
-                    Saltar tutorial
-                  </button>
-                  <div className="flex items-center gap-2 w-full sm:w-auto justify-end">
-                    {tourStep > 1 && (
-                      <button
-                        type="button"
-                        onClick={() => setTourStep(tourStep - 1)}
-                        className="px-4 py-2.5 rounded-xl bg-gray-100 hover:bg-gray-200 text-xs font-bold text-gray-700 cursor-pointer"
-                      >
-                        Anterior
-                      </button>
-                    )}
-                    {tourStep < 4 ? (
-                      <button
-                        type="button"
-                        onClick={() => setTourStep(tourStep + 1)}
-                        className="px-5 py-2.5 rounded-2xl bg-[#0071e3] hover:bg-[#0077ed] text-white text-xs font-bold shadow-xs cursor-pointer"
-                      >
-                        Siguiente
-                      </button>
-                    ) : (
-                      <button
-                        type="button"
-                        onClick={handleFinishTour}
-                        className="px-6 py-2.5 rounded-2xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-extrabold shadow-md cursor-pointer"
-                      >
-                        ¡Empezar!
-                      </button>
-                    )}
-                  </div>
-                </>
-              ) : (
-                <div className="w-full flex justify-end">
-                  <button
-                    type="button"
-                    onClick={() => setShowHelpModal(false)}
-                    className="w-full sm:w-auto px-6 py-2.5 rounded-2xl bg-[#0071e3] hover:bg-[#0077ed] text-white text-xs font-bold shadow-xs cursor-pointer"
-                  >
-                    Cerrar Guía
-                  </button>
-                </div>
-              )}
-            </div>
-
-          </div>
-        </div>
-      )}
-
-      {reportOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/30 backdrop-blur-sm">
-          <div className="w-full max-w-md bg-white rounded-3xl p-6 shadow-2xl border border-gray-200/80 space-y-4 animate-ios-item-1">
-            <div className="flex items-center justify-between pb-3 border-b border-gray-100">
-              <h4 className="text-base font-bold text-gray-900">Reportar un Problema</h4>
-              <button onClick={() => setReportOpen(false)} className="text-gray-400 hover:text-gray-600 cursor-pointer">
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-            <p className="text-xs text-gray-500">¿Has encontrado algún error, fallo de asistencia o nota que no cuadra? Cuéntanoslo.</p>
-            <textarea
-              rows={4}
-              placeholder="Describe el problema aquí..."
-              value={reportText}
-              onChange={(e) => setReportText(e.target.value)}
-              className="w-full p-3 rounded-xl border border-gray-200 text-xs font-medium focus:outline-none focus:border-[#0071e3] bg-gray-50/50"
-            />
-            <div className="flex justify-end gap-2 pt-2">
-              <button
-                type="button"
-                onClick={() => setReportOpen(false)}
-                className="px-4 py-2 rounded-xl text-xs font-bold text-gray-500 hover:bg-gray-100 cursor-pointer"
-              >
-                Cancelar
-              </button>
-              <button
-                type="button"
-                onClick={() => {
-                  alert('¡Gracias por el reporte! Lo revisaremos enseguida.');
-                  setReportText('');
-                  setReportOpen(false);
-                }}
-                className="px-5 py-2 rounded-xl bg-[#0071e3] hover:bg-[#0077ed] text-white text-xs font-bold shadow-xs cursor-pointer"
-              >
-                Enviar Reporte
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {settingsOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/30 backdrop-blur-sm">
-          <div className="w-full max-w-md bg-white rounded-3xl p-6 sm:p-7 shadow-2xl border border-gray-200/80 space-y-6 animate-ios-item-1 max-h-[90vh] overflow-y-auto">
-            <div className="flex items-center justify-between pb-3 border-b border-gray-100">
-              <div className="flex items-center gap-2.5">
-                <div className="w-8 h-8 rounded-xl bg-gray-100 flex items-center justify-center text-gray-700">
-                  <Settings className="w-4 h-4" />
-                </div>
-                <h4 className="text-base font-extrabold text-gray-900">Ajustes del Perfil</h4>
-              </div>
-              <button 
-                onClick={() => setSettingsOpen(false)} 
-                className="text-gray-400 hover:text-gray-600 cursor-pointer p-1 rounded-lg hover:bg-gray-100"
-              >
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-
-            <div className="bg-gray-50 rounded-2xl p-4 border border-gray-200/70 space-y-1">
-              <span className="text-[10px] uppercase font-bold text-gray-400 tracking-wider">Cuenta Activa</span>
-              <p className="text-xs font-bold text-gray-900">{userEmail}</p>
-              <p className="text-[11px] text-gray-500">2n A Grau Màrqueting • EUM</p>
-            </div>
-
-            <div className="space-y-2.5 bg-gray-50/80 p-4 rounded-2xl border border-gray-200/70">
-              <span className="text-[10px] uppercase font-bold text-gray-400 tracking-wider">Gestión de Convalidaciones</span>
-              <div className="space-y-1.5 max-h-40 overflow-y-auto pr-1">
-                {subjects.map(sub => {
-                  const isConv = userSubjects[sub.id]?.is_convalidated || false;
-                  return (
-                    <div 
-                      key={`set_conv_${sub.id}`}
-                      onClick={() => handleToggleConvalidation(sub.id)}
-                      className={`p-2.5 rounded-xl border flex items-center justify-between cursor-pointer transition-all text-xs ${
-                        isConv ? 'bg-emerald-50 border-emerald-300 font-bold text-emerald-900' : 'bg-white border-gray-200 text-gray-700 hover:border-gray-300'
-                      }`}
-                    >
-                      <span className="truncate">{sub.name}</span>
-                      <span className={`text-[10px] px-2 py-0.5 rounded-full ${isConv ? 'bg-emerald-500 text-white' : 'bg-gray-100 text-gray-500'}`}>
-                        {isConv ? 'Convalidada' : 'Activa'}
-                      </span>
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-
-            <div className="space-y-2.5">
-              <div className="flex items-center justify-between px-1">
-                <label className="text-xs font-extrabold text-gray-800 uppercase tracking-wider">Grupo de Xinès II</label>
-              </div>
-              <div className="grid grid-cols-4 gap-2">
-                {GROUPS_INFO.map((g) => {
-                  const isSelected = userChineseGroup === g.id;
-                  return (
-                    <button
-                      key={`set_chin_${g.id}`}
-                      type="button"
-                      onClick={() => handleUpdateGroups(g.id, userEnglishGroup)}
-                      className={`p-2.5 rounded-2xl border text-center transition-all cursor-pointer ${
-                        isSelected ? 'border-[#0071e3] bg-[#0071e3] text-white shadow-xs font-bold' : 'border-gray-200 bg-white text-gray-700'
-                      }`}
-                    >
-                      <p className="text-xs font-black">{g.label}</p>
-                      <p className={`text-[10px] mt-0.5 ${isSelected ? 'text-white/80' : 'text-gray-400'}`}>{g.room}</p>
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
-
-            <div className="space-y-2.5">
-              <div className="flex items-center justify-between px-1">
-                <label className="text-xs font-extrabold text-gray-800 uppercase tracking-wider">Grupo de Anglès II</label>
-              </div>
-              <div className="grid grid-cols-4 gap-2">
-                {GROUPS_INFO.map((g) => {
-                  const isSelected = userEnglishGroup === g.id;
-                  return (
-                    <button
-                      key={`set_eng_${g.id}`}
-                      type="button"
-                      onClick={() => handleUpdateGroups(userChineseGroup, g.id)}
-                      className={`p-2.5 rounded-2xl border text-center transition-all cursor-pointer ${
-                        isSelected ? 'border-[#0071e3] bg-[#0071e3] text-white shadow-xs font-bold' : 'border-gray-200 bg-white text-gray-700'
-                      }`}
-                    >
-                      <p className="text-xs font-black">{g.label}</p>
-                      <p className={`text-[10px] mt-0.5 ${isSelected ? 'text-white/80' : 'text-gray-400'}`}>{g.room}</p>
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
-
-            <div className="pt-3 border-t border-gray-100">
-              <button
-                type="button"
-                onClick={handleDeleteAccount}
-                className="w-full py-2.5 px-3 rounded-xl bg-red-50 hover:bg-red-100 text-red-600 text-xs font-bold transition-colors cursor-pointer flex items-center justify-center gap-2 border border-red-200/60"
-              >
-                <span>Eliminar mi cuenta permanentemente</span>
-              </button>
-            </div>
-
-            <div className="pt-3 border-t border-gray-100 flex items-center justify-between">
-              <p className="text-[11px] text-gray-400 font-medium">
-                {savingSettings ? 'Guardando en Supabase...' : 'Cambios sincronizados en vivo'}
-              </p>
-              <button
-                type="button"
-                onClick={() => setSettingsOpen(false)}
-                className="px-5 py-2.5 rounded-2xl bg-[#0071e3] hover:bg-[#0077ed] text-white text-xs font-bold shadow-xs cursor-pointer"
-              >
-                Listo
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {showInstallModal && (
-        <div className="fixed inset-0 z-[99999] flex items-center justify-center p-4 bg-black/40 backdrop-blur-md animate-fade-in">
-          <div className="w-full max-w-lg bg-white/95 backdrop-blur-xl rounded-3xl p-6 sm:p-7 shadow-2xl border border-white/80 space-y-6 relative overflow-hidden">
-            
-            <div className="flex items-center justify-between pb-3 border-b border-gray-100">
-              <div className="flex items-center gap-2.5">
-                <div className="w-9 h-9 rounded-2xl bg-blue-50 border border-blue-100 flex items-center justify-center text-[#0071e3] shadow-xs">
-                  <Smartphone className="w-5 h-5" />
-                </div>
-                <div>
-                  <h4 className="text-sm sm:text-base font-extrabold text-gray-900">
-                    Instalar UniNotas
-                  </h4>
-                  <p className="text-[11px] text-gray-400 font-medium">Lleva tu expediente en la pantalla de inicio</p>
-                </div>
-              </div>
-
-              <button 
-                onClick={() => setShowInstallModal(false)} 
-                className="text-gray-400 hover:text-gray-600 cursor-pointer p-1.5 rounded-xl hover:bg-gray-100 transition-colors"
-              >
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-
-            <div className="space-y-4 py-1">
-              <div className="space-y-3 bg-blue-50/50 p-4 rounded-2xl border border-blue-100/80 text-xs text-gray-600 leading-relaxed">
-                <p className="font-bold text-[#0071e3]">Instrucciones de instalación:</p>
-                <ol className="list-decimal list-inside space-y-1.5 font-medium">
-                  <li>Si estás en iPhone/iPad, pulsa el botón de <b>Compartir</b> <span className="inline-block px-1 font-bold">⎋</span> en Safari y selecciona <b className="text-gray-900">"Añadir a pantalla de inicio"</b>.</li>
-                  <li>Si estás en Android o PC, pulsa los ajustes de tu navegador y selecciona <b className="text-gray-900">"Instalar aplicación"</b> o "Añadir a la pantalla principal".</li>
-                </ol>
-              </div>
-            </div>
-
-            <div className="pt-3 border-t border-gray-100 flex items-center justify-end">
-              <button
-                type="button"
-                onClick={() => setShowInstallModal(false)}
-                className="px-6 py-2.5 rounded-2xl bg-[#0071e3] hover:bg-[#0077ed] text-white text-xs font-bold shadow-xs cursor-pointer transition-colors"
-              >
-                Entendido
-              </button>
-            </div>
-
-          </div>
-        </div>
-      )}
 
       {showAddModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/25 backdrop-blur-sm">
@@ -2408,7 +1876,6 @@ const [showInstallBtn, setShowInstallBtn] = useState(false);
           </div>
         </div>
       )}
-
     </div>
   );
 }
