@@ -5,13 +5,14 @@ import { useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
 import { 
   GraduationCap, ArrowRight, ArrowLeft, Plus, Trash2, Upload, 
-  Calendar, BookOpen, Clock, CheckCircle2, Building2, MapPin 
+  Calendar, BookOpen, Clock, CheckCircle2, Building2, MapPin, Sparkles 
 } from 'lucide-react';
 
 interface HolidayInput {
   id: string;
   title: string;
   date: string;
+  type: string; // 'festivo' | 'recuperacion'
 }
 
 interface ExamPeriodInput {
@@ -22,7 +23,8 @@ interface ExamPeriodInput {
 }
 
 interface ClassSlotInput {
-  day: number; // 1: Lunes, 2: Martes...
+  id: string;
+  day: number; // 1: Lunes ... 5: Viernes
   startHour: string;
   endHour: string;
   room: string;
@@ -38,12 +40,29 @@ interface SubjectInput {
   slots: ClassSlotInput[];
 }
 
+// Listas de sugerencias para autocompletar
+const POPULAR_UNIVERSITIES = [
+  'EUM (Escola Universitària del Maresme)',
+  'Universitat Autònoma de Barcelona (UAB)',
+  'Universitat de Barcelona (UB)',
+  'Universitat Politècnica de Catalunya (UPC)',
+  'Universitat Pompeu Fabra (UPF)',
+  'Universitat de Girona (UdG)',
+  'Universitat de Lleida (UdL)',
+  'Universitat Rovira i Virgili (URV)',
+  'Universitat Oberta de Catalunya (UOC)',
+  'Universitat Ramon Llull (URL)'
+];
+
+const POPULAR_CITIES = ['Mataró', 'Barcelona', 'Badalona', 'Sabadell', 'Terrassa', 'Girona', 'Tarragona', 'Lleida', 'Madrid', 'Valencia'];
+
 export default function OnboardingPage() {
   const router = useRouter();
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [userId, setUserId] = useState<string>('');
-  const [parsingFile, setParsingFile] = useState(false);
+  const [parsingCalendar, setParsingCalendar] = useState(false);
+  const [parsingSubjects, setParsingSubjects] = useState(false);
   
   // Control de Pasos (1 al 5)
   const [step, setStep] = useState<number>(1);
@@ -51,24 +70,32 @@ export default function OnboardingPage() {
   // Paso 1: Información General
   const [university, setUniversity] = useState<string>('');
   const [city, setCity] = useState<string>('');
-  const [systemType, setSystemType] = useState<string>('semester'); // 'semester' o 'quarter'
+  const [systemType, setSystemType] = useState<string>('semester');
 
   // Paso 2: Calendario Anual (Festivos y Exámenes)
   const [holidays, setHolidays] = useState<HolidayInput[]>([]);
   const [newHolidayTitle, setNewHolidayTitle] = useState('');
   const [newHolidayDate, setNewHolidayDate] = useState('');
+  const [newHolidayType, setNewHolidayType] = useState('festivo');
 
   const [examPeriods, setExamPeriods] = useState<ExamPeriodInput[]>([]);
   const [newExamTitle, setNewExamTitle] = useState('');
   const [newExamStart, setNewExamStart] = useState('');
   const [newExamEnd, setNewExamEnd] = useState('');
 
-  // Paso 3 & 4: Asignaturas y Horarios
+  // Paso 3: Asignaturas
   const [subjects, setSubjects] = useState<SubjectInput[]>([]);
   const [newName, setNewName] = useState('');
   const [newCode, setNewCode] = useState('');
-  const [newCredits, setNewCredits] = useState(6);
+  const [newCredits, setNewCredits] = useState<number>(6);
   const [newPeriod, setNewPeriod] = useState('semester_1');
+
+  // Paso 4: Horarios temporales seleccionados por asignatura activa
+  const [selectedSubjectForSlot, setSelectedSubjectForSlot] = useState<string>('');
+  const [slotDay, setSlotDay] = useState<number>(1);
+  const [slotStart, setSlotStart] = useState('08:00');
+  const [slotEnd, setSlotEnd] = useState('10:00');
+  const [slotRoom, setSlotRoom] = useState('');
 
   useEffect(() => {
     fetchData();
@@ -105,52 +132,101 @@ export default function OnboardingPage() {
     }
   };
 
-  // Simulación de subida e IA
-  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+  // IA: Analizar Calendario (Paso 2)
+  const handleCalendarFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    setParsingFile(true);
+    setParsingCalendar(true);
     try {
       const textContent = await file.text();
       const res = await fetch('/api/parse-syllabus', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ textContent }),
+        body: JSON.stringify({ textContent, type: 'calendar' }),
+      });
+
+      const data = await res.json();
+      if (data.holidays && Array.isArray(data.holidays)) {
+        const formattedHols = data.holidays.map((h: any) => ({
+          id: Math.random().toString(36).substring(2, 9),
+          title: h.title || 'Festivo',
+          date: h.date || new Date().toISOString().split('T')[0],
+          type: h.type || 'festivo',
+        }));
+        setHolidays(prev => [...prev, ...formattedHols]);
+      }
+      if (data.exams && Array.isArray(data.exams)) {
+        const formattedExams = data.exams.map((ex: any) => ({
+          id: Math.random().toString(36).substring(2, 9),
+          title: ex.title || 'Época de Exámenes',
+          startDate: ex.startDate || new Date().toISOString().split('T')[0],
+          endDate: ex.endDate || new Date().toISOString().split('T')[0],
+        }));
+        setExamPeriods(prev => [...prev, ...formattedExams]);
+      }
+      alert('¡Calendario analizado con éxito por la IA! Revisa los datos añadidos.');
+    } catch (err) {
+      console.error(err);
+      alert('Error al leer el archivo de calendario.');
+    } finally {
+      setParsingCalendar(false);
+    }
+  };
+
+  // IA: Analizar Asignaturas y Horarios (Paso 3)
+  const handleSubjectsFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setParsingSubjects(true);
+    try {
+      const textContent = await file.text();
+      const res = await fetch('/api/parse-syllabus', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ textContent, type: 'subjects' }),
       });
 
       const data = await res.json();
       if (data.subjects && Array.isArray(data.subjects)) {
-        const formattedSubjects = data.subjects.map((sub: any) => ({
+        const formattedSubs = data.subjects.map((sub: any) => ({
           id: Math.random().toString(36).substring(2, 9),
           name: sub.name || 'Asignatura',
-          code: sub.code || 'ASG',
+          code: sub.code || generateCode(sub.name || 'ASG'),
           credits: Number(sub.credits) || 6,
           period_type: sub.period_type || 'semester_1',
           is_convalidated: false,
           slots: sub.slots || [],
         }));
-        setSubjects(prev => [...prev, ...formattedSubjects]);
-      } else {
-        alert('La IA procesó el archivo, pero puedes revisar o añadir datos manualmente.');
+        setSubjects(prev => [...prev, ...formattedSubs]);
+        if (formattedSubs.length > 0 && !selectedSubjectForSlot) {
+          setSelectedSubjectForSlot(formattedSubs[0].id);
+        }
       }
+      alert('¡Plan de estudios y horarios extraídos correctamente por la IA!');
     } catch (err) {
       console.error(err);
-      alert('Error al leer el archivo.');
+      alert('Error al procesar el archivo de asignaturas.');
     } finally {
-      setParsingFile(false);
+      setParsingSubjects(false);
     }
   };
 
-  // Gestión de Festivos Manuales
+  // Generador automático de código si está vacío
+  const generateCode = (name: string) => {
+    if (!name) return 'ASG';
+    const clean = name.trim().toUpperCase().replace(/[^A-Z]/g, '');
+    return clean.slice(0, 5) || 'ASG';
+  };
+
   const handleAddHoliday = () => {
     if (!newHolidayTitle.trim() || !newHolidayDate) return;
-    setHolidays([...holidays, { id: Math.random().toString(36).substring(2, 9), title: newHolidayTitle, date: newHolidayDate }]);
+    setHolidays([...holidays, { id: Math.random().toString(36).substring(2, 9), title: newHolidayTitle, date: newHolidayDate, type: newHolidayType }]);
     setNewHolidayTitle('');
     setNewHolidayDate('');
   };
 
-  // Gestión de Épocas de Exámenes
   const handleAddExamPeriod = () => {
     if (!newExamTitle.trim() || !newExamStart || !newExamEnd) return;
     setExamPeriods([...examPeriods, { id: Math.random().toString(36).substring(2, 9), title: newExamTitle, startDate: newExamStart, endDate: newExamEnd }]);
@@ -159,29 +235,65 @@ export default function OnboardingPage() {
     setNewExamEnd('');
   };
 
-  // Gestión de Asignaturas
   const handleAddSubject = (e: React.FormEvent) => {
     e.preventDefault();
     if (!newName.trim()) return;
 
+    const finalCode = newCode.trim() ? newCode.trim().toUpperCase() : generateCode(newName);
+    const newSubId = Math.random().toString(36).substring(2, 9);
+
     setSubjects([...subjects, {
-      id: Math.random().toString(36).substring(2, 9),
+      id: newSubId,
       name: newName.trim(),
-      code: newCode.trim() || 'ASG',
+      code: finalCode,
       credits: Number(newCredits) || 6,
       period_type: newPeriod,
       is_convalidated: false,
       slots: [],
     }]);
+
+    if (!selectedSubjectForSlot) setSelectedSubjectForSlot(newSubId);
+
     setNewName('');
     setNewCode('');
     setNewCredits(6);
   };
 
+  const handleAddSlotToSubject = () => {
+    if (!selectedSubjectForSlot) return;
+    setSubjects(subjects.map(sub => {
+      if (sub.id === selectedSubjectForSlot) {
+        return {
+          ...sub,
+          slots: [
+            ...sub.slots,
+            {
+              id: Math.random().toString(36).substring(2, 9),
+              day: slotDay,
+              startHour: slotStart,
+              endHour: slotEnd,
+              room: slotRoom.trim() || 'Aula N/D',
+            }
+          ]
+        };
+      }
+      return sub;
+    }));
+    setSlotRoom('');
+  };
+
+  const handleRemoveSlot = (subId: string, slotId: string) => {
+    setSubjects(subjects.map(sub => {
+      if (sub.id === subId) {
+        return { ...sub, slots: sub.slots.filter(s => s.id !== slotId) };
+      }
+      return sub;
+    }));
+  };
+
   const handleSaveOnboarding = async () => {
     setSubmitting(true);
     try {
-      // 1. Guardar Perfil
       await supabase.from('profiles').upsert({
         id: userId,
         academic_system: systemType,
@@ -190,7 +302,6 @@ export default function OnboardingPage() {
         has_seen_tour: true,
       });
 
-      // 2. Guardar Asignaturas en user_subjects
       for (const sub of subjects) {
         await supabase.from('user_subjects').upsert({
           user_id: userId,
@@ -205,12 +316,11 @@ export default function OnboardingPage() {
         }, { onConflict: 'user_id,subject_id' });
       }
 
-      // 3. Guardar Festivos y Exámenes en academic_events
       for (const hol of holidays) {
         await supabase.from('academic_events').insert({
           user_id: userId,
           title: hol.title,
-          event_type: 'festivo',
+          event_type: hol.type, // 'festivo' o 'recuperacion'
           due_date: hol.date,
         });
       }
@@ -256,7 +366,6 @@ export default function OnboardingPage() {
             Paso {step} de 5 — Configura tu entorno de estudios paso a paso.
           </p>
           
-          {/* Indicador visual de pasos */}
           <div className="flex items-center justify-center gap-2 pt-2">
             {[1, 2, 3, 4, 5].map((s) => (
               <div 
@@ -272,13 +381,13 @@ export default function OnboardingPage() {
         {/* CONTENIDO DE CADA PASO */}
         <div className="space-y-6">
 
-          {/* PASO 1: Información General */}
+          {/* PASO 1: Información General con Autocompletado */}
           {step === 1 && (
             <div className="space-y-4 animate-in fade-in duration-300">
               <h3 className="text-xs font-extrabold text-gray-800 uppercase tracking-wider">1. Información de la Universidad</h3>
               
               <div className="space-y-3">
-                <div>
+                <div className="relative">
                   <label className="text-[11px] font-bold text-gray-600 block mb-1">Universidad</label>
                   <div className="relative">
                     <Building2 className="w-4 h-4 text-gray-400 absolute left-3 top-3" />
@@ -290,20 +399,46 @@ export default function OnboardingPage() {
                       className="w-full pl-9 pr-3 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-xs font-medium focus:outline-none focus:border-[#0071e3]"
                     />
                   </div>
+                  {university && !POPULAR_UNIVERSITIES.includes(university) && (
+                    <div className="absolute z-10 w-full mt-1 bg-white border border-gray-200 rounded-xl shadow-lg max-h-40 overflow-y-auto">
+                      {POPULAR_UNIVERSITIES.filter(u => u.toLowerCase().includes(university.toLowerCase())).map((uni, idx) => (
+                        <div 
+                          key={idx} 
+                          onClick={() => setUniversity(uni)}
+                          className="px-3 py-2 text-xs hover:bg-blue-50 cursor-pointer text-gray-700"
+                        >
+                          {uni}
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
 
-                <div>
+                <div className="relative">
                   <label className="text-[11px] font-bold text-gray-600 block mb-1">Ciudad</label>
                   <div className="relative">
                     <MapPin className="w-4 h-4 text-gray-400 absolute left-3 top-3" />
                     <input
                       type="text"
-                      placeholder="Ej. Barcelona / Madrid"
+                      placeholder="Ej. Mataró / Barcelona"
                       value={city}
                       onChange={e => setCity(e.target.value)}
                       className="w-full pl-9 pr-3 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-xs font-medium focus:outline-none focus:border-[#0071e3]"
                     />
                   </div>
+                  {city && !POPULAR_CITIES.includes(city) && (
+                    <div className="absolute z-10 w-full mt-1 bg-white border border-gray-200 rounded-xl shadow-lg max-h-40 overflow-y-auto">
+                      {POPULAR_CITIES.filter(c => c.toLowerCase().includes(city.toLowerCase())).map((c, idx) => (
+                        <div 
+                          key={idx} 
+                          onClick={() => setCity(c)}
+                          className="px-3 py-2 text-xs hover:bg-blue-50 cursor-pointer text-gray-700"
+                        >
+                          {c}
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
 
                 <div className="pt-2">
@@ -337,48 +472,60 @@ export default function OnboardingPage() {
             </div>
           )}
 
-          {/* PASO 2: Calendario Anual (Festivos y Exámenes) */}
+          {/* PASO 2: Calendario Anual Moderno (Festivos, Recuperaciones y Exámenes) */}
           {step === 2 && (
             <div className="space-y-5 animate-in fade-in duration-300">
               <div className="flex items-center justify-between">
                 <h3 className="text-xs font-extrabold text-gray-800 uppercase tracking-wider">2. Festivos y Épocas de Exámenes</h3>
                 <label className="text-[10px] bg-blue-50 text-[#0071e3] border border-blue-100 px-3 py-1.5 rounded-xl font-bold cursor-pointer hover:bg-blue-100 transition-colors flex items-center gap-1.5">
-                  <Upload className="w-3.5 h-3.5" /> {parsingFile ? 'Analizando...' : 'Autocompletar con IA'}
-                  <input type="file" accept=".txt,.pdf" onChange={handleFileUpload} disabled={parsingFile} className="hidden" />
+                  <Upload className="w-3.5 h-3.5" /> {parsingCalendar ? 'Analizando...' : 'Autocompletar con IA'}
+                  <input type="file" accept=".txt,.pdf,.csv" onChange={handleCalendarFileUpload} disabled={parsingCalendar} className="hidden" />
                 </label>
               </div>
 
-              {/* Apartado Festivos */}
+              {/* Festivos / No lectivos / Recuperaciones */}
               <div className="bg-gray-50/80 p-4 rounded-2xl border border-gray-200/70 space-y-3">
                 <h4 className="text-[11px] font-extrabold text-gray-700 flex items-center gap-2">
-                  <Calendar className="w-3.5 h-3.5 text-amber-500" /> Días Festivos ({holidays.length})
+                  <Calendar className="w-3.5 h-3.5 text-amber-500" /> Días Festivos y Recuperaciones ({holidays.length})
                 </h4>
-                <div className="flex gap-2">
+                <div className="grid grid-cols-1 sm:grid-cols-12 gap-2">
                   <input
                     type="text"
-                    placeholder="Nombre (ej. Navidad)"
+                    placeholder="Nombre (ej. Navidad / Recuperación)"
                     value={newHolidayTitle}
                     onChange={e => setNewHolidayTitle(e.target.value)}
-                    className="flex-1 px-3 py-2 bg-white border border-gray-200 rounded-xl text-xs"
+                    className="sm:col-span-5 px-3 py-2 bg-white border border-gray-200 rounded-xl text-xs font-medium"
                   />
+                  <select
+                    value={newHolidayType}
+                    onChange={e => setNewHolidayType(e.target.value)}
+                    className="sm:col-span-3 px-3 py-2 bg-white border border-gray-200 rounded-xl text-xs font-medium"
+                  >
+                    <option value="festivo">Festivo</option>
+                    <option value="recuperacion">Recuperación / Extraordinaria</option>
+                  </select>
                   <input
                     type="date"
                     value={newHolidayDate}
                     onChange={e => setNewHolidayDate(e.target.value)}
-                    className="px-3 py-2 bg-white border border-gray-200 rounded-xl text-xs"
+                    className="sm:col-span-3 px-3 py-2 bg-white border border-gray-200 rounded-xl text-xs font-medium"
                   />
                   <button
                     type="button"
                     onClick={handleAddHoliday}
-                    className="bg-gray-900 text-white px-3 py-2 rounded-xl text-xs font-bold cursor-pointer hover:bg-gray-800"
+                    className="sm:col-span-1 bg-gray-900 text-white p-2 rounded-xl text-xs font-bold cursor-pointer hover:bg-gray-800 flex items-center justify-center"
                   >
                     <Plus className="w-4 h-4" />
                   </button>
                 </div>
-                <div className="max-h-28 overflow-y-auto space-y-1">
+                <div className="max-h-28 overflow-y-auto space-y-1 pr-1">
                   {holidays.map(h => (
-                    <div key={h.id} className="flex justify-between items-center bg-white p-2 rounded-lg border border-gray-200 text-xs">
-                      <span>{h.title} ({h.date})</span>
+                    <div key={h.id} className="flex justify-between items-center bg-white p-2.5 rounded-xl border border-gray-200 text-xs shadow-2xs">
+                      <div className="flex items-center gap-2">
+                        <span className={`w-2 h-2 rounded-full ${h.type === 'festivo' ? 'bg-amber-500' : 'bg-rose-500'}`} />
+                        <span className="font-bold text-gray-800">{h.title}</span>
+                        <span className="text-[10px] text-gray-400">({h.date})</span>
+                      </div>
                       <button onClick={() => setHolidays(holidays.filter(x => x.id !== h.id))} className="text-red-400 hover:text-red-600">
                         <Trash2 className="w-3.5 h-3.5" />
                       </button>
@@ -387,7 +534,7 @@ export default function OnboardingPage() {
                 </div>
               </div>
 
-              {/* Apartado Épocas de Exámenes */}
+              {/* Épocas de Exámenes (Rangos) */}
               <div className="bg-gray-50/80 p-4 rounded-2xl border border-gray-200/70 space-y-3">
                 <h4 className="text-[11px] font-extrabold text-gray-700 flex items-center gap-2">
                   <Clock className="w-3.5 h-3.5 text-blue-500" /> Épocas de Exámenes ({examPeriods.length})
@@ -398,42 +545,42 @@ export default function OnboardingPage() {
                     placeholder="Título (ej. Exámenes 1r Semestre)"
                     value={newExamTitle}
                     onChange={e => setNewExamTitle(e.target.value)}
-                    className="w-full px-3 py-2 bg-white border border-gray-200 rounded-xl text-xs"
+                    className="w-full px-3 py-2 bg-white border border-gray-200 rounded-xl text-xs font-medium"
                   />
-                  <div className="flex gap-2">
+                  <div className="flex gap-2 items-center">
                     <div className="flex-1">
-                      <span className="text-[10px] text-gray-400 block">Desde</span>
+                      <span className="text-[10px] text-gray-400 block mb-0.5">Desde</span>
                       <input
                         type="date"
                         value={newExamStart}
                         onChange={e => setNewExamStart(e.target.value)}
-                        className="w-full px-3 py-2 bg-white border border-gray-200 rounded-xl text-xs"
+                        className="w-full px-3 py-2 bg-white border border-gray-200 rounded-xl text-xs font-medium"
                       />
                     </div>
                     <div className="flex-1">
-                      <span className="text-[10px] text-gray-400 block">Hasta</span>
+                      <span className="text-[10px] text-gray-400 block mb-0.5">Hasta</span>
                       <input
                         type="date"
                         value={newExamEnd}
                         onChange={e => setNewExamEnd(e.target.value)}
-                        className="w-full px-3 py-2 bg-white border border-gray-200 rounded-xl text-xs"
+                        className="w-full px-3 py-2 bg-white border border-gray-200 rounded-xl text-xs font-medium"
                       />
                     </div>
-                    <div className="flex items-end">
+                    <div className="flex items-end pt-4">
                       <button
                         type="button"
                         onClick={handleAddExamPeriod}
-                        className="bg-[#0071e3] text-white px-3 py-2 rounded-xl text-xs font-bold cursor-pointer hover:bg-[#005bb5]"
+                        className="bg-[#0071e3] text-white px-3.5 py-2 rounded-xl text-xs font-bold cursor-pointer hover:bg-[#005bb5]"
                       >
                         <Plus className="w-4 h-4" />
                       </button>
                     </div>
                   </div>
                 </div>
-                <div className="max-h-28 overflow-y-auto space-y-1">
+                <div className="max-h-28 overflow-y-auto space-y-1 pr-1">
                   {examPeriods.map(e => (
-                    <div key={e.id} className="flex justify-between items-center bg-white p-2 rounded-lg border border-gray-200 text-xs">
-                      <span>{e.title} ({e.startDate} al {e.endDate})</span>
+                    <div key={e.id} className="flex justify-between items-center bg-white p-2.5 rounded-xl border border-gray-200 text-xs shadow-2xs">
+                      <span className="font-bold text-gray-800">{e.title} <span className="text-[10px] text-gray-400 font-normal">({e.startDate} al {e.endDate})</span></span>
                       <button onClick={() => setExamPeriods(examPeriods.filter(x => x.id !== e.id))} className="text-red-400 hover:text-red-600">
                         <Trash2 className="w-3.5 h-3.5" />
                       </button>
@@ -444,32 +591,47 @@ export default function OnboardingPage() {
             </div>
           )}
 
-          {/* PASO 3: Plan de Estudios y Asignaturas */}
+          {/* PASO 3: Plan de Estudios y Asignaturas (Con IA y ECTS y Código Opcional) */}
           {step === 3 && (
             <div className="space-y-4 animate-in fade-in duration-300">
-              <h3 className="text-xs font-extrabold text-gray-800 uppercase tracking-wider">3. Tus Asignaturas ({subjects.length})</h3>
+              <div className="flex items-center justify-between">
+                <h3 className="text-xs font-extrabold text-gray-800 uppercase tracking-wider">3. Tus Asignaturas ({subjects.length})</h3>
+                <label className="text-[10px] bg-blue-50 text-[#0071e3] border border-blue-100 px-3 py-1.5 rounded-xl font-bold cursor-pointer hover:bg-blue-100 transition-colors flex items-center gap-1.5">
+                  <Upload className="w-3.5 h-3.5" /> {parsingSubjects ? 'Analizando...' : 'Subir Guía con IA'}
+                  <input type="file" accept=".txt,.pdf,.csv" onChange={handleSubjectsFileUpload} disabled={parsingSubjects} className="hidden" />
+                </label>
+              </div>
               
               <div className="bg-gray-50 p-4 rounded-2xl border border-gray-200 space-y-3">
-                <h4 className="text-[11px] font-bold text-gray-700">Añadir Asignatura Manual</h4>
+                <h4 className="text-[11px] font-bold text-gray-700">Añadir Asignatura Manualmente</h4>
                 <div className="grid grid-cols-1 sm:grid-cols-12 gap-2">
                   <input
                     type="text"
-                    placeholder="Nombre"
+                    placeholder="Nombre (ej. Matemáticas)"
                     value={newName}
                     onChange={e => setNewName(e.target.value)}
-                    className="sm:col-span-5 px-3 py-2 bg-white border border-gray-200 rounded-xl text-xs"
+                    className="sm:col-span-4 px-3 py-2 bg-white border border-gray-200 rounded-xl text-xs font-medium"
                   />
                   <input
                     type="text"
-                    placeholder="Código"
+                    placeholder="Código (opcional)"
                     value={newCode}
                     onChange={e => setNewCode(e.target.value)}
-                    className="sm:col-span-3 px-3 py-2 bg-white border border-gray-200 rounded-xl text-xs"
+                    className="sm:col-span-2 px-3 py-2 bg-white border border-gray-200 rounded-xl text-xs font-medium"
+                  />
+                  <input
+                    type="number"
+                    placeholder="ECTS"
+                    value={newCredits}
+                    onChange={e => setNewCredits(Number(e.target.value))}
+                    className="sm:col-span-2 px-3 py-2 bg-white border border-gray-200 rounded-xl text-xs font-medium"
+                    min={1}
+                    max={30}
                   />
                   <select
                     value={newPeriod}
                     onChange={e => setNewPeriod(e.target.value)}
-                    className="sm:col-span-4 px-3 py-2 bg-white border border-gray-200 rounded-xl text-xs"
+                    className="sm:col-span-4 px-3 py-2 bg-white border border-gray-200 rounded-xl text-xs font-medium"
                   >
                     <option value="semester_1">1r Semestre</option>
                     <option value="semester_2">2n Semestre</option>
@@ -481,25 +643,28 @@ export default function OnboardingPage() {
                   <button
                     type="button"
                     onClick={handleAddSubject}
-                    className="bg-[#0071e3] text-white px-4 py-2 rounded-xl text-xs font-bold flex items-center gap-1 cursor-pointer"
+                    className="bg-[#0071e3] text-white px-4 py-2 rounded-xl text-xs font-bold flex items-center gap-1 cursor-pointer hover:bg-[#005bb5]"
                   >
                     <Plus className="w-4 h-4" /> Añadir Asignatura
                   </button>
                 </div>
               </div>
 
-              {/* Listado */}
+              {/* Listado de asignaturas */}
               <div className="max-h-56 overflow-y-auto space-y-2 pr-1">
                 {subjects.length === 0 ? (
                   <div className="text-center py-6 text-gray-400 text-xs border border-dashed border-gray-200 rounded-2xl">
-                    No hay asignaturas añadidas todavía.
+                    No hay asignaturas añadidas todavía. Agrega al menos una para continuar.
                   </div>
                 ) : (
                   subjects.map(sub => (
-                    <div key={sub.id} className="flex justify-between items-center p-3 bg-white border border-gray-200 rounded-xl text-xs">
+                    <div key={sub.id} className="flex justify-between items-center p-3 bg-white border border-gray-200 rounded-xl text-xs shadow-2xs">
                       <div>
-                        <span className="font-bold text-gray-900">{sub.name}</span>
-                        <span className="ml-2 font-mono text-[10px] bg-gray-100 px-1.5 py-0.5 rounded text-gray-600">{sub.code}</span>
+                        <div className="flex items-center gap-2">
+                          <span className="font-bold text-gray-900">{sub.name}</span>
+                          <span className="font-mono text-[10px] bg-blue-50 text-[#0071e3] px-1.5 py-0.5 rounded font-bold">{sub.code}</span>
+                        </div>
+                        <p className="text-[10px] text-gray-400">{sub.credits} ECTS • {sub.period_type}</p>
                       </div>
                       <button onClick={() => setSubjects(subjects.filter(s => s.id !== sub.id))} className="text-red-400 hover:text-red-600">
                         <Trash2 className="w-4 h-4" />
@@ -511,18 +676,107 @@ export default function OnboardingPage() {
             </div>
           )}
 
-          {/* PASO 4: Horario Semanal */}
+          {/* PASO 4: Horarios Semanales Interactivos */}
           {step === 4 && (
             <div className="space-y-4 animate-in fade-in duration-300">
-              <h3 className="text-xs font-extrabold text-gray-800 uppercase tracking-wider">4. Horarios y Clases</h3>
+              <h3 className="text-xs font-extrabold text-gray-800 uppercase tracking-wider">4. Horarios Semanales por Asignatura</h3>
               <p className="text-xs text-gray-500">
-                Aquí puedes verificar o ajustar los bloques de horarios semanales extraídos de tus asignaturas.
+                Configura o revisa los días y horas de clase para cada asignatura. Si subiste tu guía con IA, aparecerán aquí pre-cargadas.
               </p>
-              <div className="bg-blue-50/50 p-6 rounded-2xl border border-blue-100 text-center space-y-2">
-                <BookOpen className="w-8 h-8 text-[#0071e3] mx-auto" />
-                <p className="text-xs font-bold text-gray-800">Horarios configurados automáticamente</p>
-                <p className="text-[11px] text-gray-500">Puedes continuar al último paso o ajustar detalles desde el dashboard principal más adelante.</p>
-              </div>
+
+              {subjects.length === 0 ? (
+                <div className="text-center py-6 text-gray-400 text-xs border border-dashed border-gray-200 rounded-2xl">
+                  Primero debes añadir asignaturas en el paso anterior.
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  {/* Selector de asignatura */}
+                  <div className="flex gap-2 items-center">
+                    <select
+                      value={selectedSubjectForSlot}
+                      onChange={e => setSelectedSubjectForSlot(e.target.value)}
+                      className="flex-1 px-3 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-xs font-bold text-gray-800"
+                    >
+                      {subjects.map(sub => (
+                        <option key={sub.id} value={sub.id}>{sub.name} ({sub.code})</option>
+                      ))}
+                    </select>
+                  </div>
+
+                  {/* Creador de bloque horario para la asignatura seleccionada */}
+                  <div className="bg-gray-50 p-4 rounded-2xl border border-gray-200 space-y-3">
+                    <h4 className="text-[11px] font-bold text-gray-700">Añadir Franja Horaria</h4>
+                    <div className="grid grid-cols-2 sm:grid-cols-5 gap-2">
+                      <select
+                        value={slotDay}
+                        onChange={e => setSlotDay(Number(e.target.value))}
+                        className="px-3 py-2 bg-white border border-gray-200 rounded-xl text-xs"
+                      >
+                        <option value={1}>Lunes</option>
+                        <option value={2}>Martes</option>
+                        <option value={3}>Miércoles</option>
+                        <option value={4}>Jueves</option>
+                        <option value={5}>Viernes</option>
+                      </select>
+                      <input
+                        type="time"
+                        value={slotStart}
+                        onChange={e => setSlotStart(e.target.value)}
+                        className="px-3 py-2 bg-white border border-gray-200 rounded-xl text-xs"
+                      />
+                      <input
+                        type="time"
+                        value={slotEnd}
+                        onChange={e => setSlotEnd(e.target.value)}
+                        className="px-3 py-2 bg-white border border-gray-200 rounded-xl text-xs"
+                      />
+                      <input
+                        type="text"
+                        placeholder="Aula (ej. A-201)"
+                        value={slotRoom}
+                        onChange={e => setSlotRoom(e.target.value)}
+                        className="px-3 py-2 bg-white border border-gray-200 rounded-xl text-xs"
+                      />
+                      <button
+                        type="button"
+                        onClick={handleAddSlotToSubject}
+                        className="bg-[#0071e3] text-white py-2 px-3 rounded-xl text-xs font-bold flex items-center justify-center gap-1 cursor-pointer hover:bg-[#005bb5]"
+                      >
+                        <Plus className="w-4 h-4" /> Añadir
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Listado de franjas horarias agrupadas por asignatura */}
+                  <div className="max-h-48 overflow-y-auto space-y-3 pr-1">
+                    {subjects.map(sub => (
+                      <div key={sub.id} className="bg-white p-3 rounded-xl border border-gray-200 space-y-2">
+                        <div className="flex justify-between items-center border-b border-gray-100 pb-1.5">
+                          <span className="text-xs font-extrabold text-gray-900">{sub.name} <span className="text-[10px] text-gray-400 font-mono">({sub.code})</span></span>
+                          <span className="text-[10px] bg-blue-50 text-[#0071e3] px-2 py-0.5 rounded-full font-bold">{sub.slots.length} clases/sem</span>
+                        </div>
+                        {sub.slots.length === 0 ? (
+                          <p className="text-[11px] text-gray-400 italic">Sin horarios añadidos aún.</p>
+                        ) : (
+                          <div className="space-y-1">
+                            {sub.slots.map(slot => {
+                              const dayNames = ['', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes'];
+                              return (
+                                <div key={slot.id} className="flex justify-between items-center bg-gray-50 px-3 py-1.5 rounded-lg text-xs">
+                                  <span className="font-medium text-gray-700">{dayNames[slot.day]} de {slot.startHour} a {slot.endHour} <span className="text-gray-400">({slot.room})</span></span>
+                                  <button onClick={() => handleRemoveSlot(sub.id, slot.id)} className="text-red-400 hover:text-red-600">
+                                    <Trash2 className="w-3.5 h-3.5" />
+                                  </button>
+                                </div>
+                              );
+                            })}
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
           )}
 
@@ -540,16 +794,20 @@ export default function OnboardingPage() {
                   <span className="font-bold text-gray-800">{systemType === 'semester' ? 'Semestres' : 'Trimestres'}</span>
                 </div>
                 <div className="flex justify-between border-b border-gray-200 pb-2">
-                  <span className="text-gray-500">Festivos registrados:</span>
+                  <span className="text-gray-500">Festivos / Recuperaciones:</span>
                   <span className="font-bold text-gray-800">{holidays.length} días</span>
                 </div>
                 <div className="flex justify-between border-b border-gray-200 pb-2">
                   <span className="text-gray-500">Épocas de exámenes:</span>
                   <span className="font-bold text-gray-800">{examPeriods.length} periodos</span>
                 </div>
-                <div className="flex justify-between">
+                <div className="flex justify-between border-b border-gray-200 pb-2">
                   <span className="text-gray-500">Asignaturas totales:</span>
                   <span className="font-bold text-gray-800">{subjects.length} materias</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-gray-500">Total de clases semanales:</span>
+                  <span className="font-bold text-gray-800">{subjects.reduce((acc, s) => acc + s.slots.length, 0)} bloques</span>
                 </div>
               </div>
             </div>
