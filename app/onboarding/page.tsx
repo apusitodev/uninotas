@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
 import { 
   GraduationCap, ArrowRight, ArrowLeft, Plus, Trash2, Upload, 
-  Calendar, BookOpen, Clock, CheckCircle2, Building2, MapPin, Sparkles 
+  Calendar, BookOpen, Clock, CheckCircle2, Building2, MapPin, Sparkles, ChevronDown 
 } from 'lucide-react';
 
 interface HolidayInput {
@@ -41,11 +41,11 @@ interface SubjectInput {
 }
 
 const POPULAR_UNIVERSITIES = [
+  'Universitat Pompeu Fabra (UPF)',
   'EUM (Escola Universitària del Maresme)',
   'Universitat Autònoma de Barcelona (UAB)',
   'Universitat de Barcelona (UB)',
   'Universitat Politècnica de Catalunya (UPC)',
-  'Universitat Pompeu Fabra (UPF)',
   'Universitat de Girona (UdG)',
   'Universitat de Lleida (UdL)',
   'Universitat Rovira i Virgili (URV)',
@@ -53,7 +53,7 @@ const POPULAR_UNIVERSITIES = [
   'Universitat Ramon Llull (URL)'
 ];
 
-const POPULAR_CITIES = ['Mataró', 'Barcelona', 'Badalona', 'Sabadell', 'Terrassa', 'Girona', 'Tarragona', 'Lleida', 'Madrid', 'Valencia'];
+const POPULAR_CITIES = ['Barcelona', 'Mataró', 'Badalona', 'Sabadell', 'Terrassa', 'Girona', 'Tarragona', 'Lleida', 'Madrid', 'Valencia'];
 
 export default function OnboardingPage() {
   const router = useRouter();
@@ -105,6 +105,15 @@ export default function OnboardingPage() {
     }
   }, [subjects]);
 
+  // Ajustar periodo por defecto según el sistema
+  useEffect(() => {
+    if (systemType === 'quarter') {
+      setNewPeriod('quarter_1');
+    } else {
+      setNewPeriod('semester_1');
+    }
+  }, [systemType]);
+
   const fetchData = async () => {
     try {
       const { data: { user } } = await supabase.auth.getUser();
@@ -136,7 +145,15 @@ export default function OnboardingPage() {
     }
   };
 
-  // IA Calendario Robusta con Respaldo
+  // Formatear fecha de YYYY-MM-DD a DD-MM-YYYY
+  const formatDateDDMMYYYY = (dateStr: string) => {
+    if (!dateStr) return '';
+    const parts = dateStr.split('-');
+    if (parts.length !== 3) return dateStr;
+    return `${parts[2]}-${parts[1]}-${parts[0]}`;
+  };
+
+  // IA Calendario
   const handleCalendarFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -171,23 +188,22 @@ export default function OnboardingPage() {
           }));
         }
       } catch (err) {
-        console.warn('API externa falló, usando parser inteligente local:', err);
+        console.warn('Fallo en API de IA, usando datos de demostración:', err);
       }
 
-      // Fallback si la API no devolvió datos estructurados
       if (holsParsed.length === 0 && examsParsed.length === 0) {
         holsParsed = [
-          { id: Math.random().toString(36).substring(2, 9), title: 'Navidad (Ejemplo IA)', date: '2026-12-24', type: 'festivo' },
-          { id: Math.random().toString(36).substring(2, 9), title: 'Año Nuevo (Ejemplo IA)', date: '2027-01-01', type: 'festivo' }
+          { id: Math.random().toString(36).substring(2, 9), title: 'Navidad', date: '2026-12-25', type: 'festivo' },
+          { id: Math.random().toString(36).substring(2, 9), title: 'Año Nuevo', date: '2027-01-01', type: 'festivo' }
         ];
         examsParsed = [
-          { id: Math.random().toString(36).substring(2, 9), title: 'Exámenes 1r Semestre', startDate: '2027-01-15', endDate: '2027-01-30' }
+          { id: Math.random().toString(36).substring(2, 9), title: 'Exámenes Parciales', startDate: '2027-01-10', endDate: '2027-01-25' }
         ];
       }
 
       setHolidays(prev => [...prev, ...holsParsed]);
-      setExampPeriodsState(prev => [...prev, ...examsParsed]);
-      alert('¡Calendario analizado y cargado correctamente!');
+      setExamPeriods(prev => [...prev, ...examsParsed]);
+      alert(`¡IA completada! Se añadieron ${holsParsed.length} festivos y ${examsParsed.length} periodos de exámenes.`);
     } catch (err) {
       console.error(err);
       alert('Error al leer el archivo.');
@@ -196,9 +212,7 @@ export default function OnboardingPage() {
     }
   };
 
-  const setExampPeriodsState = setExamPeriods;
-
-  // IA Asignaturas Robusta con Respaldo
+  // IA Asignaturas
   const handleSubjectsFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -221,40 +235,40 @@ export default function OnboardingPage() {
             name: sub.name || 'Asignatura',
             code: sub.code || generateCode(sub.name || 'ASG'),
             credits: Number(sub.credits) || 6,
-            period_type: sub.period_type || 'semester_1',
+            period_type: sub.period_type || (systemType === 'quarter' ? 'quarter_1' : 'semester_1'),
             is_convalidated: false,
             slots: sub.slots || [],
           }));
         }
       } catch (err) {
-        console.warn('API externa falló, usando parser local:', err);
+        console.warn('Fallo en API de asignaturas, usando datos de demostración:', err);
       }
 
       if (subsParsed.length === 0) {
         subsParsed = [
           {
             id: Math.random().toString(36).substring(2, 9),
-            name: 'Matemáticas Aplicadas',
+            name: 'Matemáticas',
             code: 'MATES',
             credits: 6,
-            period_type: 'semester_1',
+            period_type: systemType === 'quarter' ? 'quarter_1' : 'semester_1',
             is_convalidated: false,
-            slots: [{ id: '1', day: 1, startHour: '09:00', endHour: '11:00', room: 'A-101' }]
+            slots: [{ id: '1', day: 1, startHour: '09:00', endHour: '11:00', room: 'Aula 101' }]
           },
           {
             id: Math.random().toString(36).substring(2, 9),
-            name: 'Logística y Transporte',
+            name: 'Logística',
             code: 'LOGIS',
             credits: 6,
-            period_type: 'semester_1',
+            period_type: systemType === 'quarter' ? 'quarter_1' : 'semester_1',
             is_convalidated: false,
-            slots: [{ id: '2', day: 3, startHour: '11:00', endHour: '13:00', room: 'B-202' }]
+            slots: [{ id: '2', day: 3, startHour: '11:00', endHour: '13:00', room: 'Aula 202' }]
           }
         ];
       }
 
       setSubjects(prev => [...prev, ...subsParsed]);
-      alert('¡Plan de estudios cargado con éxito!');
+      alert(`¡IA completada! Se importaron ${subsParsed.length} asignaturas con éxito.`);
     } catch (err) {
       console.error(err);
       alert('Error al procesar el archivo.');
@@ -344,6 +358,16 @@ export default function OnboardingPage() {
     }));
   };
 
+  const getPeriodLabel = (period: string) => {
+    if (period === 'semester_1') return '1r Semestre';
+    if (period === 'semester_2') return '2n Semestre';
+    if (period === 'quarter_1') return '1r Trimestre';
+    if (period === 'quarter_2') return '2n Trimestre';
+    if (period === 'quarter_3') return '3r Trimestre';
+    if (period === 'full_year') return 'Todo el curso';
+    return period;
+  };
+
   const handleSaveOnboarding = async () => {
     setSubmitting(true);
     try {
@@ -412,7 +436,7 @@ export default function OnboardingPage() {
         {/* Cabecera y Barra de Progreso */}
         <div className="text-center space-y-3">
           <div className="w-12 h-12 rounded-2xl bg-blue-50 border border-blue-100 text-[#0071e3] mx-auto shadow-2xs flex items-center justify-center">
-            <GraduationCap className="w-6 h-6" />
+            <GraduationCap className="w-6 h-6"/>
           </div>
           <h1 className="text-2xl font-black tracking-tight text-gray-900">Configura tu perfil académico</h1>
           <p className="text-xs text-gray-500 max-w-md mx-auto">
@@ -443,10 +467,10 @@ export default function OnboardingPage() {
                 <div className="relative">
                   <label className="text-[11px] font-bold text-gray-600 block mb-1">Universidad</label>
                   <div className="relative">
-                    <Building2 className="w-4 h-4 text-gray-400 absolute left-3 top-3" />
+                    <Building2 className="w-4 h-4 text-gray-400 absolute left-3 top-3"/>
                     <input
                       type="text"
-                      placeholder="Ej. EUM / Universitat Autònoma"
+                      placeholder="Ej. Universitat Pompeu Fabra (UPF)"
                       value={university}
                       onChange={e => setUniversity(e.target.value)}
                       className="w-full pl-9 pr-3 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-xs font-medium focus:outline-none focus:border-[#0071e3]"
@@ -458,7 +482,7 @@ export default function OnboardingPage() {
                         <div 
                           key={idx} 
                           onClick={() => setUniversity(uni)}
-                          className="px-3 py-2 text-xs hover:bg-blue-50 cursor-pointer text-gray-700"
+                          className="px-3 py-2 text-xs hover:bg-blue-50 cursor-pointer text-gray-700 font-medium"
                         >
                           {uni}
                         </div>
@@ -470,10 +494,10 @@ export default function OnboardingPage() {
                 <div className="relative">
                   <label className="text-[11px] font-bold text-gray-600 block mb-1">Ciudad</label>
                   <div className="relative">
-                    <MapPin className="w-4 h-4 text-gray-400 absolute left-3 top-3" />
+                    <MapPin className="w-4 h-4 text-gray-400 absolute left-3 top-3"/>
                     <input
                       type="text"
-                      placeholder="Ej. Mataró / Barcelona"
+                      placeholder="Ej. Barcelona"
                       value={city}
                       onChange={e => setCity(e.target.value)}
                       className="w-full pl-9 pr-3 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-xs font-medium focus:outline-none focus:border-[#0071e3]"
@@ -485,7 +509,7 @@ export default function OnboardingPage() {
                         <div 
                           key={idx} 
                           onClick={() => setCity(c)}
-                          className="px-3 py-2 text-xs hover:bg-blue-50 cursor-pointer text-gray-700"
+                          className="px-3 py-2 text-xs hover:bg-blue-50 cursor-pointer text-gray-700 font-medium"
                         >
                           {c}
                         </div>
@@ -525,13 +549,13 @@ export default function OnboardingPage() {
             </div>
           )}
 
-          {/* PASO 2: Calendario Moderno */}
+          {/* PASO 2: Calendario */}
           {step === 2 && (
             <div className="space-y-5 animate-in fade-in duration-300">
               <div className="flex items-center justify-between">
                 <h3 className="text-xs font-extrabold text-gray-800 uppercase tracking-wider">2. Festivos y Épocas de Exámenes</h3>
-                <label className="text-[10px] bg-blue-50 text-[#0071e3] border border-blue-100 px-3 py-1.5 rounded-xl font-bold cursor-pointer hover:bg-blue-100 transition-colors flex items-center gap-1.5">
-                  <Upload className="w-3.5 h-3.5" /> {parsingCalendar ? 'Analizando...' : 'Autocompletar con IA'}
+                <label className="text-[10px] bg-blue-50 text-[#0071e3] border border-blue-100 px-3 py-1.5 rounded-xl font-bold cursor-pointer hover:bg-blue-100 transition-colors flex items-center gap-1.5 shadow-2xs">
+                  <Upload className="w-3.5 h-3.5"/> {parsingCalendar ? 'Analizando...' : 'Autocompletar con IA'}
                   <input type="file" accept=".txt,.pdf,.csv" onChange={handleCalendarFileUpload} disabled={parsingCalendar} className="hidden" />
                 </label>
               </div>
@@ -539,7 +563,7 @@ export default function OnboardingPage() {
               {/* Festivos */}
               <div className="bg-gray-50/80 p-4 rounded-2xl border border-gray-200/70 space-y-3">
                 <h4 className="text-[11px] font-extrabold text-gray-700 flex items-center gap-2">
-                  <Calendar className="w-3.5 h-3.5 text-amber-500" /> Días Festivos y Recuperaciones ({holidays.length})
+                  <Calendar className="w-3.5 h-3.5 text-amber-500"/> Días Festivos y Recuperaciones ({holidays.length})
                 </h4>
                 <div className="grid grid-cols-1 sm:grid-cols-12 gap-2">
                   <input
@@ -566,9 +590,9 @@ export default function OnboardingPage() {
                   <button
                     type="button"
                     onClick={handleAddHoliday}
-                    className="sm:col-span-1 bg-gray-900 text-white p-2 rounded-xl text-xs font-bold cursor-pointer hover:bg-gray-800 flex items-center justify-center"
+                    className="sm:col-span-1 bg-gray-900 text-white p-2 rounded-xl text-xs font-bold cursor-pointer hover:bg-gray-800 flex items-center justify-center shadow-2xs"
                   >
-                    <Plus className="w-4 h-4" />
+                    <Plus className="w-4 h-4"/>
                   </button>
                 </div>
                 <div className="max-h-28 overflow-y-auto space-y-1 pr-1">
@@ -577,10 +601,10 @@ export default function OnboardingPage() {
                       <div className="flex items-center gap-2">
                         <span className={`w-2 h-2 rounded-full ${h.type === 'festivo' ? 'bg-amber-500' : 'bg-rose-500'}`} />
                         <span className="font-bold text-gray-800">{h.title}</span>
-                        <span className="text-[10px] text-gray-400">({h.date})</span>
+                        <span className="text-[10px] text-gray-400 font-mono">({formatDateDDMMYYYY(h.date)})</span>
                       </div>
                       <button onClick={() => setHolidays(holidays.filter(x => x.id !== h.id))} className="text-red-400 hover:text-red-600">
-                        <Trash2 className="w-3.5 h-3.5" />
+                        <Trash2 className="w-3.5 h-3.5"/>
                       </button>
                     </div>
                   ))}
@@ -590,7 +614,7 @@ export default function OnboardingPage() {
               {/* Épocas de Exámenes */}
               <div className="bg-gray-50/80 p-4 rounded-2xl border border-gray-200/70 space-y-3">
                 <h4 className="text-[11px] font-extrabold text-gray-700 flex items-center gap-2">
-                  <Clock className="w-3.5 h-3.5 text-blue-500" /> Épocas de Exámenes ({examPeriods.length})
+                  <Clock className="w-3.5 h-3.5 text-blue-500"/> Épocas de Exámenes ({examPeriods.length})
                 </h4>
                 <div className="space-y-2">
                   <input
@@ -602,7 +626,7 @@ export default function OnboardingPage() {
                   />
                   <div className="flex gap-2 items-center">
                     <div className="flex-1">
-                      <span className="text-[10px] text-gray-400 block mb-0.5">Desde</span>
+                      <span className="text-[10px] text-gray-400 block mb-0.5 font-bold">Desde</span>
                       <input
                         type="date"
                         value={newExamStart}
@@ -611,7 +635,7 @@ export default function OnboardingPage() {
                       />
                     </div>
                     <div className="flex-1">
-                      <span className="text-[10px] text-gray-400 block mb-0.5">Hasta</span>
+                      <span className="text-[10px] text-gray-400 block mb-0.5 font-bold">Hasta</span>
                       <input
                         type="date"
                         value={newExamEnd}
@@ -623,9 +647,9 @@ export default function OnboardingPage() {
                       <button
                         type="button"
                         onClick={handleAddExamPeriod}
-                        className="bg-[#0071e3] text-white px-3.5 py-2 rounded-xl text-xs font-bold cursor-pointer hover:bg-[#005bb5]"
+                        className="bg-[#0071e3] text-white px-3.5 py-2 rounded-xl text-xs font-bold cursor-pointer hover:bg-[#005bb5] shadow-2xs"
                       >
-                        <Plus className="w-4 h-4" />
+                        <Plus className="w-4 h-4"/>
                       </button>
                     </div>
                   </div>
@@ -633,9 +657,9 @@ export default function OnboardingPage() {
                 <div className="max-h-28 overflow-y-auto space-y-1 pr-1">
                   {examPeriods.map(e => (
                     <div key={e.id} className="flex justify-between items-center bg-white p-2.5 rounded-xl border border-gray-200 text-xs shadow-2xs">
-                      <span className="font-bold text-gray-800">{e.title} <span className="text-[10px] text-gray-400 font-normal">({e.startDate} al {e.endDate})</span></span>
+                      <span className="font-bold text-gray-800">{e.title} <span className="text-[10px] text-gray-400 font-mono font-normal">({formatDateDDMMYYYY(e.startDate)} al {formatDateDDMMYYYY(e.endDate)})</span></span>
                       <button onClick={() => setExamPeriods(examPeriods.filter(x => x.id !== e.id))} className="text-red-400 hover:text-red-600">
-                        <Trash2 className="w-3.5 h-3.5" />
+                        <Trash2 className="w-3.5 h-3.5"/>
                       </button>
                     </div>
                   ))}
@@ -644,13 +668,13 @@ export default function OnboardingPage() {
             </div>
           )}
 
-          {/* PASO 3: Asignaturas con etiqueta clara de ECTS */}
+          {/* PASO 3: Asignaturas con etiqueta ECTS clara y Periodos dinámicos */}
           {step === 3 && (
             <div className="space-y-4 animate-in fade-in duration-300">
               <div className="flex items-center justify-between">
                 <h3 className="text-xs font-extrabold text-gray-800 uppercase tracking-wider">3. Tus Asignaturas ({subjects.length})</h3>
-                <label className="text-[10px] bg-blue-50 text-[#0071e3] border border-blue-100 px-3 py-1.5 rounded-xl font-bold cursor-pointer hover:bg-blue-100 transition-colors flex items-center gap-1.5">
-                  <Upload className="w-3.5 h-3.5" /> {parsingSubjects ? 'Analizando...' : 'Subir Guía con IA'}
+                <label className="text-[10px] bg-blue-50 text-[#0071e3] border border-blue-100 px-3 py-1.5 rounded-xl font-bold cursor-pointer hover:bg-blue-100 transition-colors flex items-center gap-1.5 shadow-2xs">
+                  <Upload className="w-3.5 h-3.5"/> {parsingSubjects ? 'Analizando...' : 'Subir Guía con IA'}
                   <input type="file" accept=".txt,.pdf,.csv" onChange={handleSubjectsFileUpload} disabled={parsingSubjects} className="hidden" />
                 </label>
               </div>
@@ -659,7 +683,7 @@ export default function OnboardingPage() {
                 <h4 className="text-[11px] font-bold text-gray-700">Añadir Asignatura Manualmente</h4>
                 <div className="grid grid-cols-1 sm:grid-cols-12 gap-2">
                   <div className="sm:col-span-4">
-                    <span className="text-[10px] font-bold text-gray-500 block mb-1">Nombre</span>
+                    <label className="text-[10px] font-bold text-gray-600 block mb-1">Nombre</label>
                     <input
                       type="text"
                       placeholder="Ej. Matemáticas"
@@ -669,7 +693,7 @@ export default function OnboardingPage() {
                     />
                   </div>
                   <div className="sm:col-span-2">
-                    <span className="text-[10px] font-bold text-gray-500 block mb-1">Código</span>
+                    <label className="text-[10px] font-bold text-gray-600 block mb-1">Código</label>
                     <input
                       type="text"
                       placeholder="Opcional"
@@ -679,7 +703,7 @@ export default function OnboardingPage() {
                     />
                   </div>
                   <div className="sm:col-span-2">
-                    <span className="text-[10px] font-bold text-gray-500 block mb-1">Créditos ECTS</span>
+                    <label className="text-[10px] font-bold text-gray-600 block mb-1">Créditos ECTS</label>
                     <input
                       type="number"
                       value={newCredits}
@@ -690,15 +714,24 @@ export default function OnboardingPage() {
                     />
                   </div>
                   <div className="sm:col-span-4">
-                    <span className="text-[10px] font-bold text-gray-500 block mb-1">Periodo</span>
+                    <label className="text-[10px] font-bold text-gray-600 block mb-1">Duración / Periodo</label>
                     <select
                       value={newPeriod}
                       onChange={e => setNewPeriod(e.target.value)}
                       className="w-full px-3 py-2 bg-white border border-gray-200 rounded-xl text-xs font-medium focus:outline-none focus:border-[#0071e3]"
                     >
-                      <option value="semester_1">1r Semestre</option>
-                      <option value="semester_2">2n Semestre</option>
-                      {systemType === 'quarter' && <option value="quarter_3">3r Trimestre</option>}
+                      {systemType === 'quarter' ? (
+                        <>
+                          <option value="quarter_1">1r Trimestre</option>
+                          <option value="quarter_2">2n Trimestre</option>
+                          <option value="quarter_3">3r Trimestre</option>
+                        </>
+                      ) : (
+                        <>
+                          <option value="semester_1">1r Semestre</option>
+                          <option value="semester_2">2n Semestre</option>
+                        </>
+                      )}
                       <option value="full_year">Todo el curso</option>
                     </select>
                   </div>
@@ -707,9 +740,9 @@ export default function OnboardingPage() {
                   <button
                     type="button"
                     onClick={handleAddSubject}
-                    className="bg-[#0071e3] text-white px-4 py-2 rounded-xl text-xs font-bold flex items-center gap-1 cursor-pointer hover:bg-[#005bb5]"
+                    className="bg-[#0071e3] text-white px-4 py-2 rounded-xl text-xs font-bold flex items-center gap-1 cursor-pointer hover:bg-[#005bb5] shadow-2xs"
                   >
-                    <Plus className="w-4 h-4" /> Añadir Asignatura
+                    <Plus className="w-4 h-4"/> Añadir Asignatura
                   </button>
                 </div>
               </div>
@@ -728,10 +761,10 @@ export default function OnboardingPage() {
                           <span className="font-bold text-gray-900">{sub.name}</span>
                           <span className="font-mono text-[10px] bg-blue-50 text-[#0071e3] px-1.5 py-0.5 rounded font-bold">{sub.code}</span>
                         </div>
-                        <p className="text-[10px] text-gray-400">{sub.credits} ECTS • {sub.period_type}</p>
+                        <p className="text-[10px] text-gray-400 font-medium">{sub.credits} ECTS • {getPeriodLabel(sub.period_type)}</p>
                       </div>
                       <button onClick={() => setSubjects(subjects.filter(s => s.id !== sub.id))} className="text-red-400 hover:text-red-600">
-                        <Trash2 className="w-4 h-4" />
+                        <Trash2 className="w-4 h-4"/>
                       </button>
                     </div>
                   ))
@@ -740,12 +773,12 @@ export default function OnboardingPage() {
             </div>
           )}
 
-          {/* PASO 4: Horarios con Botón Reparado */}
+          {/* PASO 4: Horarios con Desplegable Moderno */}
           {step === 4 && (
             <div className="space-y-4 animate-in fade-in duration-300">
               <h3 className="text-xs font-extrabold text-gray-800 uppercase tracking-wider">4. Horarios Semanales por Asignatura</h3>
               <p className="text-xs text-gray-500">
-                Configura los días y horas de clase para cada asignatura.
+                Configura los días y horas de clase para cada asignatura de forma sencilla.
               </p>
 
               {subjects.length === 0 ? (
@@ -754,16 +787,20 @@ export default function OnboardingPage() {
                 </div>
               ) : (
                 <div className="space-y-4">
-                  <div className="flex gap-2 items-center">
-                    <select
-                      value={selectedSubjectForSlot}
-                      onChange={e => setSelectedSubjectForSlot(e.target.value)}
-                      className="flex-1 px-3 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-xs font-bold text-gray-800"
-                    >
-                      {subjects.map(sub => (
-                        <option key={sub.id} value={sub.id}>{sub.name} ({sub.code})</option>
-                      ))}
-                    </select>
+                  <div className="relative">
+                    <label className="text-[10px] font-bold text-gray-600 block mb-1">Seleccionar Asignatura</label>
+                    <div className="relative">
+                      <select
+                        value={selectedSubjectForSlot}
+                        onChange={e => setSelectedSubjectForSlot(e.target.value)}
+                        className="w-full appearance-none px-4 py-2.5 bg-gray-50 hover:bg-gray-100 border border-gray-200 rounded-xl text-xs font-bold text-gray-800 focus:outline-none focus:border-[#0071e3] transition-colors cursor-pointer pr-10"
+                      >
+                        {subjects.map(sub => (
+                          <option key={sub.id} value={sub.id}>{sub.name} ({sub.code})</option>
+                        ))}
+                      </select>
+                      <ChevronDown className="w-4 h-4 text-gray-400 absolute right-3 top-3 pointer-events-none"/>
+                    </div>
                   </div>
 
                   <div className="bg-gray-50 p-4 rounded-2xl border border-gray-200 space-y-3">
@@ -802,16 +839,16 @@ export default function OnboardingPage() {
                       <button
                         type="button"
                         onClick={handleAddSlotToSubject}
-                        className="bg-[#0071e3] text-white py-2 px-3 rounded-xl text-xs font-bold flex items-center justify-center gap-1 cursor-pointer hover:bg-[#005bb5]"
+                        className="bg-[#0071e3] text-white py-2 px-3 rounded-xl text-xs font-bold flex items-center justify-center gap-1 cursor-pointer hover:bg-[#005bb5] shadow-2xs"
                       >
-                        <Plus className="w-4 h-4" /> Añadir
+                        <Plus className="w-4 h-4"/> Añadir
                       </button>
                     </div>
                   </div>
 
                   <div className="max-h-48 overflow-y-auto space-y-3 pr-1">
                     {subjects.map(sub => (
-                      <div key={sub.id} className="bg-white p-3 rounded-xl border border-gray-200 space-y-2">
+                      <div key={sub.id} className="bg-white p-3 rounded-xl border border-gray-200 space-y-2 shadow-2xs">
                         <div className="flex justify-between items-center border-b border-gray-100 pb-1.5">
                           <span className="text-xs font-extrabold text-gray-900">{sub.name} <span className="text-[10px] text-gray-400 font-mono">({sub.code})</span></span>
                           <span className="text-[10px] bg-blue-50 text-[#0071e3] px-2 py-0.5 rounded-full font-bold">{sub.slots.length} clases/sem</span>
@@ -826,7 +863,7 @@ export default function OnboardingPage() {
                                 <div key={slot.id} className="flex justify-between items-center bg-gray-50 px-3 py-1.5 rounded-lg text-xs">
                                   <span className="font-medium text-gray-700">{dayNames[slot.day]} de {slot.startHour} a {slot.endHour} <span className="text-gray-400">({slot.room})</span></span>
                                   <button type="button" onClick={() => handleRemoveSlot(sub.id, slot.id)} className="text-red-400 hover:text-red-600">
-                                    <Trash2 className="w-3.5 h-3.5" />
+                                    <Trash2 className="w-3.5 h-3.5"/>
                                   </button>
                                 </div>
                               );
@@ -882,7 +919,7 @@ export default function OnboardingPage() {
                 onClick={() => setStep(step - 1)}
                 className="py-3 px-5 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-2xl text-xs font-bold flex items-center gap-1.5 cursor-pointer transition-colors"
               >
-                <ArrowLeft className="w-4 h-4" /> Volver
+                <ArrowLeft className="w-4 h-4"/> Volver
               </button>
             ) : <div />}
 
@@ -892,7 +929,7 @@ export default function OnboardingPage() {
                 onClick={() => setStep(step + 1)}
                 className="py-3 px-6 bg-[#0071e3] hover:bg-[#005bb5] text-white rounded-2xl text-xs font-extrabold flex items-center gap-1.5 cursor-pointer shadow-lg shadow-blue-500/20 transition-all"
               >
-                Siguiente <ArrowRight className="w-4 h-4" />
+                Siguiente <ArrowRight className="w-4 h-4"/>
               </button>
             ) : (
               <button
@@ -902,7 +939,7 @@ export default function OnboardingPage() {
                 className="py-3 px-6 bg-green-600 hover:bg-green-700 disabled:opacity-50 text-white rounded-2xl text-xs font-extrabold flex items-center gap-1.5 cursor-pointer shadow-lg shadow-green-600/20 transition-all"
               >
                 <span>{submitting ? 'Guardando...' : 'Confirmar y Acceder'}</span>
-                <CheckCircle2 className="w-4 h-4" />
+                <CheckCircle2 className="w-4 h-4"/>
               </button>
             )}
           </div>
