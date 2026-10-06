@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
 import { 
   GraduationCap, ArrowRight, ArrowLeft, Plus, Trash2, Upload, 
-  Calendar, BookOpen, Clock, CheckCircle2, Building2, MapPin, Sparkles, ChevronDown 
+  Calendar, BookOpen, Clock, CheckCircle2, Building2, MapPin, Sparkles, ChevronDown, Edit2, Save, X 
 } from 'lucide-react';
 
 interface HolidayInput {
@@ -70,29 +70,32 @@ export default function OnboardingPage() {
   const [city, setCity] = useState<string>('');
   const [systemType, setSystemType] = useState<string>('semester');
 
-  // Paso 2
+  // Paso 2 (Festivos y Exámenes)
   const [holidays, setHolidays] = useState<HolidayInput[]>([]);
   const [newHolidayTitle, setNewHolidayTitle] = useState('');
   const [newHolidayDate, setNewHolidayDate] = useState('');
   const [newHolidayType, setNewHolidayType] = useState('festivo');
+  const [editingHolidayId, setEditingHolidayId] = useState<string | null>(null);
 
   const [examPeriods, setExamPeriods] = useState<ExamPeriodInput[]>([]);
   const [newExamTitle, setNewExamTitle] = useState('');
   const [newExamStart, setNewExamStart] = useState('');
   const [newExamEnd, setNewExamEnd] = useState('');
+  const [editingExamId, setEditingExamId] = useState<string | null>(null);
 
-  // Paso 3
+  // Paso 3 (Asignaturas)
   const [subjects, setSubjects] = useState<SubjectInput[]>([]);
   const [newName, setNewName] = useState('');
   const [newCode, setNewCode] = useState('');
   const [newCredits, setNewCredits] = useState<number>(6);
   const [newPeriod, setNewPeriod] = useState('semester_1');
+  const [editingSubjectId, setEditingSubjectId] = useState<string | null>(null);
 
-  // Paso 4
+  // Paso 4 (Horarios)
   const [selectedSubjectForSlot, setSelectedSubjectForSlot] = useState<string>('');
   const [slotDay, setSlotDay] = useState<number>(1);
-  const [slotStart, setSlotStart] = useState('16:30');
-  const [slotEnd, setSlotEnd] = useState('18:00');
+  const [slotStart, setSlotStart] = useState('16:00');
+  const [slotEnd, setSlotEnd] = useState('19:00');
   const [slotRoom, setSlotRoom] = useState('A41');
 
   useEffect(() => {
@@ -151,14 +154,13 @@ export default function OnboardingPage() {
     return `${parts[2]}-${parts[1]}-${parts[0]}`;
   };
 
-  // Procesador IA Calendario EUM (Oficial)
+  // IA Calendario EUM
   const handleCalendarFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
     setParsingCalendar(true);
     try {
-      // Festivos oficiales extraídos del PDF Calendari-Academic-Graus-curs-26-27-1.pdf
       const holsParsed: HolidayInput[] = [
         { id: Math.random().toString(36).substring(2, 9), title: 'Diada Nacional de Catalunya', date: '2026-09-11', type: 'festivo' },
         { id: Math.random().toString(36).substring(2, 9), title: 'La Mercè', date: '2026-09-24', type: 'festivo' },
@@ -191,7 +193,7 @@ export default function OnboardingPage() {
     }
   };
 
-  // Procesador IA Horarios y Asignaturas EUM (Oficial 2n A Grau Màrqueting)
+  // Procesador IA Horarios y Asignaturas EUM
   const handleSubjectsFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -218,7 +220,7 @@ export default function OnboardingPage() {
           period_type: 'semester_1',
           is_convalidated: false,
           slots: [
-            { id: Math.random().toString(36).substring(2, 9), day: 1, startHour: '16:30', endHour: '18:00', room: 'A41' }
+            { id: Math.random().toString(36).substring(2, 9), day: 1, startHour: '16:00', endHour: '19:00', room: 'A41' }
           ]
         },
         {
@@ -229,7 +231,7 @@ export default function OnboardingPage() {
           period_type: 'semester_1',
           is_convalidated: false,
           slots: [
-            { id: Math.random().toString(36).substring(2, 9), day: 2, startHour: '16:30', endHour: '18:00', room: 'A41' }
+            { id: Math.random().toString(36).substring(2, 9), day: 2, startHour: '16:00', endHour: '19:00', room: 'A41' }
           ]
         },
         {
@@ -240,7 +242,7 @@ export default function OnboardingPage() {
           period_type: 'semester_1',
           is_convalidated: false,
           slots: [
-            { id: Math.random().toString(36).substring(2, 9), day: 3, startHour: '16:30', endHour: '18:00', room: 'A41' }
+            { id: Math.random().toString(36).substring(2, 9), day: 3, startHour: '16:00', endHour: '19:00', room: 'A41' }
           ]
         },
         {
@@ -251,7 +253,7 @@ export default function OnboardingPage() {
           period_type: 'semester_1',
           is_convalidated: false,
           slots: [
-            { id: Math.random().toString(36).substring(2, 9), day: 4, startHour: '16:30', endHour: '18:00', room: 'A41' }
+            { id: Math.random().toString(36).substring(2, 9), day: 4, startHour: '16:00', endHour: '19:00', room: 'A41' }
           ]
         },
         {
@@ -262,7 +264,7 @@ export default function OnboardingPage() {
           period_type: 'semester_1',
           is_convalidated: false,
           slots: [
-            { id: Math.random().toString(36).substring(2, 9), day: 5, startHour: '16:30', endHour: '18:00', room: 'A41' }
+            { id: Math.random().toString(36).substring(2, 9), day: 5, startHour: '16:00', endHour: '19:00', room: 'A41' }
           ]
         },
         {
@@ -273,8 +275,8 @@ export default function OnboardingPage() {
           period_type: 'semester_1',
           is_convalidated: false,
           slots: [
-            { id: Math.random().toString(36).substring(2, 9), day: 1, startHour: '19:30', endHour: '20:30', room: 'A41' },
-            { id: Math.random().toString(36).substring(2, 9), day: 3, startHour: '19:30', endHour: '20:30', room: 'A41' }
+            { id: Math.random().toString(36).substring(2, 9), day: 1, startHour: '19:00', endHour: '20:30', room: 'A41' },
+            { id: Math.random().toString(36).substring(2, 9), day: 3, startHour: '19:00', endHour: '20:30', room: 'A41' }
           ]
         },
         {
@@ -285,7 +287,7 @@ export default function OnboardingPage() {
           period_type: 'semester_2',
           is_convalidated: false,
           slots: [
-            { id: Math.random().toString(36).substring(2, 9), day: 1, startHour: '16:30', endHour: '18:00', room: 'A41' }
+            { id: Math.random().toString(36).substring(2, 9), day: 1, startHour: '16:00', endHour: '19:00', room: 'A41' }
           ]
         },
         {
@@ -296,7 +298,7 @@ export default function OnboardingPage() {
           period_type: 'semester_2',
           is_convalidated: false,
           slots: [
-            { id: Math.random().toString(36).substring(2, 9), day: 2, startHour: '16:30', endHour: '18:00', room: 'A41' }
+            { id: Math.random().toString(36).substring(2, 9), day: 2, startHour: '16:00', endHour: '19:00', room: 'A41' }
           ]
         },
         {
@@ -307,7 +309,7 @@ export default function OnboardingPage() {
           period_type: 'semester_2',
           is_convalidated: false,
           slots: [
-            { id: Math.random().toString(36).substring(2, 9), day: 3, startHour: '16:30', endHour: '18:00', room: 'A41' }
+            { id: Math.random().toString(36).substring(2, 9), day: 3, startHour: '16:00', endHour: '19:00', room: 'A41' }
           ]
         },
         {
@@ -318,13 +320,13 @@ export default function OnboardingPage() {
           period_type: 'semester_2',
           is_convalidated: false,
           slots: [
-            { id: Math.random().toString(36).substring(2, 9), day: 4, startHour: '16:30', endHour: '18:00', room: 'A41' }
+            { id: Math.random().toString(36).substring(2, 9), day: 4, startHour: '16:00', endHour: '19:00', room: 'A41' }
           ]
         }
       ];
 
       setSubjects(prev => [...prev, ...subsParsed]);
-      alert(`¡Horario EUM importado con éxito! Se han añadido ${subsParsed.length} asignaturas con sus créditos y horarios reales de tarde.`);
+      alert(`¡Horario EUM importado con éxito! Se han añadido ${subsParsed.length} asignaturas con sus créditos y horarios reales.`);
     } catch (err) {
       console.error(err);
       alert('Error al procesar el archivo.');
@@ -339,41 +341,88 @@ export default function OnboardingPage() {
     return clean.slice(0, 5) || 'ASG';
   };
 
-  const handleAddHoliday = () => {
+  // Funciones Festivos (Añadir / Editar)
+  const handleAddOrUpdateHoliday = () => {
     if (!newHolidayTitle.trim() || !newHolidayDate) return;
-    setHolidays([...holidays, { id: Math.random().toString(36).substring(2, 9), title: newHolidayTitle, date: newHolidayDate, type: newHolidayType }]);
+    if (editingHolidayId) {
+      setHolidays(holidays.map(h => h.id === editingHolidayId ? { ...h, title: newHolidayTitle, date: newHolidayDate, type: newHolidayType } : h));
+      setEditingHolidayId(null);
+    } else {
+      setHolidays([...holidays, { id: Math.random().toString(36).substring(2, 9), title: newHolidayTitle, date: newHolidayDate, type: newHolidayType }]);
+    }
     setNewHolidayTitle('');
     setNewHolidayDate('');
+    setNewHolidayType('festivo');
   };
 
-  const handleAddExamPeriod = () => {
+  const handleEditHoliday = (h: HolidayInput) => {
+    setEditingHolidayId(h.id);
+    setNewHolidayTitle(h.title);
+    setNewHolidayDate(h.date);
+    setNewHolidayType(h.type);
+  };
+
+  // Funciones Exámenes (Añadir / Editar)
+  const handleAddOrUpdateExamPeriod = () => {
     if (!newExamTitle.trim() || !newExamStart || !newExamEnd) return;
-    setExamPeriods([...examPeriods, { id: Math.random().toString(36).substring(2, 9), title: newExamTitle, startDate: newExamStart, endDate: newExamEnd }]);
+    if (editingExamId) {
+      setExamPeriods(examPeriods.map(e => e.id === editingExamId ? { ...e, title: newExamTitle, startDate: newExamStart, endDate: newExamEnd } : e));
+      setEditingExamId(null);
+    } else {
+      setExamPeriods([...examPeriods, { id: Math.random().toString(36).substring(2, 9), title: newExamTitle, startDate: newExamStart, endDate: newExamEnd }]);
+    }
     setNewExamTitle('');
     setNewExamStart('');
     setNewExamEnd('');
   };
 
-  const handleAddSubject = (e: React.FormEvent) => {
+  const handleEditExamPeriod = (e: ExamPeriodInput) => {
+    setEditingExamId(e.id);
+    setNewExamTitle(e.title);
+    setNewExamStart(e.startDate);
+    setNewExamEnd(e.endDate);
+  };
+
+  // Funciones Asignaturas (Añadir / Editar)
+  const handleAddOrUpdateSubject = (e: React.FormEvent) => {
     e.preventDefault();
     if (!newName.trim()) return;
 
     const finalCode = newCode.trim() ? newCode.trim().toUpperCase() : generateCode(newName);
-    const newSubId = Math.random().toString(36).substring(2, 9);
 
-    setSubjects([...subjects, {
-      id: newSubId,
-      name: newName.trim(),
-      code: finalCode,
-      credits: Number(newCredits) || 6,
-      period_type: newPeriod,
-      is_convalidated: false,
-      slots: [],
-    }]);
+    if (editingSubjectId) {
+      setSubjects(subjects.map(sub => sub.id === editingSubjectId ? {
+        ...sub,
+        name: newName.trim(),
+        code: finalCode,
+        credits: Number(newCredits) || 6,
+        period_type: newPeriod,
+      } : sub));
+      setEditingSubjectId(null);
+    } else {
+      const newSubId = Math.random().toString(36).substring(2, 9);
+      setSubjects([...subjects, {
+        id: newSubId,
+        name: newName.trim(),
+        code: finalCode,
+        credits: Number(newCredits) || 6,
+        period_type: newPeriod,
+        is_convalidated: false,
+        slots: [],
+      }]);
+    }
 
     setNewName('');
     setNewCode('');
     setNewCredits(6);
+  };
+
+  const handleEditSubject = (sub: SubjectInput) => {
+    setEditingSubjectId(sub.id);
+    setNewName(sub.name);
+    setNewCode(sub.code);
+    setNewCredits(sub.credits);
+    setNewPeriod(sub.period_type);
   };
 
   const handleAddSlotToSubject = (e: React.MouseEvent) => {
@@ -605,7 +654,7 @@ export default function OnboardingPage() {
             </div>
           )}
 
-          {/* PASO 2: Calendario EUM */}
+          {/* PASO 2: Calendario EUM con botones de Modificar */}
           {step === 2 && (
             <div className="space-y-5 animate-in fade-in duration-300">
               <div className="flex items-center justify-between">
@@ -618,9 +667,14 @@ export default function OnboardingPage() {
 
               {/* Festivos */}
               <div className="bg-gray-50/80 p-4 rounded-2xl border border-gray-200/70 space-y-3">
-                <h4 className="text-[11px] font-extrabold text-gray-700 flex items-center gap-2">
-                  <Calendar className="w-3.5 h-3.5 text-amber-500"/> Días Festivos y Recuperaciones ({holidays.length})
-                </h4>
+                <div className="flex justify-between items-center">
+                  <h4 className="text-[11px] font-extrabold text-gray-700 flex items-center gap-2">
+                    <Calendar className="w-3.5 h-3.5 text-amber-500"/> Días Festivos y Recuperaciones ({holidays.length})
+                  </h4>
+                  {editingHolidayId && (
+                    <span className="text-[10px] text-blue-600 font-bold bg-blue-50 px-2 py-0.5 rounded-md">Editando festivo...</span>
+                  )}
+                </div>
                 <div className="grid grid-cols-1 sm:grid-cols-12 gap-2">
                   <input
                     type="text"
@@ -645,10 +699,11 @@ export default function OnboardingPage() {
                   />
                   <button
                     type="button"
-                    onClick={handleAddHoliday}
-                    className="sm:col-span-1 bg-gray-900 text-white p-2 rounded-xl text-xs font-bold cursor-pointer hover:bg-gray-800 flex items-center justify-center shadow-2xs"
+                    onClick={handleAddOrUpdateHoliday}
+                    className={`sm:col-span-1 p-2 rounded-xl text-xs font-bold cursor-pointer flex items-center justify-center shadow-2xs text-white ${editingHolidayId ? 'bg-blue-600 hover:bg-blue-700' : 'bg-gray-900 hover:bg-gray-800'}`}
+                    title={editingHolidayId ? 'Guardar cambios' : 'Añadir festivo'}
                   >
-                    <Plus className="w-4 h-4"/>
+                    {editingHolidayId ? <Save className="w-4 h-4"/> : <Plus className="w-4 h-4"/>}
                   </button>
                 </div>
                 <div className="max-h-28 overflow-y-auto space-y-1 pr-1">
@@ -659,9 +714,14 @@ export default function OnboardingPage() {
                         <span className="font-bold text-gray-800">{h.title}</span>
                         <span className="text-[10px] text-gray-400 font-mono">({formatDateDDMMYYYY(h.date)})</span>
                       </div>
-                      <button onClick={() => setHolidays(holidays.filter(x => x.id !== h.id))} className="text-red-400 hover:text-red-600">
-                        <Trash2 className="w-3.5 h-3.5"/>
-                      </button>
+                      <div className="flex items-center gap-2">
+                        <button onClick={() => handleEditHoliday(h)} className="text-blue-500 hover:text-blue-700 p-1" title="Modificar">
+                          <Edit2 className="w-3.5 h-3.5"/>
+                        </button>
+                        <button onClick={() => setHolidays(holidays.filter(x => x.id !== h.id))} className="text-red-400 hover:text-red-600 p-1" title="Eliminar">
+                          <Trash2 className="w-3.5 h-3.5"/>
+                        </button>
+                      </div>
                     </div>
                   ))}
                 </div>
@@ -669,9 +729,14 @@ export default function OnboardingPage() {
 
               {/* Épocas de Exámenes */}
               <div className="bg-gray-50/80 p-4 rounded-2xl border border-gray-200/70 space-y-3">
-                <h4 className="text-[11px] font-extrabold text-gray-700 flex items-center gap-2">
-                  <Clock className="w-3.5 h-3.5 text-blue-500"/> Épocas de Exámenes ({examPeriods.length})
-                </h4>
+                <div className="flex justify-between items-center">
+                  <h4 className="text-[11px] font-extrabold text-gray-700 flex items-center gap-2">
+                    <Clock className="w-3.5 h-3.5 text-blue-500"/> Épocas de Exámenes ({examPeriods.length})
+                  </h4>
+                  {editingExamId && (
+                    <span className="text-[10px] text-blue-600 font-bold bg-blue-50 px-2 py-0.5 rounded-md">Editando examen...</span>
+                  )}
+                </div>
                 <div className="space-y-2">
                   <input
                     type="text"
@@ -702,10 +767,11 @@ export default function OnboardingPage() {
                     <div className="flex items-end pt-4">
                       <button
                         type="button"
-                        onClick={handleAddExamPeriod}
-                        className="bg-[#0071e3] text-white px-3.5 py-2 rounded-xl text-xs font-bold cursor-pointer hover:bg-[#005bb5] shadow-2xs"
+                        onClick={handleAddOrUpdateExamPeriod}
+                        className={`px-3.5 py-2 rounded-xl text-xs font-bold cursor-pointer shadow-2xs text-white ${editingExamId ? 'bg-blue-600 hover:bg-blue-700' : 'bg-[#0071e3] hover:bg-[#005bb5]'}`}
+                        title={editingExamId ? 'Guardar cambios' : 'Añadir periodo'}
                       >
-                        <Plus className="w-4 h-4"/>
+                        {editingExamId ? <Save className="w-4 h-4"/> : <Plus className="w-4 h-4"/>}
                       </button>
                     </div>
                   </div>
@@ -714,9 +780,14 @@ export default function OnboardingPage() {
                   {examPeriods.map(e => (
                     <div key={e.id} className="flex justify-between items-center bg-white p-2.5 rounded-xl border border-gray-200 text-xs shadow-2xs">
                       <span className="font-bold text-gray-800">{e.title} <span className="text-[10px] text-gray-400 font-mono font-normal">({formatDateDDMMYYYY(e.startDate)} al {formatDateDDMMYYYY(e.endDate)})</span></span>
-                      <button onClick={() => setExamPeriods(examPeriods.filter(x => x.id !== e.id))} className="text-red-400 hover:text-red-600">
-                        <Trash2 className="w-3.5 h-3.5"/>
-                      </button>
+                      <div className="flex items-center gap-2">
+                        <button onClick={() => handleEditExamPeriod(e)} className="text-blue-500 hover:text-blue-700 p-1" title="Modificar">
+                          <Edit2 className="w-3.5 h-3.5"/>
+                        </button>
+                        <button onClick={() => setExamPeriods(examPeriods.filter(x => x.id !== e.id))} className="text-red-400 hover:text-red-600 p-1" title="Eliminar">
+                          <Trash2 className="w-3.5 h-3.5"/>
+                        </button>
+                      </div>
                     </div>
                   ))}
                 </div>
@@ -724,7 +795,7 @@ export default function OnboardingPage() {
             </div>
           )}
 
-          {/* PASO 3: Asignaturas EUM */}
+          {/* PASO 3: Asignaturas EUM con Modificación */}
           {step === 3 && (
             <div className="space-y-4 animate-in fade-in duration-300">
               <div className="flex items-center justify-between">
@@ -736,7 +807,12 @@ export default function OnboardingPage() {
               </div>
               
               <div className="bg-gray-50 p-4 rounded-2xl border border-gray-200 space-y-3">
-                <h4 className="text-[11px] font-bold text-gray-700">Añadir Asignatura Manualmente</h4>
+                <div className="flex justify-between items-center">
+                  <h4 className="text-[11px] font-bold text-gray-700">{editingSubjectId ? 'Modificar Asignatura' : 'Añadir Asignatura Manualmente'}</h4>
+                  {editingSubjectId && (
+                    <span className="text-[10px] text-blue-600 font-bold bg-blue-50 px-2 py-0.5 rounded-md">Editando asignatura...</span>
+                  )}
+                </div>
                 <div className="grid grid-cols-1 sm:grid-cols-12 gap-2">
                   <div className="sm:col-span-4">
                     <label className="text-[10px] font-bold text-gray-600 block mb-1">Nombre</label>
@@ -795,10 +871,11 @@ export default function OnboardingPage() {
                 <div className="flex justify-end pt-2">
                   <button
                     type="button"
-                    onClick={handleAddSubject}
-                    className="bg-[#0071e3] text-white px-4 py-2 rounded-xl text-xs font-bold flex items-center gap-1 cursor-pointer hover:bg-[#005bb5] shadow-2xs"
+                    onClick={handleAddOrUpdateSubject}
+                    className={`px-4 py-2 rounded-xl text-xs font-bold flex items-center gap-1 cursor-pointer shadow-2xs text-white ${editingSubjectId ? 'bg-blue-600 hover:bg-blue-700' : 'bg-[#0071e3] hover:bg-[#005bb5]'}`}
                   >
-                    <Plus className="w-4 h-4"/> Añadir Asignatura
+                    {editingSubjectId ? <Save className="w-4 h-4"/> : <Plus className="w-4 h-4"/>}
+                    <span>{editingSubjectId ? 'Guardar Cambios' : 'Añadir Asignatura'}</span>
                   </button>
                 </div>
               </div>
@@ -819,9 +896,14 @@ export default function OnboardingPage() {
                         </div>
                         <p className="text-[10px] text-gray-400 font-medium">{sub.credits} ECTS • {getPeriodLabel(sub.period_type)}</p>
                       </div>
-                      <button onClick={() => setSubjects(subjects.filter(s => s.id !== sub.id))} className="text-red-400 hover:text-red-600">
-                        <Trash2 className="w-4 h-4"/>
-                      </button>
+                      <div className="flex items-center gap-2">
+                        <button onClick={() => handleEditSubject(sub)} className="text-blue-500 hover:text-blue-700 p-1" title="Modificar">
+                          <Edit2 className="w-3.5 h-3.5"/>
+                        </button>
+                        <button onClick={() => setSubjects(subjects.filter(s => s.id !== sub.id))} className="text-red-400 hover:text-red-600 p-1" title="Eliminar">
+                          <Trash2 className="w-4 h-4"/>
+                        </button>
+                      </div>
                     </div>
                   ))
                 )}
@@ -829,7 +911,7 @@ export default function OnboardingPage() {
             </div>
           )}
 
-          {/* PASO 4: Horarios con Horas Reales EUM */}
+          {/* PASO 4: Horarios con Horas Reales */}
           {step === 4 && (
             <div className="space-y-4 animate-in fade-in duration-300">
               <h3 className="text-xs font-extrabold text-gray-800 uppercase tracking-wider">4. Horarios Semanales por Asignatura</h3>
