@@ -154,18 +154,24 @@ export default function OnboardingPage() {
     return `${parts[2]}-${parts[1]}-${parts[0]}`;
   };
 
-  // IA Dinámica para Calendario y Festivos
+  // IA Dinámica para Calendario y Festivos (Base64)
   const handleCalendarFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
     setParsingCalendar(true);
     try {
-      const textContent = await file.text();
+      const base64Data = await new Promise<string>((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve((reader.result as string).split(',')[1]);
+        reader.onerror = reject;
+        reader.readAsDataURL(file);
+      });
+
       const res = await fetch('/api/parse-syllabus', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ textContent, type: 'calendar' }),
+        body: JSON.stringify({ fileBase64: base64Data, mimeType: file.type, type: 'calendar' }),
       });
 
       const data = await res.json();
@@ -199,7 +205,7 @@ export default function OnboardingPage() {
         addedExams = formattedExams.length;
       }
 
-      alert(`¡IA completada! Se han extraído ${addedHolidays} festivos y ${addedExams} periodos de exámenes del documento.`);
+      alert(`¡IA completada! Se han extraído ${addedHolidays} festivos y ${addedExams} periodos de exámenes.`);
     } catch (err) {
       console.error(err);
       alert('Error al procesar el archivo con IA.');
@@ -208,18 +214,24 @@ export default function OnboardingPage() {
     }
   };
 
-  // IA Dinámica para Asignaturas y Horarios Semanales
+  // IA Dinámica para Asignaturas y Horarios (Base64)
   const handleSubjectsFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
     setParsingSubjects(true);
     try {
-      const textContent = await file.text();
+      const base64Data = await new Promise<string>((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve((reader.result as string).split(',')[1]);
+        reader.onerror = reject;
+        reader.readAsDataURL(file);
+      });
+
       const res = await fetch('/api/parse-syllabus', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ textContent, type: 'subjects' }),
+        body: JSON.stringify({ fileBase64: base64Data, mimeType: file.type, type: 'subjects' }),
       });
 
       const data = await res.json();
@@ -246,7 +258,7 @@ export default function OnboardingPage() {
         }));
 
         setSubjects(prev => [...prev, ...formattedSubs]);
-        alert(`¡IA completada! Se han importado ${formattedSubs.length} asignaturas con sus respectivos horarios.`);
+        alert(`¡IA completada! Se han importado ${formattedSubs.length} asignaturas con sus horarios.`);
       } else {
         alert('La IA no pudo extraer asignaturas claras del archivo.');
       }
@@ -501,7 +513,7 @@ export default function OnboardingPage() {
                       placeholder="Ej. EUM (Escola Universitària del Maresme)"
                       value={university}
                       onChange={e => setUniversity(e.target.value)}
-                      className="w-full pl-9 pr-3 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-xs font-medium focus:outline-none focus:border-[#0071e3]"
+                      className="w-full pl-9 pr-3 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-xs font-medium focus:outline-none focus:border-[#0071e3] transition-all"
                     />
                   </div>
                   {university && !POPULAR_UNIVERSITIES.includes(university) && (
@@ -528,7 +540,7 @@ export default function OnboardingPage() {
                       placeholder="Ej. Mataró"
                       value={city}
                       onChange={e => setCity(e.target.value)}
-                      className="w-full pl-9 pr-3 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-xs font-medium focus:outline-none focus:border-[#0071e3]"
+                      className="w-full pl-9 pr-3 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-xs font-medium focus:outline-none focus:border-[#0071e3] transition-all"
                     />
                   </div>
                   {city && !POPULAR_CITIES.includes(city) && (
@@ -577,7 +589,7 @@ export default function OnboardingPage() {
             </div>
           )}
 
-          {/* PASO 2: Calendario con IA Real */}
+          {/* PASO 2: Calendario con Inputs Modernos y Sleek */}
           {step === 2 && (
             <div className="space-y-5 animate-in fade-in duration-300">
               <div className="flex items-center justify-between">
@@ -604,26 +616,29 @@ export default function OnboardingPage() {
                     placeholder="Nombre (ej. Navidad)"
                     value={newHolidayTitle}
                     onChange={e => setNewHolidayTitle(e.target.value)}
-                    className="sm:col-span-5 px-3 py-2 bg-white border border-gray-200 rounded-xl text-xs font-medium focus:outline-none focus:border-[#0071e3]"
+                    className="sm:col-span-5 px-3 py-2 bg-white border border-gray-200 rounded-xl text-xs font-medium focus:outline-none focus:border-[#0071e3] transition-all shadow-2xs"
                   />
-                  <select
-                    value={newHolidayType}
-                    onChange={e => setNewHolidayType(e.target.value)}
-                    className="sm:col-span-3 px-3 py-2 bg-white border border-gray-200 rounded-xl text-xs font-medium focus:outline-none focus:border-[#0071e3]"
-                  >
-                    <option value="festivo">Festivo</option>
-                    <option value="recuperacion">Recuperación</option>
-                  </select>
+                  <div className="sm:col-span-3 relative">
+                    <select
+                      value={newHolidayType}
+                      onChange={e => setNewHolidayType(e.target.value)}
+                      className="w-full appearance-none px-3 py-2 bg-white border border-gray-200 rounded-xl text-xs font-medium focus:outline-none focus:border-[#0071e3] transition-all shadow-2xs cursor-pointer pr-8"
+                    >
+                      <option value="festivo">Festivo</option>
+                      <option value="recuperacion">Recuperación</option>
+                    </select>
+                    <ChevronDown className="w-3.5 h-3.5 text-gray-400 absolute right-2.5 top-3 pointer-events-none"/>
+                  </div>
                   <input
                     type="date"
                     value={newHolidayDate}
                     onChange={e => setNewHolidayDate(e.target.value)}
-                    className="sm:col-span-3 px-3 py-2 bg-white border border-gray-200 rounded-xl text-xs font-medium focus:outline-none focus:border-[#0071e3]"
+                    className="sm:col-span-3 px-3 py-2 bg-white border border-gray-200 rounded-xl text-xs font-medium focus:outline-none focus:border-[#0071e3] transition-all shadow-2xs cursor-pointer"
                   />
                   <button
                     type="button"
                     onClick={handleAddOrUpdateHoliday}
-                    className={`sm:col-span-1 p-2 rounded-xl text-xs font-bold cursor-pointer flex items-center justify-center shadow-2xs text-white ${editingHolidayId ? 'bg-blue-600 hover:bg-blue-700' : 'bg-gray-900 hover:bg-gray-800'}`}
+                    className={`sm:col-span-1 p-2 rounded-xl text-xs font-bold cursor-pointer flex items-center justify-center shadow-2xs text-white transition-all ${editingHolidayId ? 'bg-blue-600 hover:bg-blue-700' : 'bg-gray-900 hover:bg-gray-800'}`}
                     title={editingHolidayId ? 'Guardar cambios' : 'Añadir festivo'}
                   >
                     {editingHolidayId ? <Save className="w-4 h-4"/> : <Plus className="w-4 h-4"/>}
@@ -666,7 +681,7 @@ export default function OnboardingPage() {
                     placeholder="Título (ej. Exámenes 1r Semestre)"
                     value={newExamTitle}
                     onChange={e => setNewExamTitle(e.target.value)}
-                    className="w-full px-3 py-2 bg-white border border-gray-200 rounded-xl text-xs font-medium focus:outline-none focus:border-[#0071e3]"
+                    className="w-full px-3 py-2 bg-white border border-gray-200 rounded-xl text-xs font-medium focus:outline-none focus:border-[#0071e3] transition-all shadow-2xs"
                   />
                   <div className="flex gap-2 items-center">
                     <div className="flex-1">
@@ -675,7 +690,7 @@ export default function OnboardingPage() {
                         type="date"
                         value={newExamStart}
                         onChange={e => setNewExamStart(e.target.value)}
-                        className="w-full px-3 py-2 bg-white border border-gray-200 rounded-xl text-xs font-medium focus:outline-none focus:border-[#0071e3]"
+                        className="w-full px-3 py-2 bg-white border border-gray-200 rounded-xl text-xs font-medium focus:outline-none focus:border-[#0071e3] transition-all shadow-2xs cursor-pointer"
                       />
                     </div>
                     <div className="flex-1">
@@ -684,14 +699,14 @@ export default function OnboardingPage() {
                         type="date"
                         value={newExamEnd}
                         onChange={e => setNewExamEnd(e.target.value)}
-                        className="w-full px-3 py-2 bg-white border border-gray-200 rounded-xl text-xs font-medium focus:outline-none focus:border-[#0071e3]"
+                        className="w-full px-3 py-2 bg-white border border-gray-200 rounded-xl text-xs font-medium focus:outline-none focus:border-[#0071e3] transition-all shadow-2xs cursor-pointer"
                       />
                     </div>
                     <div className="flex items-end pt-4">
                       <button
                         type="button"
                         onClick={handleAddOrUpdateExamPeriod}
-                        className={`px-3.5 py-2 rounded-xl text-xs font-bold cursor-pointer shadow-2xs text-white ${editingExamId ? 'bg-blue-600 hover:bg-blue-700' : 'bg-[#0071e3] hover:bg-[#005bb5]'}`}
+                        className={`px-3.5 py-2 rounded-xl text-xs font-bold cursor-pointer shadow-2xs text-white transition-all ${editingExamId ? 'bg-blue-600 hover:bg-blue-700' : 'bg-[#0071e3] hover:bg-[#005bb5]'}`}
                         title={editingExamId ? 'Guardar cambios' : 'Añadir periodo'}
                       >
                         {editingExamId ? <Save className="w-4 h-4"/> : <Plus className="w-4 h-4"/>}
@@ -718,7 +733,7 @@ export default function OnboardingPage() {
             </div>
           )}
 
-          {/* PASO 3: Asignaturas con IA Real y Modificación */}
+          {/* PASO 3: Asignaturas */}
           {step === 3 && (
             <div className="space-y-4 animate-in fade-in duration-300">
               <div className="flex items-center justify-between">
@@ -744,7 +759,7 @@ export default function OnboardingPage() {
                       placeholder="Ej. Matemáticas"
                       value={newName}
                       onChange={e => setNewName(e.target.value)}
-                      className="w-full px-3 py-2 bg-white border border-gray-200 rounded-xl text-xs font-medium focus:outline-none focus:border-[#0071e3]"
+                      className="w-full px-3 py-2 bg-white border border-gray-200 rounded-xl text-xs font-medium focus:outline-none focus:border-[#0071e3] transition-all shadow-2xs"
                     />
                   </div>
                   <div className="sm:col-span-2">
@@ -754,7 +769,7 @@ export default function OnboardingPage() {
                       placeholder="Opcional"
                       value={newCode}
                       onChange={e => setNewCode(e.target.value)}
-                      className="w-full px-3 py-2 bg-white border border-gray-200 rounded-xl text-xs font-medium focus:outline-none focus:border-[#0071e3]"
+                      className="w-full px-3 py-2 bg-white border border-gray-200 rounded-xl text-xs font-medium focus:outline-none focus:border-[#0071e3] transition-all shadow-2xs"
                     />
                   </div>
                   <div className="sm:col-span-2">
@@ -763,39 +778,42 @@ export default function OnboardingPage() {
                       type="number"
                       value={newCredits}
                       onChange={e => setNewCredits(Number(e.target.value))}
-                      className="w-full px-3 py-2 bg-white border border-gray-200 rounded-xl text-xs font-medium focus:outline-none focus:border-[#0071e3]"
+                      className="w-full px-3 py-2 bg-white border border-gray-200 rounded-xl text-xs font-medium focus:outline-none focus:border-[#0071e3] transition-all shadow-2xs"
                       min={1}
                       max={30}
                     />
                   </div>
-                  <div className="sm:col-span-4">
+                  <div className="sm:col-span-4 relative">
                     <label className="text-[10px] font-bold text-gray-600 block mb-1">Duración / Periodo</label>
-                    <select
-                      value={newPeriod}
-                      onChange={e => setNewPeriod(e.target.value)}
-                      className="w-full px-3 py-2 bg-white border border-gray-200 rounded-xl text-xs font-medium focus:outline-none focus:border-[#0071e3]"
-                    >
-                      {systemType === 'quarter' ? (
-                        <>
-                          <option value="quarter_1">1r Trimestre</option>
-                          <option value="quarter_2">2n Trimestre</option>
-                          <option value="quarter_3">3r Trimestre</option>
-                        </>
-                      ) : (
-                        <>
-                          <option value="semester_1">1r Semestre</option>
-                          <option value="semester_2">2n Semestre</option>
-                        </>
-                      )}
-                      <option value="full_year">Todo el curso</option>
-                    </select>
+                    <div className="relative">
+                      <select
+                        value={newPeriod}
+                        onChange={e => setNewPeriod(e.target.value)}
+                        className="w-full appearance-none px-3 py-2 bg-white border border-gray-200 rounded-xl text-xs font-medium focus:outline-none focus:border-[#0071e3] transition-all shadow-2xs cursor-pointer pr-8"
+                      >
+                        {systemType === 'quarter' ? (
+                          <>
+                            <option value="quarter_1">1r Trimestre</option>
+                            <option value="quarter_2">2n Trimestre</option>
+                            <option value="quarter_3">3r Trimestre</option>
+                          </>
+                        ) : (
+                          <>
+                            <option value="semester_1">1r Semestre</option>
+                            <option value="semester_2">2n Semestre</option>
+                          </>
+                        )}
+                        <option value="full_year">Todo el curso</option>
+                      </select>
+                      <ChevronDown className="w-3.5 h-3.5 text-gray-400 absolute right-2.5 top-3 pointer-events-none"/>
+                    </div>
                   </div>
                 </div>
                 <div className="flex justify-end pt-2">
                   <button
                     type="button"
                     onClick={handleAddOrUpdateSubject}
-                    className={`px-4 py-2 rounded-xl text-xs font-bold flex items-center gap-1 cursor-pointer shadow-2xs text-white ${editingSubjectId ? 'bg-blue-600 hover:bg-blue-700' : 'bg-[#0071e3] hover:bg-[#005bb5]'}`}
+                    className={`px-4 py-2 rounded-xl text-xs font-bold flex items-center gap-1 cursor-pointer shadow-2xs text-white transition-all ${editingSubjectId ? 'bg-blue-600 hover:bg-blue-700' : 'bg-[#0071e3] hover:bg-[#005bb5]'}`}
                   >
                     {editingSubjectId ? <Save className="w-4 h-4"/> : <Plus className="w-4 h-4"/>}
                     <span>{editingSubjectId ? 'Guardar Cambios' : 'Añadir Asignatura'}</span>
@@ -834,7 +852,7 @@ export default function OnboardingPage() {
             </div>
           )}
 
-          {/* PASO 4: Horarios Semanales */}
+          {/* PASO 4: Horarios */}
           {step === 4 && (
             <div className="space-y-4 animate-in fade-in duration-300">
               <h3 className="text-xs font-extrabold text-gray-800 uppercase tracking-wider">4. Horarios Semanales por Asignatura</h3>
@@ -854,7 +872,7 @@ export default function OnboardingPage() {
                       <select
                         value={selectedSubjectForSlot}
                         onChange={e => setSelectedSubjectForSlot(e.target.value)}
-                        className="w-full appearance-none px-4 py-2.5 bg-gray-50 hover:bg-gray-100 border border-gray-200 rounded-xl text-xs font-bold text-gray-800 focus:outline-none focus:border-[#0071e3] transition-colors cursor-pointer pr-10"
+                        className="w-full appearance-none px-4 py-2.5 bg-gray-50 hover:bg-gray-100 border border-gray-200 rounded-xl text-xs font-bold text-gray-800 focus:outline-none focus:border-[#0071e3] transition-colors cursor-pointer pr-10 shadow-2xs"
                       >
                         {subjects.map(sub => (
                           <option key={sub.id} value={sub.id}>{sub.name} ({sub.code})</option>
@@ -867,35 +885,38 @@ export default function OnboardingPage() {
                   <div className="bg-gray-50 p-4 rounded-2xl border border-gray-200 space-y-3">
                     <h4 className="text-[11px] font-bold text-gray-700">Añadir Franja Horaria</h4>
                     <div className="grid grid-cols-2 sm:grid-cols-5 gap-2">
-                      <select
-                        value={slotDay}
-                        onChange={e => setSlotDay(Number(e.target.value))}
-                        className="px-3 py-2 bg-white border border-gray-200 rounded-xl text-xs font-medium"
-                      >
-                        <option value={1}>Lunes</option>
-                        <option value={2}>Martes</option>
-                        <option value={3}>Miércoles</option>
-                        <option value={4}>Jueves</option>
-                        <option value={5}>Viernes</option>
-                      </select>
+                      <div className="relative">
+                        <select
+                          value={slotDay}
+                          onChange={e => setSlotDay(Number(e.target.value))}
+                          className="w-full appearance-none px-3 py-2 bg-white border border-gray-200 rounded-xl text-xs font-medium focus:outline-none focus:border-[#0071e3] shadow-2xs cursor-pointer pr-7"
+                        >
+                          <option value={1}>Lunes</option>
+                          <option value={2}>Martes</option>
+                          <option value={3}>Miércoles</option>
+                          <option value={4}>Jueves</option>
+                          <option value={5}>Viernes</option>
+                        </select>
+                        <ChevronDown className="w-3 h-3 text-gray-400 absolute right-2 top-3 pointer-events-none"/>
+                      </div>
                       <input
                         type="time"
                         value={slotStart}
                         onChange={e => setSlotStart(e.target.value)}
-                        className="px-3 py-2 bg-white border border-gray-200 rounded-xl text-xs font-medium"
+                        className="px-3 py-2 bg-white border border-gray-200 rounded-xl text-xs font-medium focus:outline-none focus:border-[#0071e3] shadow-2xs"
                       />
                       <input
                         type="time"
                         value={slotEnd}
                         onChange={e => setSlotEnd(e.target.value)}
-                        className="px-3 py-2 bg-white border border-gray-200 rounded-xl text-xs font-medium"
+                        className="px-3 py-2 bg-white border border-gray-200 rounded-xl text-xs font-medium focus:outline-none focus:border-[#0071e3] shadow-2xs"
                       />
                       <input
                         type="text"
                         placeholder="Aula (ej. A41)"
                         value={slotRoom}
                         onChange={e => setSlotRoom(e.target.value)}
-                        className="px-3 py-2 bg-white border border-gray-200 rounded-xl text-xs font-medium"
+                        className="px-3 py-2 bg-white border border-gray-200 rounded-xl text-xs font-medium focus:outline-none focus:border-[#0071e3] shadow-2xs"
                       />
                       <button
                         type="button"
