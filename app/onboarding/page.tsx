@@ -154,182 +154,105 @@ export default function OnboardingPage() {
     return `${parts[2]}-${parts[1]}-${parts[0]}`;
   };
 
-  // IA Calendario EUM
+  // IA Dinámica para Calendario y Festivos
   const handleCalendarFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
     setParsingCalendar(true);
     try {
-      const holsParsed: HolidayInput[] = [
-        { id: Math.random().toString(36).substring(2, 9), title: 'Diada Nacional de Catalunya', date: '2026-09-11', type: 'festivo' },
-        { id: Math.random().toString(36).substring(2, 9), title: 'La Mercè', date: '2026-09-24', type: 'festivo' },
-        { id: Math.random().toString(36).substring(2, 9), title: 'Dia no lectiu', date: '2026-09-25', type: 'festivo' },
-        { id: Math.random().toString(36).substring(2, 9), title: 'Dia no lectiu', date: '2026-12-07', type: 'festivo' },
-        { id: Math.random().toString(36).substring(2, 9), title: 'Immaculada Concepció', date: '2026-12-08', type: 'festivo' },
-        { id: Math.random().toString(36).substring(2, 9), title: 'Vacances de Nadal', date: '2026-12-23', type: 'festivo' },
-        { id: Math.random().toString(36).substring(2, 9), title: 'Vacances de Setmana Santa', date: '2027-03-22', type: 'festivo' },
-        { id: Math.random().toString(36).substring(2, 9), title: 'Festa del Treball', date: '2027-05-01', type: 'festivo' },
-        { id: Math.random().toString(36).substring(2, 9), title: 'Segona Pasqua', date: '2027-05-17', type: 'festivo' },
-        { id: Math.random().toString(36).substring(2, 9), title: 'Sant Joan', date: '2027-06-24', type: 'festivo' },
-        { id: Math.random().toString(36).substring(2, 9), title: 'Dia no lectiu', date: '2027-06-25', type: 'festivo' },
-      ];
+      const textContent = await file.text();
+      const res = await fetch('/api/parse-syllabus', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ textContent, type: 'calendar' }),
+      });
 
-      const examsParsed: ExamPeriodInput[] = [
-        { id: Math.random().toString(36).substring(2, 9), title: 'Exàmens Finals 1r Semestre', startDate: '2027-01-08', endDate: '2027-01-20' },
-        { id: Math.random().toString(36).substring(2, 9), title: 'Exàmens Convocatòria Extraordinària 1r Semestre', startDate: '2027-01-21', endDate: '2027-01-29' },
-        { id: Math.random().toString(36).substring(2, 9), title: 'Exàmens Finals 2n Semestre', startDate: '2027-05-10', endDate: '2027-06-04' },
-        { id: Math.random().toString(36).substring(2, 9), title: 'Exàmens Convocatòria Extraordinària 2n Semestre', startDate: '2027-06-07', endDate: '2027-06-30' },
-      ];
+      const data = await res.json();
+      if (data.error) {
+        alert(data.error);
+        return;
+      }
 
-      setHolidays(prev => [...prev, ...holsParsed]);
-      setExamPeriods(prev => [...prev, ...examsParsed]);
-      alert(`¡Calendario EUM procesado con éxito! Se han cargado ${holsParsed.length} festivos y ${examsParsed.length} periodos de exámenes oficiales.`);
+      let addedHolidays = 0;
+      let addedExams = 0;
+
+      if (data.holidays && Array.isArray(data.holidays)) {
+        const formattedHols = data.holidays.map((h: any) => ({
+          id: Math.random().toString(36).substring(2, 9),
+          title: h.title || 'Festivo',
+          date: h.date || new Date().toISOString().split('T')[0],
+          type: h.type || 'festivo',
+        }));
+        setHolidays(prev => [...prev, ...formattedHols]);
+        addedHolidays = formattedHols.length;
+      }
+
+      if (data.exams && Array.isArray(data.exams)) {
+        const formattedExams = data.exams.map((ex: any) => ({
+          id: Math.random().toString(36).substring(2, 9),
+          title: ex.title || 'Época de Exámenes',
+          startDate: ex.startDate || new Date().toISOString().split('T')[0],
+          endDate: ex.endDate || new Date().toISOString().split('T')[0],
+        }));
+        setExamPeriods(prev => [...prev, ...formattedExams]);
+        addedExams = formattedExams.length;
+      }
+
+      alert(`¡IA completada! Se han extraído ${addedHolidays} festivos y ${addedExams} periodos de exámenes del documento.`);
     } catch (err) {
       console.error(err);
-      alert('Error al procesar el archivo.');
+      alert('Error al procesar el archivo con IA.');
     } finally {
       setParsingCalendar(false);
     }
   };
 
-  // Procesador IA Horarios y Asignaturas EUM
+  // IA Dinámica para Asignaturas y Horarios Semanales
   const handleSubjectsFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
     setParsingSubjects(true);
     try {
-      const subsParsed: SubjectInput[] = [
-        {
-          id: Math.random().toString(36).substring(2, 9),
-          name: 'Pràcticum',
-          code: 'PRAC',
-          credits: 6,
-          period_type: 'semester_1',
-          is_convalidated: false,
-          slots: [
-            { id: Math.random().toString(36).substring(2, 9), day: 1, startHour: '15:30', endHour: '16:30', room: 'A41' }
-          ]
-        },
-        {
-          id: Math.random().toString(36).substring(2, 9),
-          name: 'Estadística I',
-          code: 'EST1',
-          credits: 6,
-          period_type: 'semester_1',
-          is_convalidated: false,
-          slots: [
-            { id: Math.random().toString(36).substring(2, 9), day: 1, startHour: '16:00', endHour: '19:00', room: 'A41' }
-          ]
-        },
-        {
-          id: Math.random().toString(36).substring(2, 9),
-          name: 'Estratègies productes i preus',
-          code: 'ESTPR',
-          credits: 6,
-          period_type: 'semester_1',
-          is_convalidated: false,
-          slots: [
-            { id: Math.random().toString(36).substring(2, 9), day: 2, startHour: '16:00', endHour: '19:00', room: 'A41' }
-          ]
-        },
-        {
-          id: Math.random().toString(36).substring(2, 9),
-          name: 'Publicitat, promoció i RRPP',
-          code: 'PUBRP',
-          credits: 6,
-          period_type: 'semester_1',
-          is_convalidated: false,
-          slots: [
-            { id: Math.random().toString(36).substring(2, 9), day: 3, startHour: '16:00', endHour: '19:00', room: 'A41' }
-          ]
-        },
-        {
-          id: Math.random().toString(36).substring(2, 9),
-          name: 'Desenvol. productes i marques',
-          code: 'DESEN',
-          credits: 6,
-          period_type: 'semester_1',
-          is_convalidated: false,
-          slots: [
-            { id: Math.random().toString(36).substring(2, 9), day: 4, startHour: '16:00', endHour: '19:00', room: 'A41' }
-          ]
-        },
-        {
-          id: Math.random().toString(36).substring(2, 9),
-          name: 'Estratègies distribució i logística',
-          code: 'LOGIS',
-          credits: 6,
-          period_type: 'semester_1',
-          is_convalidated: false,
-          slots: [
-            { id: Math.random().toString(36).substring(2, 9), day: 5, startHour: '16:00', endHour: '19:00', room: 'A41' }
-          ]
-        },
-        {
-          id: Math.random().toString(36).substring(2, 9),
-          name: 'Xinès II / Anglès II',
-          code: 'ANGI1',
-          credits: 3,
-          period_type: 'semester_1',
-          is_convalidated: false,
-          slots: [
-            { id: Math.random().toString(36).substring(2, 9), day: 1, startHour: '19:00', endHour: '20:30', room: 'A41' },
-            { id: Math.random().toString(36).substring(2, 9), day: 3, startHour: '19:00', endHour: '20:30', room: 'A41' }
-          ]
-        },
-        {
-          id: Math.random().toString(36).substring(2, 9),
-          name: 'Màrqueting internacional',
-          code: 'MKTIN',
-          credits: 6,
-          period_type: 'semester_2',
-          is_convalidated: false,
-          slots: [
-            { id: Math.random().toString(36).substring(2, 9), day: 1, startHour: '16:00', endHour: '19:00', room: 'A41' }
-          ]
-        },
-        {
-          id: Math.random().toString(36).substring(2, 9),
-          name: 'Venda Personal i màrqueting directe',
-          code: 'VENDP',
-          credits: 6,
-          period_type: 'semester_2',
-          is_convalidated: false,
-          slots: [
-            { id: Math.random().toString(36).substring(2, 9), day: 2, startHour: '16:00', endHour: '19:00', room: 'A41' }
-          ]
-        },
-        {
-          id: Math.random().toString(36).substring(2, 9),
-          name: 'Estadística II',
-          code: 'EST2',
-          credits: 6,
-          period_type: 'semester_2',
-          is_convalidated: false,
-          slots: [
-            { id: Math.random().toString(36).substring(2, 9), day: 3, startHour: '16:00', endHour: '19:00', room: 'A41' }
-          ]
-        },
-        {
-          id: Math.random().toString(36).substring(2, 9),
-          name: 'Dimensió jurídica',
-          code: 'JURID',
-          credits: 6,
-          period_type: 'semester_2',
-          is_convalidated: false,
-          slots: [
-            { id: Math.random().toString(36).substring(2, 9), day: 4, startHour: '16:00', endHour: '19:00', room: 'A41' }
-          ]
-        }
-      ];
+      const textContent = await file.text();
+      const res = await fetch('/api/parse-syllabus', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ textContent, type: 'subjects' }),
+      });
 
-      setSubjects(prev => [...prev, ...subsParsed]);
-      alert(`¡Horario EUM importado con éxito! Se han añadido ${subsParsed.length} asignaturas con sus créditos y horarios reales.`);
+      const data = await res.json();
+      if (data.error) {
+        alert(data.error);
+        return;
+      }
+
+      if (data.subjects && Array.isArray(data.subjects)) {
+        const formattedSubs = data.subjects.map((sub: any) => ({
+          id: Math.random().toString(36).substring(2, 9),
+          name: sub.name || 'Asignatura',
+          code: sub.code || generateCode(sub.name || 'ASG'),
+          credits: Number(sub.credits) || 6,
+          period_type: sub.period_type || (systemType === 'quarter' ? 'quarter_1' : 'semester_1'),
+          is_convalidated: false,
+          slots: sub.slots && Array.isArray(sub.slots) ? sub.slots.map((slot: any) => ({
+            id: Math.random().toString(36).substring(2, 9),
+            day: Number(slot.day) || 1,
+            startHour: slot.startHour || '16:00',
+            endHour: slot.endHour || '19:00',
+            room: slot.room || 'A41',
+          })) : [],
+        }));
+
+        setSubjects(prev => [...prev, ...formattedSubs]);
+        alert(`¡IA completada! Se han importado ${formattedSubs.length} asignaturas con sus respectivos horarios.`);
+      } else {
+        alert('La IA no pudo extraer asignaturas claras del archivo.');
+      }
     } catch (err) {
       console.error(err);
-      alert('Error al procesar el archivo.');
+      alert('Error al leer el archivo con IA.');
     } finally {
       setParsingSubjects(false);
     }
@@ -654,13 +577,13 @@ export default function OnboardingPage() {
             </div>
           )}
 
-          {/* PASO 2: Calendario EUM con botones de Modificar */}
+          {/* PASO 2: Calendario con IA Real */}
           {step === 2 && (
             <div className="space-y-5 animate-in fade-in duration-300">
               <div className="flex items-center justify-between">
                 <h3 className="text-xs font-extrabold text-gray-800 uppercase tracking-wider">2. Festivos y Épocas de Exámenes</h3>
                 <label className="text-[10px] bg-blue-50 text-[#0071e3] border border-blue-100 px-3 py-1.5 rounded-xl font-bold cursor-pointer hover:bg-blue-100 transition-colors flex items-center gap-1.5 shadow-2xs">
-                  <Upload className="w-3.5 h-3.5"/> {parsingCalendar ? 'Analizando...' : 'Autocompletar con IA'}
+                  <Upload className="w-3.5 h-3.5"/> {parsingCalendar ? 'Analizando con IA...' : 'Autocompletar con IA'}
                   <input type="file" accept=".txt,.pdf,.csv" onChange={handleCalendarFileUpload} disabled={parsingCalendar} className="hidden" />
                 </label>
               </div>
@@ -795,13 +718,13 @@ export default function OnboardingPage() {
             </div>
           )}
 
-          {/* PASO 3: Asignaturas EUM con Modificación */}
+          {/* PASO 3: Asignaturas con IA Real y Modificación */}
           {step === 3 && (
             <div className="space-y-4 animate-in fade-in duration-300">
               <div className="flex items-center justify-between">
                 <h3 className="text-xs font-extrabold text-gray-800 uppercase tracking-wider">3. Tus Asignaturas ({subjects.length})</h3>
                 <label className="text-[10px] bg-blue-50 text-[#0071e3] border border-blue-100 px-3 py-1.5 rounded-xl font-bold cursor-pointer hover:bg-blue-100 transition-colors flex items-center gap-1.5 shadow-2xs">
-                  <Upload className="w-3.5 h-3.5"/> {parsingSubjects ? 'Analizando...' : 'Subir Guía con IA'}
+                  <Upload className="w-3.5 h-3.5"/> {parsingSubjects ? 'Analizando con IA...' : 'Subir Guía con IA'}
                   <input type="file" accept=".txt,.pdf,.csv" onChange={handleSubjectsFileUpload} disabled={parsingSubjects} className="hidden" />
                 </label>
               </div>
@@ -911,12 +834,12 @@ export default function OnboardingPage() {
             </div>
           )}
 
-          {/* PASO 4: Horarios con Horas Reales */}
+          {/* PASO 4: Horarios Semanales */}
           {step === 4 && (
             <div className="space-y-4 animate-in fade-in duration-300">
               <h3 className="text-xs font-extrabold text-gray-800 uppercase tracking-wider">4. Horarios Semanales por Asignatura</h3>
               <p className="text-xs text-gray-500">
-                Configura los días y horas de clase para cada asignatura.
+                Configura los días y horas de clase para cada asignatura de forma sencilla.
               </p>
 
               {subjects.length === 0 ? (
