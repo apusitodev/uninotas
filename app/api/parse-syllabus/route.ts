@@ -73,7 +73,8 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'La variable GEMINI_API_KEY no está configurada en Vercel.' }, { status: 500 });
     }
 
-    const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`;
+    // URL actualizada con el modelo exacto que exige Google (gemini-3.8-flash)
+    const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.8-flash:generateContent?key=${apiKey}`;
 
     const apiRes = await fetch(url, {
       method: 'POST',
