@@ -154,7 +154,7 @@ export default function OnboardingPage() {
     return `${parts[2]}-${parts[1]}-${parts[0]}`;
   };
 
-  // IA Dinámica para Calendario y Festivos (vía FormData)
+  // Subida de Calendario con FormData
   const handleCalendarFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -210,7 +210,7 @@ export default function OnboardingPage() {
     }
   };
 
-  // IA Dinámica para Asignaturas y Horarios (vía FormData)
+  // Subida de Asignaturas con FormData
   const handleSubjectsFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;

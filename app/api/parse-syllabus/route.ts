@@ -7,12 +7,11 @@ export async function POST(req: Request) {
     let type = '';
     let textContent = '';
 
-    // Soporte dual: acepta tanto peticiones multipart/form-data como application/json
     const contentType = req.headers.get('content-type') || '';
     if (contentType.includes('multipart/form-data')) {
       const formData = await req.formData();
       const file = formData.get('file') as File | null;
-      type = (formData.get('type') as string) || 'syllabus';
+      type = (formData.get('type') as string) || 'calendar';
       textContent = (formData.get('textContent') as string) || '';
 
       if (file) {
@@ -24,7 +23,7 @@ export async function POST(req: Request) {
       const body = await req.json();
       fileBase64 = body.fileBase64;
       mimeType = body.mimeType || 'application/pdf';
-      type = body.type || 'syllabus';
+      type = body.type || 'calendar';
       textContent = body.textContent;
     }
 
@@ -71,7 +70,7 @@ export async function POST(req: Request) {
 
     const apiKey = process.env.GEMINI_API_KEY;
     if (!apiKey) {
-      return NextResponse.json({ error: 'La variable de entorno GEMINI_API_KEY no está configurada en Vercel.' }, { status: 500 });
+      return NextResponse.json({ error: 'La variable GEMINI_API_KEY no está configurada en Vercel.' }, { status: 500 });
     }
 
     const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`;
@@ -95,24 +94,15 @@ export async function POST(req: Request) {
       throw new Error(`Google API Error (${apiRes.status}): ${JSON.stringify(data)}`);
     }
 
-    if (data.promptFeedback?.blockReason) {
-      throw new Error(`Contenido bloqueado por seguridad: ${data.promptFeedback.blockReason}`);
-    }
-
     const candidate = data.candidates?.[0];
-    if (!candidate) {
-      throw new Error('La IA no devolvió ningún candidato de respuesta.');
-    }
-
     const textResponse = candidate?.content?.parts?.[0]?.text;
     if (!textResponse) {
-      throw new Error(`Respuesta vacía o bloqueada por la IA. Fin: ${candidate.finishReason}`);
+      throw new Error('La respuesta de la IA llegó vacía.');
     }
 
-    // Extracción segura del JSON ignorando texto externo o markdown
     const jsonMatch = textResponse.match(/(\{[\s\S]*\}|\[[\s\S]*\])/);
     if (!jsonMatch) {
-      throw new Error(`No se encontró un JSON válido en la respuesta: ${textResponse.substring(0, 120)}`);
+      throw new Error('No se encontró un JSON válido en la respuesta.');
     }
 
     const parsedData = JSON.parse(jsonMatch[0]);
