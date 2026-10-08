@@ -72,7 +72,10 @@ export async function POST(req: Request) {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         contents: [{ parts }],
-        generationConfig: { responseMimeType: 'application/json' }
+        generationConfig: { 
+          responseMimeType: 'application/json',
+          maxOutputTokens: 8192 // Ampliamos el límite para que entren todas las asignaturas y horarios sin cortarse
+        }
       }),
     });
 
