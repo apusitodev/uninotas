@@ -5,30 +5,24 @@ const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
 
 export async function POST(req: Request) {
   try {
-    const formData = await req.formData();
-    const file = formData.get('file') as File;
-    const type = formData.get('type') as string;
+    const body = await req.json();
+    const { fileBase64, mimeType, type, textContent } = body;
 
-    if (!file) {
-      return NextResponse.json({ error: 'No se ha proporcionado ningún archivo.' }, { status: 400 });
+    if (!fileBase64 && !textContent) {
+      return NextResponse.json({ error: 'No se ha proporcionado ningún archivo o contenido.' }, { status: 400 });
     }
-
-    // Convertimos el archivo recibido a Buffer y luego a Base64
-    const arrayBuffer = await file.arrayBuffer();
-    const buffer = Buffer.from(arrayBuffer);
-    const base64Data = buffer.toString('base64');
 
     let prompt = '';
     if (type === 'calendar') {
       prompt = `
-        Analiza el documento PDF adjunto correspondiente al calendario académico universitario.
+        Analiza el documento adjunto correspondiente al calendario académico universitario.
         Devuelve un JSON estrictamente con dos claves:
         1. "holidays": Array de objetos con { "title": string, "date": "YYYY-MM-DD", "type": "festivo" o "recuperacion" }
         2. "exams": Array de objetos con { "title": string, "startDate": "YYYY-MM-DD", "endDate": "YYYY-MM-DD" }
       `;
     } else {
       prompt = `
-        Analiza el documento PDF adjunto de la guía académica u horario. 
+        Analiza el documento adjunto de la guía académica u horario. 
         Devuelve un JSON estrictamente con la clave "subjects" (array de objetos) que contenga:
         - name: Nombre (string)
         - code: Código o siglas (string)
@@ -38,28 +32,52 @@ export async function POST(req: Request) {
       `;
     }
 
-    const response = await ai.models.generateContent({
-      model: 'gemini-3.8-flash', // Modelo actualizado y compatible con tu API Key
-      contents: [
+    let contents: any[] = [];
+    if (fileBase64) {
+      contents = [
         {
           inlineData: {
-            data: base64Data,
-            mimeType: file.type || 'application/pdf',
+            data: fileBase64,
+            mimeType: mimeType || 'application/pdf',
           },
         },
         { text: prompt },
-      ],
-      config: {
-        responseMimeType: 'application/json',
-      },
-    });
+      ];
+    } else {
+      contents = [{ text: `${prompt}\n\nTexto:\n${textContent}` }];
+    }
 
-    const resultText = response.text;
-    const data = JSON.parse(resultText || '{}');
+    // Lista de modelos en orden de prioridad para evitar caídas por saturación (503)
+    const modelsToTry = ['gemini-3.8-flash', 'gemini-1.5-flash', 'gemini-2.0-flash'];
+    let response = null;
+    let lastError = null;
 
+    for (const modelName of modelsToTry) {
+      try {
+        response = await ai.models.generateContent({
+          model: modelName,
+          contents: contents,
+          config: {
+            responseMimeType: 'application/json',
+          },
+        });
+        if (response && response.text) {
+          break; // ¡Éxito! Salimos del bucle si un modelo responde bien
+        }
+      } catch (err: any) {
+        console.warn(`Modelo ${modelName} saturado o no disponible:`, err.message);
+        lastError = err;
+      }
+    }
+
+    if (!response || !response.text) {
+      throw lastError || new Error('Todos los modelos de IA están saturados en este momento.');
+    }
+
+    const data = JSON.parse(response.text || '{}');
     return NextResponse.json(data);
   } catch (error: any) {
     console.error('Error crítico en parse-syllabus:', error);
-    return NextResponse.json({ error: `Error del servidor: ${error.message || 'Desconocido'}` }, { status: 500 });
+    return NextResponse.json({ error: `Los servidores de Google están saturados (503). Inténtalo de nuevo en 5 segundos.` }, { status: 500 });
   }
 }
