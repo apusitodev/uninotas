@@ -3,12 +3,12 @@ import { GoogleGenAI } from '@google/genai';
 
 const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
 
-// Función auxiliar para reintentar si Google da error 503 (saturación)
+// Función con reintento automático por si la API parpadea
 async function generateWithRetry(contents: any, config: any, retries = 3, delay = 2000): Promise<any> {
   for (let i = 0; i < retries; i++) {
     try {
       return await ai.models.generateContent({
-        model: 'gemini-1.5-flash',
+        model: 'gemini-3.8-flash', // Modelo actualizado que exige tu API Key
         contents,
         config,
       });
@@ -64,7 +64,6 @@ export async function POST(req: Request) {
       contents = [{ text: `${prompt}\n\nTexto:\n${textContent}` }];
     }
 
-    // Llamada protegida con reintentos automáticos ante saturación de Google
     const response = await generateWithRetry(contents, {
       responseMimeType: 'application/json',
     });
