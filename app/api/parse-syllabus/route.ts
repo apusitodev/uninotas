@@ -3,6 +3,23 @@ import { GoogleGenAI } from '@google/genai';
 
 const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
 
+// Función auxiliar para reintentar si Google da error 503 (saturación)
+async function generateWithRetry(contents: any, config: any, retries = 3, delay = 2000): Promise<any> {
+  for (let i = 0; i < retries; i++) {
+    try {
+      return await ai.models.generateContent({
+        model: 'gemini-1.5-flash',
+        contents,
+        config,
+      });
+    } catch (error: any) {
+      console.warn(`Intento ${i + 1} fallido. Reintentando en ${delay}ms...`, error.message);
+      if (i === retries - 1) throw error;
+      await new Promise(resolve => setTimeout(resolve, delay));
+    }
+  }
+}
+
 export async function POST(req: Request) {
   try {
     const body = await req.json();
@@ -15,31 +32,20 @@ export async function POST(req: Request) {
     let prompt = '';
     if (type === 'calendar') {
       prompt = `
-        Analiza el documento PDF adjunto correspondiente al calendario académico universitario.
-        Extrae dos elementos en formato JSON estrictamente:
-        1. "holidays": Array de días festivos o períodos no lectivos con:
-           - title: Nombre del evento (string)
-           - date: Fecha en formato ISO (YYYY-MM-DD)
-           - type: "festivo" o "recuperacion"
-        2. "exams": Array de épocas o periodos de exámenes con:
-           - title: Título del periodo (string)
-           - startDate: Fecha de inicio en formato ISO (YYYY-MM-DD)
-           - endDate: Fecha de fin en formato ISO (YYYY-MM-DD)
+        Analiza el documento adjunto correspondiente al calendario académico universitario.
+        Devuelve un JSON estrictamente con dos claves:
+        1. "holidays": Array de objetos con { "title": string, "date": "YYYY-MM-DD", "type": "festivo" o "recuperacion" }
+        2. "exams": Array de objetos con { "title": string, "startDate": "YYYY-MM-DD", "endDate": "YYYY-MM-DD" }
       `;
     } else {
       prompt = `
-        Analiza el documento PDF adjunto de la guía académica u horario. 
-        Extrae las asignaturas y sus horarios semanales.
+        Analiza el documento adjunto de la guía académica u horario. 
         Devuelve un JSON estrictamente con la clave "subjects" (array de objetos) que contenga:
         - name: Nombre (string)
         - code: Código o siglas (string)
-        - credits: Créditos ECTS (entero, por defecto 6)
+        - credits: Créditos ECTS (número, ej: 6)
         - period_type: "semester_1", "semester_2", "quarter_1", "quarter_2", "quarter_3", o "full_year"
-        - slots: Array de bloques horarios con:
-           - day: Número de día (1: Lunes a 5: Viernes)
-           - startHour: Hora de inicio "HH:MM"
-           - endHour: Hora de fin "HH:MM"
-           - room: Aula (string)
+        - slots: Array de bloques horarios con { "day": 1 a 5, "startHour": "HH:MM", "endHour": "HH:MM", "room": string }
       `;
     }
 
@@ -52,20 +58,15 @@ export async function POST(req: Request) {
             mimeType: mimeType || 'application/pdf',
           },
         },
-        {
-          text: prompt,
-        },
+        { text: prompt },
       ];
     } else {
-      contents = [{ text: `${prompt}\n\nTexto a analizar:\n${textContent}` }];
+      contents = [{ text: `${prompt}\n\nTexto:\n${textContent}` }];
     }
 
-    const response = await ai.models.generateContent({
-      model: 'gemini-3.8-flash',
-      contents: contents,
-      config: {
-        responseMimeType: 'application/json',
-      }
+    // Llamada protegida con reintentos automáticos ante saturación de Google
+    const response = await generateWithRetry(contents, {
+      responseMimeType: 'application/json',
     });
 
     const resultText = response.text;
@@ -74,6 +75,6 @@ export async function POST(req: Request) {
     return NextResponse.json(data);
   } catch (error: any) {
     console.error('Error detallado en parse-syllabus:', error);
-    return NextResponse.json({ error: `Error del servidor: ${error.message || 'Desconocido'}` }, { status: 500 });
+    return NextResponse.json({ error: `Error de la IA: ${error.message || 'Servidor saturado'}` }, { status: 500 });
   }
 }
