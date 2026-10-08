@@ -13,7 +13,7 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'No se ha proporcionado ningún archivo.' }, { status: 400 });
     }
 
-    // Convertimos el archivo recibido por FormData a Buffer y luego a Base64 de forma limpia
+    // Convertimos el archivo recibido a Buffer y luego a Base64
     const arrayBuffer = await file.arrayBuffer();
     const buffer = Buffer.from(arrayBuffer);
     const base64Data = buffer.toString('base64');
@@ -39,7 +39,7 @@ export async function POST(req: Request) {
     }
 
     const response = await ai.models.generateContent({
-      model: 'gemini-1.5-flash',
+      model: 'gemini-2.5-flash', // Modelo actualizado y compatible con tu API Key
       contents: [
         {
           inlineData: {
