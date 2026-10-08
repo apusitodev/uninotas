@@ -3,43 +3,32 @@ import { GoogleGenAI } from '@google/genai';
 
 const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
 
-// Función con reintento automático por si la API parpadea
-async function generateWithRetry(contents: any, config: any, retries = 3, delay = 2000): Promise<any> {
-  for (let i = 0; i < retries; i++) {
-    try {
-      return await ai.models.generateContent({
-        model: 'gemini-3.8-flash', // Modelo actualizado que exige tu API Key
-        contents,
-        config,
-      });
-    } catch (error: any) {
-      console.warn(`Intento ${i + 1} fallido. Reintentando en ${delay}ms...`, error.message);
-      if (i === retries - 1) throw error;
-      await new Promise(resolve => setTimeout(resolve, delay));
-    }
-  }
-}
-
 export async function POST(req: Request) {
   try {
-    const body = await req.json();
-    const { fileBase64, mimeType, type, textContent } = body;
+    const formData = await req.formData();
+    const file = formData.get('file') as File;
+    const type = formData.get('type') as string;
 
-    if (!fileBase64 && !textContent) {
-      return NextResponse.json({ error: 'No se ha proporcionado ningún archivo o contenido.' }, { status: 400 });
+    if (!file) {
+      return NextResponse.json({ error: 'No se ha proporcionado ningún archivo.' }, { status: 400 });
     }
+
+    // Convertimos el archivo recibido por FormData a Buffer y luego a Base64 de forma limpia
+    const arrayBuffer = await file.arrayBuffer();
+    const buffer = Buffer.from(arrayBuffer);
+    const base64Data = buffer.toString('base64');
 
     let prompt = '';
     if (type === 'calendar') {
       prompt = `
-        Analiza el documento adjunto correspondiente al calendario académico universitario.
+        Analiza el documento PDF adjunto correspondiente al calendario académico universitario.
         Devuelve un JSON estrictamente con dos claves:
         1. "holidays": Array de objetos con { "title": string, "date": "YYYY-MM-DD", "type": "festivo" o "recuperacion" }
         2. "exams": Array de objetos con { "title": string, "startDate": "YYYY-MM-DD", "endDate": "YYYY-MM-DD" }
       `;
     } else {
       prompt = `
-        Analiza el documento adjunto de la guía académica u horario. 
+        Analiza el documento PDF adjunto de la guía académica u horario. 
         Devuelve un JSON estrictamente con la clave "subjects" (array de objetos) que contenga:
         - name: Nombre (string)
         - code: Código o siglas (string)
@@ -49,23 +38,20 @@ export async function POST(req: Request) {
       `;
     }
 
-    let contents: any[] = [];
-    if (fileBase64) {
-      contents = [
+    const response = await ai.models.generateContent({
+      model: 'gemini-1.5-flash',
+      contents: [
         {
           inlineData: {
-            data: fileBase64,
-            mimeType: mimeType || 'application/pdf',
+            data: base64Data,
+            mimeType: file.type || 'application/pdf',
           },
         },
         { text: prompt },
-      ];
-    } else {
-      contents = [{ text: `${prompt}\n\nTexto:\n${textContent}` }];
-    }
-
-    const response = await generateWithRetry(contents, {
-      responseMimeType: 'application/json',
+      ],
+      config: {
+        responseMimeType: 'application/json',
+      },
     });
 
     const resultText = response.text;
@@ -73,7 +59,7 @@ export async function POST(req: Request) {
 
     return NextResponse.json(data);
   } catch (error: any) {
-    console.error('Error detallado en parse-syllabus:', error);
-    return NextResponse.json({ error: `Error de la IA: ${error.message || 'Servidor saturado'}` }, { status: 500 });
+    console.error('Error crítico en parse-syllabus:', error);
+    return NextResponse.json({ error: `Error del servidor: ${error.message || 'Desconocido'}` }, { status: 500 });
   }
 }

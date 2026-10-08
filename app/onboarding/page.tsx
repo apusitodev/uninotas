@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
 import { 
   GraduationCap, ArrowRight, ArrowLeft, Plus, Trash2, Upload, 
-  Calendar, BookOpen, Clock, CheckCircle2, Building2, MapPin, Sparkles, ChevronDown, Edit2, Save, X 
+  Calendar, BookOpen, Clock, CheckCircle2, Building2, MapPin, ChevronDown, Edit2, Save, X 
 } from 'lucide-react';
 
 interface HolidayInput {
@@ -41,7 +41,7 @@ interface SubjectInput {
 }
 
 const POPULAR_UNIVERSITIES = [
-  'EUM (Escola Universitària Mediterrani)',
+  'EUM (Escola Universitària del Maresme)',
   'Universitat Pompeu Fabra (UPF)',
   'Universitat Autònoma de Barcelona (UAB)',
   'Universitat de Barcelona (UB)',
@@ -154,40 +154,25 @@ export default function OnboardingPage() {
     return `${parts[2]}-${parts[1]}-${parts[0]}`;
   };
 
-  // IA Dinámica para Calendario y Festivos (con Timeout de seguridad)
+  // IA Dinámica para Calendario y Festivos (vía FormData)
   const handleCalendarFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
     setParsingCalendar(true);
     try {
-      const base64Data = await new Promise<string>((resolve, reject) => {
-        const reader = new FileReader();
-        reader.onload = () => resolve((reader.result as string).split(',')[1]);
-        reader.onerror = reject;
-        reader.readAsDataURL(file);
-      });
-
-      // Creamos un controlador para cortar la petición si pasan 60 segundos
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 60000);
+      const formData = new FormData();
+      formData.append('file', file);
+      formData.append('type', 'calendar');
 
       const res = await fetch('/api/parse-syllabus', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ fileBase64: base64Data, mimeType: file.type, type: 'calendar' }),
-        signal: controller.signal,
+        body: formData,
       });
 
-      clearTimeout(timeoutId);
-
-      if (!res.ok) {
-        throw new Error(`Error del servidor: ${res.status}`);
-      }
-
       const data = await res.json();
-      if (data.error) {
-        alert(data.error);
+      if (!res.ok || data.error) {
+        alert(data.error || 'Error al procesar el archivo con IA.');
         return;
       }
 
@@ -217,51 +202,33 @@ export default function OnboardingPage() {
       }
 
       alert(`¡IA completada! Se han extraído ${addedHolidays} festivos y ${addedExams} periodos de exámenes.`);
-    } catch (err: any) {
+    } catch (err) {
       console.error(err);
-      if (err.name === 'AbortError') {
-        alert('La IA ha tardado demasiado en responder (timeout de Vercel). Prueba de nuevo.');
-      } else {
-        alert('Error al procesar el archivo con IA.');
-      }
+      alert('Error de conexión al procesar el archivo.');
     } finally {
       setParsingCalendar(false);
     }
   };
 
-  // IA Dinámica para Asignaturas y Horarios (con Timeout de seguridad)
+  // IA Dinámica para Asignaturas y Horarios (vía FormData)
   const handleSubjectsFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
     setParsingSubjects(true);
     try {
-      const base64Data = await new Promise<string>((resolve, reject) => {
-        const reader = new FileReader();
-        reader.onload = () => resolve((reader.result as string).split(',')[1]);
-        reader.onerror = reject;
-        reader.readAsDataURL(file);
-      });
-
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 30000);
+      const formData = new FormData();
+      formData.append('file', file);
+      formData.append('type', 'subjects');
 
       const res = await fetch('/api/parse-syllabus', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ fileBase64: base64Data, mimeType: file.type, type: 'subjects' }),
-        signal: controller.signal,
+        body: formData,
       });
 
-      clearTimeout(timeoutId);
-
-      if (!res.ok) {
-        throw new Error(`Error del servidor: ${res.status}`);
-      }
-
       const data = await res.json();
-      if (data.error) {
-        alert(data.error);
+      if (!res.ok || data.error) {
+        alert(data.error || 'Error al leer el archivo con IA.');
         return;
       }
 
@@ -287,13 +254,9 @@ export default function OnboardingPage() {
       } else {
         alert('La IA no pudo extraer asignaturas claras del archivo.');
       }
-    } catch (err: any) {
+    } catch (err) {
       console.error(err);
-      if (err.name === 'AbortError') {
-        alert('La IA ha tardado demasiado en responder (timeout de Vercel). Prueba de nuevo.');
-      } else {
-        alert('Error al leer el archivo con IA.');
-      }
+      alert('Error de conexión al leer el archivo.');
     } finally {
       setParsingSubjects(false);
     }
@@ -618,7 +581,7 @@ export default function OnboardingPage() {
             </div>
           )}
 
-          {/* PASO 2: Calendario con Inputs Modernos y Sleek */}
+          {/* PASO 2: Calendario */}
           {step === 2 && (
             <div className="space-y-5 animate-in fade-in duration-300">
               <div className="flex items-center justify-between">
@@ -871,7 +834,7 @@ export default function OnboardingPage() {
                           <Edit2 className="w-3.5 h-3.5"/>
                         </button>
                         <button onClick={() => setSubjects(subjects.filter(s => s.id !== sub.id))} className="text-red-400 hover:text-red-600 p-1" title="Eliminar">
-                          <Trash2 className="w-4 h-4"/>
+                          <Trash2 className="w-3.5 h-3.5"/>
                         </button>
                       </div>
                     </div>
