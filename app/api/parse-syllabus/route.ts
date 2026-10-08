@@ -49,7 +49,6 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'La variable de entorno GEMINI_API_KEY no está configurada.' }, { status: 500 });
     }
 
-    // Llamada directa por HTTP a la API oficial de Google (modelo gemini-2.5-flash)
     const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`;
 
     const apiRes = await fetch(url, {
@@ -71,12 +70,18 @@ export async function POST(req: Request) {
     }
 
     const data = await apiRes.json();
-    const candidate = data.candidates?.[0];
-    const textResponse = candidate?.content?.parts?.[0]?.text;
+    let textResponse = data.candidates?.[0]?.content?.parts?.[0]?.text;
 
     if (!textResponse) {
       throw new Error('La respuesta de la IA llegó vacía.');
     }
+
+    // LIMPIEZA CRUCIAL: Elimina bloques markdown y espacios en blanco accidentales
+    textResponse = textResponse
+      .replace(/^```json\s*/i, '')
+      .replace(/^```\s*/i, '')
+      .replace(/\s*```$/, '')
+      .trim();
 
     const parsedData = JSON.parse(textResponse);
     return NextResponse.json(parsedData);
