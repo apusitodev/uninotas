@@ -56,12 +56,7 @@ export async function POST(req: Request) {
     let parts: any[] = [];
     if (fileBase64) {
       parts = [
-        {
-          inlineData: {
-            mimeType: mimeType,
-            data: fileBase64
-          }
-        },
+        { inlineData: { mimeType: mimeType, data: fileBase64 } },
         { text: prompt }
       ];
     } else {
@@ -70,43 +65,51 @@ export async function POST(req: Request) {
 
     const apiKey = process.env.GEMINI_API_KEY;
     if (!apiKey) {
-      return NextResponse.json({ error: 'La variable GEMINI_API_KEY no está configurada en Vercel.' }, { status: 500 });
+      return NextResponse.json({ error: 'La variable GEMINI_API_KEY no está configurada.' }, { status: 500 });
     }
 
-    // URL actualizada con el modelo exacto que exige Google (gemini-3.8-flash)
-    const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.8-flash:generateContent?key=${apiKey}`;
+    // Lista de modelos en cascada: si uno da 503, pasa automáticamente al siguiente
+    const models = ['gemini-3.8-flash', 'gemini-1.5-flash', 'gemini-2.0-flash'];
+    let parsedData = null;
+    let lastError = null;
 
-    const apiRes = await fetch(url, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        contents: [{ parts }],
-        generationConfig: {
-          responseMimeType: 'application/json'
+    for (const modelName of models) {
+      const url = `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${apiKey}`;
+      try {
+        const apiRes = await fetch(url, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            contents: [{ parts }],
+            generationConfig: { responseMimeType: 'application/json' }
+          }),
+        });
+
+        if (apiRes.ok) {
+          const resJson = await apiRes.json();
+          const textResponse = resJson.candidates?.[0]?.content?.parts?.[0]?.text;
+          if (textResponse) {
+            const jsonMatch = textResponse.match(/(\{[\s\S]*\}|\[[\s\S]*\])/);
+            if (jsonMatch) {
+              parsedData = JSON.parse(jsonMatch[0]);
+              break; // ¡Conseguido! Salimos del bucle con éxito
+            }
+          }
+        } else {
+          const errText = await apiRes.text();
+          lastError = errText;
+          console.warn(`Modelo ${modelName} saturado (503). Probando siguiente...`);
         }
-      }),
-    });
-
-    const data = await apiRes.json();
-
-    if (!apiRes.ok) {
-      throw new Error(`Google API Error (${apiRes.status}): ${JSON.stringify(data)}`);
+      } catch (e: any) {
+        lastError = e.message;
+        console.warn(`Error en modelo ${modelName}:`, e.message);
+      }
     }
 
-    const candidate = data.candidates?.[0];
-    const textResponse = candidate?.content?.parts?.[0]?.text;
-    if (!textResponse) {
-      throw new Error('La respuesta de la IA llegó vacía.');
+    if (!parsedData) {
+      throw new Error(`Todos los servidores de Google están saturados en este momento. Detalle: ${lastError}`);
     }
 
-    const jsonMatch = textResponse.match(/(\{[\s\S]*\}|\[[\s\S]*\])/);
-    if (!jsonMatch) {
-      throw new Error('No se encontró un JSON válido en la respuesta.');
-    }
-
-    const parsedData = JSON.parse(jsonMatch[0]);
     return NextResponse.json(parsedData);
 
   } catch (error: any) {
