@@ -2,8 +2,31 @@ import { NextResponse } from 'next/server';
 
 export async function POST(req: Request) {
   try {
-    const body = await req.json();
-    const { fileBase64, mimeType, type, textContent } = body;
+    let fileBase64 = '';
+    let mimeType = 'application/pdf';
+    let type = '';
+    let textContent = '';
+
+    // Soporte dual: acepta tanto peticiones multipart/form-data como application/json
+    const contentType = req.headers.get('content-type') || '';
+    if (contentType.includes('multipart/form-data')) {
+      const formData = await req.formData();
+      const file = formData.get('file') as File | null;
+      type = (formData.get('type') as string) || 'syllabus';
+      textContent = (formData.get('textContent') as string) || '';
+
+      if (file) {
+        const arrayBuffer = await file.arrayBuffer();
+        fileBase64 = Buffer.from(arrayBuffer).toString('base64');
+        mimeType = file.type || 'application/pdf';
+      }
+    } else {
+      const body = await req.json();
+      fileBase64 = body.fileBase64;
+      mimeType = body.mimeType || 'application/pdf';
+      type = body.type || 'syllabus';
+      textContent = body.textContent;
+    }
 
     if (!fileBase64 && !textContent) {
       return NextResponse.json({ error: 'No se ha proporcionado ningún archivo o contenido.' }, { status: 400 });
@@ -12,22 +35,22 @@ export async function POST(req: Request) {
     let prompt = '';
     if (type === 'calendar') {
       prompt = `
-        Analiza el documento PDF adjunto correspondiente al calendario académico universitario.
+        Analiza el documento adjunto correspondiente al calendario académico universitario.
         Devuelve un JSON estrictamente con dos claves:
         1. "holidays": Array de objetos con { "title": string, "date": "YYYY-MM-DD", "type": "festivo" o "recuperacion" }
         2. "exams": Array de objetos con { "title": string, "startDate": "YYYY-MM-DD", "endDate": "YYYY-MM-DD" }
-        No incluyas texto conversacional ni guiones antes del JSON.
+        Devuelve ÚNICAMENTE el objeto JSON puro, sin bloques markdown ni texto adicional.
       `;
     } else {
       prompt = `
-        Analiza el documento PDF adjunto de la guía académica u horario. 
+        Analiza el documento adjunto de la guía académica u horario. 
         Devuelve un JSON estrictamente con la clave "subjects" (array de objetos) que contenga:
         - name: Nombre (string)
         - code: Código o siglas (string)
         - credits: Créditos ECTS (número, ej: 6)
         - period_type: "semester_1", "semester_2", "quarter_1", "quarter_2", "quarter_3", o "full_year"
-        - slots: Array de bloques horarios con { "day": 1 a 5, "startHour": "HH:MM", "endHour": "HH:MM", "room": string }
-        No incluyas texto conversacional ni guiones antes del JSON.
+        - slots: Array de bloques horarios con { "day": 1 al 5, "startHour": "HH:MM", "endHour": "HH:MM", "room": string }
+        Devuelve ÚNICAMENTE el objeto JSON puro, sin bloques markdown ni texto adicional.
       `;
     }
 
@@ -36,7 +59,7 @@ export async function POST(req: Request) {
       parts = [
         {
           inlineData: {
-            mimeType: mimeType || 'application/pdf',
+            mimeType: mimeType,
             data: fileBase64
           }
         },
@@ -48,7 +71,7 @@ export async function POST(req: Request) {
 
     const apiKey = process.env.GEMINI_API_KEY;
     if (!apiKey) {
-      return NextResponse.json({ error: 'La variable de entorno GEMINI_API_KEY não está configurada.' }, { status: 500 });
+      return NextResponse.json({ error: 'La variable de entorno GEMINI_API_KEY no está configurada en Vercel.' }, { status: 500 });
     }
 
     const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`;
@@ -66,27 +89,33 @@ export async function POST(req: Request) {
       }),
     });
 
-    if (!apiRes.ok) {
-      const errText = await apiRes.text();
-      throw new Error(`Error de la API de Google (${apiRes.status}): ${errText}`);
-    }
-
     const data = await apiRes.json();
-    const textResponse = data.candidates?.[0]?.content?.parts?.[0]?.text;
 
-    if (!textResponse) {
-      throw new Error('La respuesta de la IA llegó vacía.');
+    if (!apiRes.ok) {
+      throw new Error(`Google API Error (${apiRes.status}): ${JSON.stringify(data)}`);
     }
 
-    // EXTRACCIÓN INTELIGENTE: Busca exclusivamente el primer '{' o '[' y el último '}' o ']'
+    if (data.promptFeedback?.blockReason) {
+      throw new Error(`Contenido bloqueado por seguridad: ${data.promptFeedback.blockReason}`);
+    }
+
+    const candidate = data.candidates?.[0];
+    if (!candidate) {
+      throw new Error('La IA no devolvió ningún candidato de respuesta.');
+    }
+
+    const textResponse = candidate?.content?.parts?.[0]?.text;
+    if (!textResponse) {
+      throw new Error(`Respuesta vacía o bloqueada por la IA. Fin: ${candidate.finishReason}`);
+    }
+
+    // Extracción segura del JSON ignorando texto externo o markdown
     const jsonMatch = textResponse.match(/(\{[\s\S]*\}|\[[\s\S]*\])/);
     if (!jsonMatch) {
-      throw new Error('La IA no ha devuelto un formato JSON válido.');
+      throw new Error(`No se encontró un JSON válido en la respuesta: ${textResponse.substring(0, 120)}`);
     }
 
-    const cleanJsonString = jsonMatch[0];
-    const parsedData = JSON.parse(cleanJsonString);
-
+    const parsedData = JSON.parse(jsonMatch[0]);
     return NextResponse.json(parsedData);
 
   } catch (error: any) {
