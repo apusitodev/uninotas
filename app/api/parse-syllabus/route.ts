@@ -39,7 +39,7 @@ export async function POST(req: Request) {
     }
 
     const response = await ai.models.generateContent({
-      model: 'gemini-2.5-flash', // Modelo actualizado y compatible con tu API Key
+      model: 'gemini-3.8-flash', // Modelo actualizado y compatible con tu API Key
       contents: [
         {
           inlineData: {
