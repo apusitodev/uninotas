@@ -11,10 +11,9 @@ export async function POST(req: Request) {
     let mimeType = 'application/pdf';
 
     if (file) {
-      // Validamos que el archivo no supere los 4MB para evitar cortes en Vercel
       if (file.size > 4 * 1024 * 1024) {
         return NextResponse.json({ 
-          error: 'El archivo PDF es demasiado pesado para subirlo de golpe. Prueba con un PDF más ligero o recorta las páginas clave.' 
+          error: 'El archivo PDF supera los 4MB. Sube un archivo más ligero.' 
         }, { status: 400 });
       }
 
@@ -61,51 +60,40 @@ export async function POST(req: Request) {
 
     const apiKey = process.env.GEMINI_API_KEY;
     if (!apiKey) {
-      return NextResponse.json({ error: 'La variable GEMINI_API_KEY no está configurada en Vercel.' }, { status: 500 });
+      return NextResponse.json({ error: 'La variable GEMINI_API_KEY no está configurada.' }, { status: 500 });
     }
 
-    // Modelos estables oficiales de Google ordenados en cascada para evitar fallos
-    const models = ['gemini-1.5-flash', 'gemini-2.0-flash', 'gemini-1.5-pro'];
-    let parsedData = null;
-    let lastError = '';
+    // Único modelo autorizado por tu clave de API
+    const modelName = 'gemini-3.8-flash';
+    const url = `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${apiKey}`;
 
-    for (const modelName of models) {
-      const url = `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${apiKey}`;
-      try {
-        const apiRes = await fetch(url, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            contents: [{ parts }],
-            generationConfig: { responseMimeType: 'application/json' }
-          }),
-        });
+    const apiRes = await fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        contents: [{ parts }],
+        generationConfig: { responseMimeType: 'application/json' }
+      }),
+    });
 
-        if (apiRes.ok) {
-          const resJson = await apiRes.json();
-          const textResponse = resJson.candidates?.[0]?.content?.parts?.[0]?.text;
-          if (textResponse) {
-            const jsonMatch = textResponse.match(/(\{[\s\S]*\}|\[[\s\S]*\])/);
-            if (jsonMatch) {
-              parsedData = JSON.parse(jsonMatch[0]);
-              break; // ¡Éxito! Salimos del bucle
-            }
-          }
-        } else {
-          const errText = await apiRes.text();
-          lastError = `Modelo ${modelName} error (${apiRes.status}): ${errText}`;
-          console.warn(lastError);
-        }
-      } catch (e: any) {
-        lastError = `Error de red con ${modelName}: ${e.message}`;
-        console.warn(lastError);
-      }
+    if (!apiRes.ok) {
+      const errText = await apiRes.text();
+      throw new Error(`Google API Error (${apiRes.status}): ${errText}`);
     }
 
-    if (!parsedData) {
-      return NextResponse.json({ error: `No se pudo procesar el archivo. Detalle: ${lastError}` }, { status: 500 });
+    const resJson = await apiRes.json();
+    const textResponse = resJson.candidates?.[0]?.content?.parts?.[0]?.text;
+
+    if (!textResponse) {
+      throw new Error('La respuesta de la IA llegó vacía.');
     }
 
+    const jsonMatch = textResponse.match(/(\{[\s\S]*\}|\[[\s\S]*\])/);
+    if (!jsonMatch) {
+      throw new Error('No se encontró un JSON válido en la respuesta.');
+    }
+
+    const parsedData = JSON.parse(jsonMatch[0]);
     return NextResponse.json(parsedData);
 
   } catch (error: any) {
