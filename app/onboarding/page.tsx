@@ -41,7 +41,7 @@ interface SubjectInput {
 }
 
 const POPULAR_UNIVERSITIES = [
-  'EUM (Escola Universitària del Maresme)',
+  'EUM (Escola Universitària Mediterrani)',
   'Universitat Pompeu Fabra (UPF)',
   'Universitat Autònoma de Barcelona (UAB)',
   'Universitat de Barcelona (UB)',
@@ -154,7 +154,7 @@ export default function OnboardingPage() {
     return `${parts[2]}-${parts[1]}-${parts[0]}`;
   };
 
-  // IA Dinámica para Calendario y Festivos (Base64)
+  // IA Dinámica para Calendario y Festivos (con Timeout de seguridad)
   const handleCalendarFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -168,11 +168,22 @@ export default function OnboardingPage() {
         reader.readAsDataURL(file);
       });
 
+      // Creamos un controlador para cortar la petición si pasan 30 segundos
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 30000);
+
       const res = await fetch('/api/parse-syllabus', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ fileBase64: base64Data, mimeType: file.type, type: 'calendar' }),
+        signal: controller.signal,
       });
+
+      clearTimeout(timeoutId);
+
+      if (!res.ok) {
+        throw new Error(`Error del servidor: ${res.status}`);
+      }
 
       const data = await res.json();
       if (data.error) {
@@ -206,15 +217,19 @@ export default function OnboardingPage() {
       }
 
       alert(`¡IA completada! Se han extraído ${addedHolidays} festivos y ${addedExams} periodos de exámenes.`);
-    } catch (err) {
+    } catch (err: any) {
       console.error(err);
-      alert('Error al procesar el archivo con IA.');
+      if (err.name === 'AbortError') {
+        alert('La IA ha tardado demasiado en responder (timeout de Vercel). Prueba de nuevo.');
+      } else {
+        alert('Error al procesar el archivo con IA.');
+      }
     } finally {
       setParsingCalendar(false);
     }
   };
 
-  // IA Dinámica para Asignaturas y Horarios (Base64)
+  // IA Dinámica para Asignaturas y Horarios (con Timeout de seguridad)
   const handleSubjectsFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -228,11 +243,21 @@ export default function OnboardingPage() {
         reader.readAsDataURL(file);
       });
 
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 30000);
+
       const res = await fetch('/api/parse-syllabus', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ fileBase64: base64Data, mimeType: file.type, type: 'subjects' }),
+        signal: controller.signal,
       });
+
+      clearTimeout(timeoutId);
+
+      if (!res.ok) {
+        throw new Error(`Error del servidor: ${res.status}`);
+      }
 
       const data = await res.json();
       if (data.error) {
@@ -262,9 +287,13 @@ export default function OnboardingPage() {
       } else {
         alert('La IA no pudo extraer asignaturas claras del archivo.');
       }
-    } catch (err) {
+    } catch (err: any) {
       console.error(err);
-      alert('Error al leer el archivo con IA.');
+      if (err.name === 'AbortError') {
+        alert('La IA ha tardado demasiado en responder (timeout de Vercel). Prueba de nuevo.');
+      } else {
+        alert('Error al leer el archivo con IA.');
+      }
     } finally {
       setParsingSubjects(false);
     }
