@@ -11,9 +11,9 @@ export async function POST(req: Request) {
     let mimeType = 'application/pdf';
 
     if (file) {
-      if (file.size > 4 * 1024 * 1024) {
+      if (file.size > 8 * 1024 * 1024) {
         return NextResponse.json({ 
-          error: 'El archivo PDF supera los 4MB. Sube un archivo más ligero.' 
+          error: 'El archivo PDF es demasiado pesado. Sube un documento más ligero.' 
         }, { status: 400 });
       }
 
@@ -37,13 +37,13 @@ export async function POST(req: Request) {
       `;
     } else {
       prompt = `
-        Analiza el documento adjunto de la guía académica u horario. 
+        Analiza el documento adjunto de la guía académica u horario de asignaturas. 
         Devuelve un JSON estrictamente con la clave "subjects" (array de objetos) que contenga:
-        - name: Nombre (string)
+        - name: Nombre de la asignatura (string)
         - code: Código o siglas (string)
         - credits: Créditos ECTS (número, ej: 6)
         - period_type: "semester_1", "semester_2", "quarter_1", "quarter_2", "quarter_3", o "full_year"
-        - slots: Array de bloques horarios con { "day": 1 al 5, "startHour": "HH:MM", "endHour": "HH:MM", "room": string }
+        - slots: Array de bloques horarios con { "day": número del 1 al 5, "startHour": "HH:MM", "endHour": "HH:MM", "room": string }
         Devuelve ÚNICAMENTE el objeto JSON puro, sin bloques markdown ni texto adicional.
       `;
     }
@@ -63,25 +63,44 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'La variable GEMINI_API_KEY no está configurada.' }, { status: 500 });
     }
 
-    // Único modelo autorizado por tu clave de API
     const modelName = 'gemini-3.8-flash';
     const url = `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${apiKey}`;
 
-    const apiRes = await fetch(url, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        contents: [{ parts }],
-        generationConfig: { 
-          responseMimeType: 'application/json',
-          maxOutputTokens: 8192 // Ampliamos el límite para que entren todas las asignaturas y horarios sin cortarse
-        }
-      }),
-    });
+    // Sistema de reintentos automáticos (10 intentos con espera de 2s y 4s si da 503)
+    let apiRes = null;
+    let maxRetries = 10;
+    let delay = 2000;
 
-    if (!apiRes.ok) {
+    for (let attempt = 1; attempt <= maxRetries; attempt++) {
+      apiRes = await fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          contents: [{ parts }],
+          generationConfig: { 
+            responseMimeType: 'application/json',
+            maxOutputTokens: 8192
+          }
+        }),
+      });
+
+      if (apiRes.ok) {
+        break; // ¡Conseguido a la primera o tras reintentar!
+      }
+
       const errText = await apiRes.text();
-      throw new Error(`Google API Error (${apiRes.status}): ${errText}`);
+      console.warn(`Intento ${attempt} fallido (Status ${apiRes.status}):`, errText);
+
+      if (apiRes.status === 503 && attempt < maxRetries) {
+        await new Promise(resolve => setTimeout(resolve, delay));
+        delay += 2000; // Incrementa el tiempo de espera
+      } else if (attempt === maxRetries) {
+        throw new Error(`Google API Error (${apiRes.status}): ${errText}`);
+      }
+    }
+
+    if (!apiRes || !apiRes.ok) {
+      throw new Error('No se pudo conectar con los servidores de Google tras varios intentos.');
     }
 
     const resJson = await apiRes.json();
@@ -91,7 +110,14 @@ export async function POST(req: Request) {
       throw new Error('La respuesta de la IA llegó vacía.');
     }
 
-    const jsonMatch = textResponse.match(/(\{[\s\S]*\}|\[[\s\S]*\])/);
+    let cleanedText = textResponse.trim();
+    if (cleanedText.startsWith('```json')) {
+      cleanedText = cleanedText.replace(/^```json/, '').replace(/```$/, '').trim();
+    } else if (cleanedText.startsWith('```')) {
+      cleanedText = cleanedText.replace(/^```/, '').replace(/```$/, '').trim();
+    }
+
+    const jsonMatch = cleanedText.match(/(\{[\s\S]*\}|\[[\s\S]*\])/);
     if (!jsonMatch) {
       throw new Error('No se encontró un JSON válido en la respuesta.');
     }
