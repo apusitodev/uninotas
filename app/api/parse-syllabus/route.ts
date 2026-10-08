@@ -1,7 +1,4 @@
 import { NextResponse } from 'next/server';
-import { GoogleGenAI } from '@google/genai';
-
-const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
 
 export async function POST(req: Request) {
   try {
@@ -32,52 +29,60 @@ export async function POST(req: Request) {
       `;
     }
 
-    let contents: any[] = [];
+    let parts: any[] = [];
     if (fileBase64) {
-      contents = [
+      parts = [
         {
           inlineData: {
-            data: fileBase64,
             mimeType: mimeType || 'application/pdf',
-          },
+            data: fileBase64
+          }
         },
-        { text: prompt },
+        { text: prompt }
       ];
     } else {
-      contents = [{ text: `${prompt}\n\nTexto:\n${textContent}` }];
+      parts = [{ text: `${prompt}\n\nTexto:\n${textContent}` }];
     }
 
-    // Lista de modelos en orden de prioridad para evitar caídas por saturación (503)
-    const modelsToTry = ['gemini-3.8-flash', 'gemini-1.5-flash', 'gemini-2.0-flash'];
-    let response = null;
-    let lastError = null;
+    const apiKey = process.env.GEMINI_API_KEY;
+    if (!apiKey) {
+      return NextResponse.json({ error: 'La variable de entorno GEMINI_API_KEY no está configurada.' }, { status: 500 });
+    }
 
-    for (const modelName of modelsToTry) {
-      try {
-        response = await ai.models.generateContent({
-          model: modelName,
-          contents: contents,
-          config: {
-            responseMimeType: 'application/json',
-          },
-        });
-        if (response && response.text) {
-          break; // ¡Éxito! Salimos del bucle si un modelo responde bien
+    // Llamada directa por HTTP a la API oficial de Google (modelo gemini-2.5-flash)
+    const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`;
+
+    const apiRes = await fetch(url, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        contents: [{ parts }],
+        generationConfig: {
+          responseMimeType: 'application/json'
         }
-      } catch (err: any) {
-        console.warn(`Modelo ${modelName} saturado o no disponible:`, err.message);
-        lastError = err;
-      }
+      }),
+    });
+
+    if (!apiRes.ok) {
+      const errText = await apiRes.text();
+      throw new Error(`Error de la API de Google (${apiRes.status}): ${errText}`);
     }
 
-    if (!response || !response.text) {
-      throw lastError || new Error('Todos los modelos de IA están saturados en este momento.');
+    const data = await apiRes.json();
+    const candidate = data.candidates?.[0];
+    const textResponse = candidate?.content?.parts?.[0]?.text;
+
+    if (!textResponse) {
+      throw new Error('La respuesta de la IA llegó vacía.');
     }
 
-    const data = JSON.parse(response.text || '{}');
-    return NextResponse.json(data);
+    const parsedData = JSON.parse(textResponse);
+    return NextResponse.json(parsedData);
+
   } catch (error: any) {
     console.error('Error crítico en parse-syllabus:', error);
-    return NextResponse.json({ error: `Los servidores de Google están saturados (503). Inténtalo de nuevo en 5 segundos.` }, { status: 500 });
+    return NextResponse.json({ error: `Error del servidor: ${error.message || 'Desconocido'}` }, { status: 500 });
   }
 }
