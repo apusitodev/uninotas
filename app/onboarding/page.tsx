@@ -168,9 +168,9 @@ export default function OnboardingPage() {
         reader.readAsDataURL(file);
       });
 
-      // Creamos un controlador para cortar la petición si pasan 30 segundos
+      // Creamos un controlador para cortar la petición si pasan 60 segundos
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 30000);
+      const timeoutId = setTimeout(() => controller.abort(), 60000);
 
       const res = await fetch('/api/parse-syllabus', {
         method: 'POST',
