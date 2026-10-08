@@ -2,29 +2,25 @@ import { NextResponse } from 'next/server';
 
 export async function POST(req: Request) {
   try {
+    const formData = await req.formData();
+    const file = formData.get('file') as File | null;
+    const type = (formData.get('type') as string) || 'calendar';
+    const textContent = (formData.get('textContent') as string) || '';
+
     let fileBase64 = '';
     let mimeType = 'application/pdf';
-    let type = '';
-    let textContent = '';
 
-    const contentType = req.headers.get('content-type') || '';
-    if (contentType.includes('multipart/form-data')) {
-      const formData = await req.formData();
-      const file = formData.get('file') as File | null;
-      type = (formData.get('type') as string) || 'calendar';
-      textContent = (formData.get('textContent') as string) || '';
-
-      if (file) {
-        const arrayBuffer = await file.arrayBuffer();
-        fileBase64 = Buffer.from(arrayBuffer).toString('base64');
-        mimeType = file.type || 'application/pdf';
+    if (file) {
+      // Validamos que el archivo no supere los 4MB para evitar cortes en Vercel
+      if (file.size > 4 * 1024 * 1024) {
+        return NextResponse.json({ 
+          error: 'El archivo PDF es demasiado pesado para subirlo de golpe. Prueba con un PDF más ligero o recorta las páginas clave.' 
+        }, { status: 400 });
       }
-    } else {
-      const body = await req.json();
-      fileBase64 = body.fileBase64;
-      mimeType = body.mimeType || 'application/pdf';
-      type = body.type || 'calendar';
-      textContent = body.textContent;
+
+      const arrayBuffer = await file.arrayBuffer();
+      fileBase64 = Buffer.from(arrayBuffer).toString('base64');
+      mimeType = file.type || 'application/pdf';
     }
 
     if (!fileBase64 && !textContent) {
@@ -65,13 +61,13 @@ export async function POST(req: Request) {
 
     const apiKey = process.env.GEMINI_API_KEY;
     if (!apiKey) {
-      return NextResponse.json({ error: 'La variable GEMINI_API_KEY no está configurada.' }, { status: 500 });
+      return NextResponse.json({ error: 'La variable GEMINI_API_KEY no está configurada en Vercel.' }, { status: 500 });
     }
 
-    // Lista de modelos en cascada: si uno da 503, pasa automáticamente al siguiente
-    const models = ['gemini-3.8-flash', 'gemini-1.5-flash', 'gemini-2.0-flash'];
+    // Modelos estables oficiales de Google ordenados en cascada para evitar fallos
+    const models = ['gemini-1.5-flash', 'gemini-2.0-flash', 'gemini-1.5-pro'];
     let parsedData = null;
-    let lastError = null;
+    let lastError = '';
 
     for (const modelName of models) {
       const url = `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${apiKey}`;
@@ -92,22 +88,22 @@ export async function POST(req: Request) {
             const jsonMatch = textResponse.match(/(\{[\s\S]*\}|\[[\s\S]*\])/);
             if (jsonMatch) {
               parsedData = JSON.parse(jsonMatch[0]);
-              break; // ¡Conseguido! Salimos del bucle con éxito
+              break; // ¡Éxito! Salimos del bucle
             }
           }
         } else {
           const errText = await apiRes.text();
-          lastError = errText;
-          console.warn(`Modelo ${modelName} saturado (503). Probando siguiente...`);
+          lastError = `Modelo ${modelName} error (${apiRes.status}): ${errText}`;
+          console.warn(lastError);
         }
       } catch (e: any) {
-        lastError = e.message;
-        console.warn(`Error en modelo ${modelName}:`, e.message);
+        lastError = `Error de red con ${modelName}: ${e.message}`;
+        console.warn(lastError);
       }
     }
 
     if (!parsedData) {
-      throw new Error(`Todos los servidores de Google están saturados en este momento. Detalle: ${lastError}`);
+      return NextResponse.json({ error: `No se pudo procesar el archivo. Detalle: ${lastError}` }, { status: 500 });
     }
 
     return NextResponse.json(parsedData);
