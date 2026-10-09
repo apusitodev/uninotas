@@ -154,7 +154,6 @@ export default function OnboardingPage() {
     return `${parts[2]}-${parts[1]}-${parts[0]}`;
   };
 
-  // Subida de Calendario con FormData
   const handleCalendarFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -171,8 +170,19 @@ export default function OnboardingPage() {
       });
 
       const data = await res.json();
+
+      // Detección profesional de cuota agotada o saturación
+      if (res.status === 429 || res.status === 503 || data.error === 'QUOTA_EXCEEDED' || data.error === 'AI_UNAVAILABLE') {
+        alert(
+          "🎓 Asistente de IA temporalmente ocupado\n\n" +
+          "Hemos alcanzado el límite de consultas gratuitas o el servicio está experimentando alta demanda.\n\n" +
+          "No te preocupes: puedes añadir tus festivos y periodos de exámenes de forma manual utilizando el formulario inferior en un par de clics."
+        );
+        return;
+      }
+
       if (!res.ok || data.error) {
-        alert(data.error || 'Error al procesar el archivo con IA.');
+        alert(data.error || 'No se pudo procesar el archivo automáticamente. Por favor, añádelo manualmente.');
         return;
       }
 
@@ -204,13 +214,12 @@ export default function OnboardingPage() {
       alert(`¡IA completada! Se han extraído ${addedHolidays} festivos y ${addedExams} periodos de exámenes.`);
     } catch (err) {
       console.error(err);
-      alert('Error de conexión al procesar el archivo.');
+      alert('Error de conexión al procesar el archivo. Puedes introducir los datos manualmente.');
     } finally {
       setParsingCalendar(false);
     }
   };
 
-  // Subida de Asignaturas con FormData
   const handleSubjectsFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -227,8 +236,19 @@ export default function OnboardingPage() {
       });
 
       const data = await res.json();
+
+      // Detección profesional de cuota agotada o saturación
+      if (res.status === 429 || res.status === 503 || data.error === 'QUOTA_EXCEEDED' || data.error === 'AI_UNAVAILABLE') {
+        alert(
+          "🎓 Asistente de IA temporalmente ocupado\n\n" +
+          "Hemos alcanzado el límite de consultas gratuitas o el servicio está experimentando alta demanda.\n\n" +
+          "No te preocupes: puedes añadir tus asignaturas y horarios de forma manual utilizando el formulario inferior en un par de clics."
+        );
+        return;
+      }
+
       if (!res.ok || data.error) {
-        alert(data.error || 'Error al leer el archivo con IA.');
+        alert(data.error || 'No se pudo procesar el archivo automáticamente. Por favor, añádelo manualmente.');
         return;
       }
 
@@ -236,9 +256,9 @@ export default function OnboardingPage() {
         const formattedSubs = data.subjects.map((sub: any) => ({
           id: Math.random().toString(36).substring(2, 9),
           name: sub.name || 'Asignatura',
-          code: sub.code || generateCode(sub.name || 'ASG'),
+          code: sub.code || 'ASG',
           credits: Number(sub.credits) || 6,
-          period_type: sub.period_type || (systemType === 'quarter' ? 'quarter_1' : 'semester_1'),
+          period_type: sub.period_type || 'semester_1',
           is_convalidated: false,
           slots: sub.slots && Array.isArray(sub.slots) ? sub.slots.map((slot: any) => ({
             id: Math.random().toString(36).substring(2, 9),
@@ -250,13 +270,11 @@ export default function OnboardingPage() {
         }));
 
         setSubjects(prev => [...prev, ...formattedSubs]);
-        alert(`¡IA completada! Se han importado ${formattedSubs.length} asignaturas con sus horarios.`);
-      } else {
-        alert('La IA no pudo extraer asignaturas claras del archivo.');
+        alert(`¡IA completada! Se han importado ${formattedSubs.length} asignaturas.`);
       }
     } catch (err) {
       console.error(err);
-      alert('Error de conexión al leer el archivo.');
+      alert('Ocurrió un error de conexión. Por favor, introduce tus asignaturas manualmente.');
     } finally {
       setParsingSubjects(false);
     }

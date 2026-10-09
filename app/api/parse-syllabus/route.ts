@@ -13,7 +13,8 @@ export async function POST(req: Request) {
     if (file) {
       if (file.size > 8 * 1024 * 1024) {
         return NextResponse.json({ 
-          error: 'El archivo PDF es demasiado pesado. Sube un documento más ligero.' 
+          error: 'LIMIT_EXCEEDED',
+          message: 'El archivo PDF es demasiado pesado. Por favor, introduce los datos manualmente.' 
         }, { status: 400 });
       }
 
@@ -60,16 +61,17 @@ export async function POST(req: Request) {
 
     const apiKey = process.env.GEMINI_API_KEY;
     if (!apiKey) {
-      return NextResponse.json({ error: 'La variable GEMINI_API_KEY no está configurada.' }, { status: 500 });
+      return NextResponse.json({ error: 'CONFIG_ERROR', message: 'API Key no configurada.' }, { status: 500 });
     }
 
     const modelName = 'gemini-3.8-flash';
     const url = `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${apiKey}`;
 
-    // Sistema de reintentos automáticos (10 intentos con espera de 2s y 4s si da 503)
+    // Sistema de reintentos automáticos (10 intentos)
     let apiRes = null;
     let maxRetries = 10;
     let delay = 2000;
+    let resText = '';
 
     for (let attempt = 1; attempt <= maxRetries; attempt++) {
       apiRes = await fetch(url, {
@@ -84,26 +86,36 @@ export async function POST(req: Request) {
         }),
       });
 
-      if (apiRes.ok) {
-        break; // ¡Conseguido a la primera o tras reintentar!
+      resText = await apiRes.text();
+
+      // Si es un error 429 (cuota excedida), no tiene sentido reintentar, salimos al momento
+      if (apiRes.status === 429 || resText.includes('RESOURCE_EXHAUSTED') || resText.includes('quota')) {
+        return NextResponse.json({ 
+          error: 'QUOTA_EXCEEDED', 
+          message: 'Se ha alcanzado el límite temporal de consultas a la inteligencia artificial.' 
+        }, { status: 429 });
       }
 
-      const errText = await apiRes.text();
-      console.warn(`Intento ${attempt} fallido (Status ${apiRes.status}):`, errText);
+      if (apiRes.ok) {
+        break; // ¡Conseguido con éxito!
+      }
+
+      console.warn(`Intento ${attempt} fallido (Status ${apiRes.status}):`, resText);
 
       if (apiRes.status === 503 && attempt < maxRetries) {
         await new Promise(resolve => setTimeout(resolve, delay));
-        delay += 2000; // Incrementa el tiempo de espera
-      } else if (attempt === maxRetries) {
-        throw new Error(`Google API Error (${apiRes.status}): ${errText}`);
+        delay += 2000; // Incrementa la espera progresiva
       }
     }
 
     if (!apiRes || !apiRes.ok) {
-      throw new Error('No se pudo conectar con los servidores de Google tras varios intentos.');
+      return NextResponse.json({ 
+        error: 'AI_UNAVAILABLE', 
+        message: 'Los servidores de IA están experimentando alta demanda o la cuota se ha agotado.' 
+      }, { status: 503 });
     }
 
-    const resJson = await apiRes.json();
+    const resJson = JSON.parse(resText);
     const textResponse = resJson.candidates?.[0]?.content?.parts?.[0]?.text;
 
     if (!textResponse) {
@@ -127,6 +139,6 @@ export async function POST(req: Request) {
 
   } catch (error: any) {
     console.error('Error crítico en parse-syllabus:', error);
-    return NextResponse.json({ error: `Error del servidor: ${error.message || 'Desconocido'}` }, { status: 500 });
+    return NextResponse.json({ error: 'SERVER_ERROR', message: error.message || 'Error desconocido' }, { status: 500 });
   }
 }
