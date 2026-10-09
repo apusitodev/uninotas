@@ -67,9 +67,8 @@ export async function POST(req: Request) {
     const modelName = 'gemini-3.8-flash';
     const url = `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${apiKey}`;
 
-    // Sistema de reintentos automáticos (10 intentos)
     let apiRes = null;
-    let maxRetries = 10;
+    let maxRetries = 5;
     let delay = 2000;
     let resText = '';
 
@@ -88,7 +87,6 @@ export async function POST(req: Request) {
 
       resText = await apiRes.text();
 
-      // Si es un error 429 (cuota excedida), no tiene sentido reintentar, salimos al momento
       if (apiRes.status === 429 || resText.includes('RESOURCE_EXHAUSTED') || resText.includes('quota')) {
         return NextResponse.json({ 
           error: 'QUOTA_EXCEEDED', 
@@ -97,21 +95,21 @@ export async function POST(req: Request) {
       }
 
       if (apiRes.ok) {
-        break; // ¡Conseguido con éxito!
+        break;
       }
 
       console.warn(`Intento ${attempt} fallido (Status ${apiRes.status}):`, resText);
 
       if (apiRes.status === 503 && attempt < maxRetries) {
         await new Promise(resolve => setTimeout(resolve, delay));
-        delay += 2000; // Incrementa la espera progresiva
+        delay += 2000;
       }
     }
 
     if (!apiRes || !apiRes.ok) {
       return NextResponse.json({ 
         error: 'AI_UNAVAILABLE', 
-        message: 'Los servidores de IA están experimentando alta demanda o la cuota se ha agotado.' 
+        message: 'Los servidores de IA están experimentando alta demanda.' 
       }, { status: 503 });
     }
 
@@ -134,7 +132,33 @@ export async function POST(req: Request) {
       throw new Error('No se encontró un JSON válido en la respuesta.');
     }
 
-    const parsedData = JSON.parse(jsonMatch[0]);
+    let jsonString = jsonMatch[0];
+    let parsedData;
+
+    try {
+      parsedData = JSON.parse(jsonString);
+    } catch (e) {
+      // REPARADOR AUTOMÁTICO DE JSON CORTADO: Cierra llaves o corchetes abiertos si la respuesta se truncó
+      console.warn('JSON ligeramente cortado detectado. Intentando reparar automáticamente...');
+      try {
+        // Intenta cerrar corchetes/llaves pendientes de forma básica
+        if (!jsonString.endsWith('}') && !jsonString.endsWith(']')) {
+          jsonString = jsonString.replace(/,\s*$/, ''); // quita coma final sobrante
+          // Cuenta cuántas llaves/corchetes faltan por cerrar
+          const openBraces = (jsonString.match(/\{/g) || []).length;
+          const closeBraces = (jsonString.match(/\}/g) || []).length;
+          const openBrackets = (jsonString.match(/\[/g) || []).length;
+          const closeBrackets = (jsonString.match(/\]/g) || []).length;
+
+          for (let i = 0; i < openBrackets - closeBrackets; i++) jsonString += ']';
+          for (let i = 0; i < openBraces - closeBraces; i++) jsonString += '}';
+        }
+        parsedData = JSON.parse(jsonString);
+      } catch (innerError) {
+        throw new Error('El documento es demasiado extenso y la IA cortó la respuesta. Prueba a subir un PDF con menos páginas o secciones.');
+      }
+    }
+
     return NextResponse.json(parsedData);
 
   } catch (error: any) {
