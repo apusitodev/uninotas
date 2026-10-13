@@ -97,6 +97,7 @@ export default function OnboardingPage() {
   const [slotStart, setSlotStart] = useState('16:00');
   const [slotEnd, setSlotEnd] = useState('19:00');
   const [slotRoom, setSlotRoom] = useState('A41');
+  const [editingSlotId, setEditingSlotId] = useState<string | null>(null);
 
   useEffect(() => {
     fetchData();
@@ -378,24 +379,45 @@ export default function OnboardingPage() {
       return;
     }
 
-    setSubjects(subjects.map(sub => {
-      if (sub.id === targetId) {
-        return {
-          ...sub,
-          slots: [
-            ...sub.slots,
-            {
-              id: Math.random().toString(36).substring(2, 9),
+    if (editingSlotId) {
+      // Si estamos editando, actualizamos el slot existente
+      setSubjects(subjects.map(sub => {
+        if (sub.id === targetId) {
+          return {
+            ...sub,
+            slots: sub.slots.map(slot => slot.id === editingSlotId ? {
+              ...slot,
               day: slotDay,
               startHour: slotStart,
               endHour: slotEnd,
               room: slotRoom.trim() || 'A41',
-            }
-          ]
-        };
-      }
-      return sub;
-    }));
+            } : slot)
+          };
+        }
+        return sub;
+      }));
+      setEditingSlotId(null);
+    } else {
+      // Si es nuevo, lo añadimos al array
+      setSubjects(subjects.map(sub => {
+        if (sub.id === targetId) {
+          return {
+            ...sub,
+            slots: [
+              ...sub.slots,
+              {
+                id: Math.random().toString(36).substring(2, 9),
+                day: slotDay,
+                startHour: slotStart,
+                endHour: slotEnd,
+                room: slotRoom.trim() || 'A41',
+              }
+            ]
+          };
+        }
+        return sub;
+      }));
+    }
     setSlotRoom('A41');
   };
 
@@ -406,6 +428,15 @@ export default function OnboardingPage() {
       }
       return sub;
     }));
+  };
+
+  const handleEditSlot = (subId: string, slot: any) => {
+    setSelectedSubjectForSlot(subId);
+    setSlotDay(slot.day);
+    setSlotStart(slot.startHour);
+    setSlotEnd(slot.endHour);
+    setSlotRoom(slot.room || 'A41');
+    setEditingSlotId(slot.id);
   };
 
   const getPeriodLabel = (period: string) => {
@@ -953,10 +984,25 @@ export default function OnboardingPage() {
                               const dayNames = ['', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes'];
                               return (
                                 <div key={slot.id} className="flex justify-between items-center bg-gray-50 px-3 py-1.5 rounded-lg text-xs">
-                                  <span className="font-medium text-gray-700">{dayNames[slot.day]} de {slot.startHour} a {slot.endHour} <span className="text-gray-400">({slot.room})</span></span>
-                                  <button type="button" onClick={() => handleRemoveSlot(sub.id, slot.id)} className="text-red-400 hover:text-red-600">
-                                    <Trash2 className="w-3.5 h-3.5"/>
-                                  </button>
+                                  <span className="font-medium text-gray-700">{dayNames[slot.day]} de {slot.startHour} a {slot.endHour}</span>
+                                  <div className="flex items-center gap-2">
+                                    <button 
+                                      type="button" 
+                                      onClick={() => handleEditSlot(sub.id, slot)} 
+                                      className="text-blue-500 hover:text-blue-700 p-1" 
+                                      title="Modificar"
+                                    >
+                                      <Edit2 className="w-3.5 h-3.5"/>
+                                    </button>
+                                    <button 
+                                      type="button" 
+                                      onClick={() => handleRemoveSlot(sub.id, slot.id)} 
+                                      className="text-red-400 hover:text-red-600 p-1"
+                                      title="Eliminar"
+                                    >
+                                      <Trash2 className="w-3.5 h-3.5"/>
+                                    </button>
+                                  </div>
                                 </div>
                               );
                             })}
