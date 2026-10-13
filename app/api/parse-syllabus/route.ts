@@ -64,12 +64,12 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'CONFIG_ERROR', message: 'API Key no configurada.' }, { status: 500 });
     }
 
-    const modelName = 'gemini-3.5-flash-lite';
+    const modelName = 'gemini-3.8-flash';
     const url = `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${apiKey}`;
 
     let apiRes = null;
     let maxRetries = 5;
-    let delay = 2000;
+    let delay = 3000; // Empezamos con 3 segundos de espera para proteger el RPM
     let resText = '';
 
     for (let attempt = 1; attempt <= maxRetries; attempt++) {
@@ -100,9 +100,10 @@ export async function POST(req: Request) {
 
       console.warn(`Intento ${attempt} fallido (Status ${apiRes.status}):`, resText);
 
-      if (apiRes.status === 503 && attempt < maxRetries) {
+      // Pausa obligatoria en cada reintento para respetar el límite de 5 RPM de Google
+      if (attempt < maxRetries) {
         await new Promise(resolve => setTimeout(resolve, delay));
-        delay += 2000;
+        delay += 2000; // Incrementa progresivamente el tiempo de espera (3s, 5s, 7s...)
       }
     }
 
@@ -138,13 +139,10 @@ export async function POST(req: Request) {
     try {
       parsedData = JSON.parse(jsonString);
     } catch (e) {
-      // REPARADOR AUTOMÁTICO DE JSON CORTADO: Cierra llaves o corchetes abiertos si la respuesta se truncó
       console.warn('JSON ligeramente cortado detectado. Intentando reparar automáticamente...');
       try {
-        // Intenta cerrar corchetes/llaves pendientes de forma básica
         if (!jsonString.endsWith('}') && !jsonString.endsWith(']')) {
-          jsonString = jsonString.replace(/,\s*$/, ''); // quita coma final sobrante
-          // Cuenta cuántas llaves/corchetes faltan por cerrar
+          jsonString = jsonString.replace(/,\s*$/, '');
           const openBraces = (jsonString.match(/\{/g) || []).length;
           const closeBraces = (jsonString.match(/\}/g) || []).length;
           const openBrackets = (jsonString.match(/\[/g) || []).length;
