@@ -64,7 +64,7 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'CONFIG_ERROR', message: 'API Key no configurada.' }, { status: 500 });
     }
 
-    const modelName = 'gemini-3.8-flash';
+    const modelName = 'gemini-3.5-flash-lite';
     const url = `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${apiKey}`;
 
     let apiRes = null;
