@@ -146,7 +146,7 @@ export const Calendar = React.forwardRef<HTMLDivElement, CalendarProps>((props, 
     month: controlledMonth,
     defaultMonth,
     onMonthChange,
-    weekStartsOn = 0,
+    weekStartsOn = 1, // <--- CAMBIADO A 1 (LUNES POR DEFECTO)
     disabled,
     bookedDates,
     events,
@@ -302,7 +302,7 @@ export const Calendar = React.forwardRef<HTMLDivElement, CalendarProps>((props, 
     return { outsideMonth, isToday, isBookedDay, event, isDayDisabled, isSelected, isRangeStart, isRangeEnd, isInRange };
   }
 
-  const monthLabel = `${MONTH_NAMES[displayedMonth.getMonth()]} ${displayedMonth.getFullYear()}`;
+    const monthLabel = `${MONTH_NAMES[displayedMonth.getMonth()]} ${displayedMonth.getFullYear()}`;
   const weeks = React.useMemo(() => {
     const rows: Date[][] = [];
     for (let i = 0; i < grid.length; i += 7) {
