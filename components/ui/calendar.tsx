@@ -60,11 +60,11 @@ export type CalendarProps = CalendarSingleProps | CalendarMultipleProps | Calend
 const EASE_OUT: [number, number, number, number] = [0.23, 1, 0.32, 1];
 
 const MONTH_NAMES = [
-  "January", "February", "March", "April", "May", "June",
-  "July", "August", "September", "October", "November", "December",
+  "Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio",
+  "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre",
 ];
-const WEEKDAY_LABELS_SUN = ["Su", "Mo", "Tu", "We", "Th", "Fr", "Sa"];
-const WEEKDAY_LABELS_MON = ["Mo", "Tu", "We", "Th", "Fr", "Sa", "Su"];
+const WEEKDAY_LABELS_SUN = ["DO", "LU", "MA", "MI", "JU", "VI", "SA"];
+const WEEKDAY_LABELS_MON = ["LU", "MA", "MI", "JU", "VI", "SA", "DO"];
 
 function isSameDay(a?: Date, b?: Date): boolean {
   if (!a || !b) return false;
@@ -317,7 +317,7 @@ export const Calendar = React.forwardRef<HTMLDivElement, CalendarProps>((props, 
       data-slot="calendar"
       data-mode={mode}
       className={cn(
-        "w-full max-w-[280px] select-none rounded-2xl border border-gray-200 p-3 bg-white shadow-lg",
+        "w-[290px] select-none rounded-2xl border border-gray-200 p-3 bg-white shadow-xl",
         className,
       )}
     >
@@ -329,10 +329,10 @@ export const Calendar = React.forwardRef<HTMLDivElement, CalendarProps>((props, 
       <div className="mb-2 flex items-center justify-between gap-1">
         <button
           type="button"
-          aria-label="Previous month"
+          aria-label="Mes anterior"
           onClick={() => goToMonth(-1)}
           className={cn(
-            "flex size-7 shrink-0 items-center justify-center rounded-xl text-gray-500",
+            "flex size-7 shrink-0 items-center justify-center rounded-xl text-gray-500 cursor-pointer",
             "outline-none transition-colors duration-150 hover:bg-gray-100 hover:text-gray-900",
             "focus-visible:ring-2 focus-visible:ring-[#0071e3]/40",
           )}
@@ -341,14 +341,14 @@ export const Calendar = React.forwardRef<HTMLDivElement, CalendarProps>((props, 
         </button>
 
         <div className="flex items-center gap-0.5">
-          <QuickNavTooltip label="Jump to month" disabled={!quickNav}>
+          <QuickNavTooltip label="Ir al mes" disabled={!quickNav}>
             <button
               type="button"
               disabled={!quickNav}
-              aria-label="Show month picker"
+              aria-label="Mostrar selector de mes"
               onClick={() => setNavView("months")}
               className={cn(
-                "rounded-xl px-1.5 py-1 text-xs font-bold text-gray-800",
+                "rounded-xl px-1.5 py-1 text-xs font-bold text-gray-800 cursor-pointer",
                 "outline-none transition-colors duration-150 hover:bg-gray-100",
                 "focus-visible:ring-2 focus-visible:ring-[#0071e3]/40",
                 navView === "months" && "bg-blue-50 text-[#0071e3]",
@@ -358,11 +358,11 @@ export const Calendar = React.forwardRef<HTMLDivElement, CalendarProps>((props, 
             </button>
           </QuickNavTooltip>
 
-          <QuickNavTooltip label={navView === "months" ? "Jump to year" : "Quick navigation"} disabled={!quickNav}>
+          <QuickNavTooltip label={navView === "months" ? "Ir al año" : "Navegación rápida"} disabled={!quickNav}>
             <button
               type="button"
               disabled={!quickNav}
-              aria-label="Toggle month or year picker"
+              aria-label="Cambiar selector"
               onClick={() => (navView === "months" ? openYearsView() : setNavView("months"))}
               className={cn(
                 "rounded-xl px-0.5 py-1 text-xs font-medium text-gray-300",
@@ -373,14 +373,14 @@ export const Calendar = React.forwardRef<HTMLDivElement, CalendarProps>((props, 
             </button>
           </QuickNavTooltip>
 
-          <QuickNavTooltip label="Jump to year" disabled={!quickNav}>
+          <QuickNavTooltip label="Ir al año" disabled={!quickNav}>
             <button
               type="button"
               disabled={!quickNav}
-              aria-label="Show year picker"
+              aria-label="Mostrar selector de año"
               onClick={openYearsView}
               className={cn(
-                "rounded-xl px-1.5 py-1 text-xs font-bold text-gray-800",
+                "rounded-xl px-1.5 py-1 text-xs font-bold text-gray-800 cursor-pointer",
                 "outline-none transition-colors duration-150 hover:bg-gray-100",
                 "focus-visible:ring-2 focus-visible:ring-[#0071e3]/40",
                 navView === "years" && "bg-blue-50 text-[#0071e3]",
@@ -393,10 +393,10 @@ export const Calendar = React.forwardRef<HTMLDivElement, CalendarProps>((props, 
 
         <button
           type="button"
-          aria-label="Next month"
+          aria-label="Mes siguiente"
           onClick={() => goToMonth(1)}
           className={cn(
-            "flex size-7 shrink-0 items-center justify-center rounded-xl text-gray-500",
+            "flex size-7 shrink-0 items-center justify-center rounded-xl text-gray-500 cursor-pointer",
             "outline-none transition-colors duration-150 hover:bg-gray-100 hover:text-gray-900",
             "focus-visible:ring-2 focus-visible:ring-[#0071e3]/40",
           )}
@@ -499,7 +499,7 @@ export const Calendar = React.forwardRef<HTMLDivElement, CalendarProps>((props, 
                             tabIndex={isSameDay(date, focusableDate) ? 0 : -1}
                             onClick={() => handleSelectDay(date)}
                             className={cn(
-                              "relative z-10 flex size-8 items-center justify-center rounded-full text-xs font-medium tabular-nums transition-colors",
+                              "relative z-10 flex size-8 items-center justify-center rounded-full text-xs font-medium tabular-nums transition-colors cursor-pointer",
                               state.outsideMonth ? "text-gray-300" : "text-gray-700",
                               !state.isSelected && !state.isDayDisabled && "hover:bg-gray-100",
                               state.isSelected && "bg-[#0071e3] text-white font-bold shadow-sm hover:bg-[#005bb5]",
@@ -537,11 +537,11 @@ export const Calendar = React.forwardRef<HTMLDivElement, CalendarProps>((props, 
                     setNavView("days");
                   }}
                   className={cn(
-                    "flex h-10 items-center justify-center rounded-xl text-xs font-bold text-gray-700 transition-colors hover:bg-gray-100",
+                    "flex h-10 items-center justify-center rounded-xl text-xs font-bold text-gray-700 transition-colors hover:bg-gray-100 cursor-pointer",
                     i === displayedMonth.getMonth() && "bg-[#0071e3] text-white shadow-sm",
                   )}
                 >
-                  {name.slice(0, 3)}
+                  {name}
                 </button>
               ))}
             </motion.div>
@@ -558,9 +558,9 @@ export const Calendar = React.forwardRef<HTMLDivElement, CalendarProps>((props, 
               <div className="mb-1 flex items-center justify-between px-0.5">
                 <button
                   type="button"
-                  aria-label="Previous years"
+                  aria-label="Años anteriores"
                   onClick={() => setYearAnchor((y) => y - 12)}
-                  className="flex size-7 items-center justify-center rounded-xl text-gray-500 hover:bg-gray-100"
+                  className="flex size-7 items-center justify-center rounded-xl text-gray-500 hover:bg-gray-100 cursor-pointer"
                 >
                   <IconChevronLeft className="size-4" stroke={1.9} />
                 </button>
@@ -569,9 +569,9 @@ export const Calendar = React.forwardRef<HTMLDivElement, CalendarProps>((props, 
                 </span>
                 <button
                   type="button"
-                  aria-label="Next years"
+                  aria-label="Años siguientes"
                   onClick={() => setYearAnchor((y) => y + 12)}
-                  className="flex size-7 items-center justify-center rounded-xl text-gray-500 hover:bg-gray-100"
+                  className="flex size-7 items-center justify-center rounded-xl text-gray-500 hover:bg-gray-100 cursor-pointer"
                 >
                   <IconChevronRight className="size-4" stroke={1.9} />
                 </button>
@@ -587,7 +587,7 @@ export const Calendar = React.forwardRef<HTMLDivElement, CalendarProps>((props, 
                       setNavView("months");
                     }}
                     className={cn(
-                      "flex h-10 items-center justify-center rounded-xl text-xs font-bold text-gray-700 transition-colors hover:bg-gray-100",
+                      "flex h-10 items-center justify-center rounded-xl text-xs font-bold text-gray-700 transition-colors hover:bg-gray-100 cursor-pointer",
                       year === displayedMonth.getFullYear() && "bg-[#0071e3] text-white shadow-sm",
                     )}
                   >

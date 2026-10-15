@@ -85,15 +85,19 @@ export default function OnboardingPage() {
   const [newHolidayDate, setNewHolidayDate] = useState('');
   const [newHolidayType, setNewHolidayType] = useState('festivo');
   const [editingHolidayId, setEditingHolidayId] = useState<string | null>(null);
-  const [showHolidayCalendar, setShowHolidayCalendar] = useState(false);
 
   const [examPeriods, setExamPeriods] = useState<ExamPeriodInput[]>([]);
   const [newExamTitle, setNewExamTitle] = useState('');
   const [newExamStart, setNewExamStart] = useState('');
   const [newExamEnd, setNewExamEnd] = useState('');
   const [editingExamId, setEditingExamId] = useState<string | null>(null);
-  const [showExamStartCalendar, setShowExamStartCalendar] = useState(false);
-  const [showExamEndCalendar, setShowExamEndCalendar] = useState(false);
+
+  // Control único de calendarios abiertos y cierre automático al cambiar de paso
+  const [activeCalendar, setActiveCalendar] = useState<'holiday' | 'examStart' | 'examEnd' | null>(null);
+
+  useEffect(() => {
+    setActiveCalendar(null);
+  }, [step]);
 
   // Paso 3 (Asignaturas)
   const [subjects, setSubjects] = useState<SubjectInput[]>([]);
@@ -308,6 +312,7 @@ export default function OnboardingPage() {
     setNewHolidayTitle('');
     setNewHolidayDate('');
     setNewHolidayType('festivo');
+    setActiveCalendar(null);
   };
 
   const handleEditHoliday = (h: HolidayInput) => {
@@ -328,6 +333,7 @@ export default function OnboardingPage() {
     setNewExamTitle('');
     setNewExamStart('');
     setNewExamEnd('');
+    setActiveCalendar(null);
   };
 
   const handleEditExamPeriod = (e: ExamPeriodInput) => {
@@ -656,17 +662,17 @@ export default function OnboardingPage() {
                     <span className="text-[10px] text-blue-600 font-bold bg-blue-50 px-2 py-0.5 rounded-md">Editando festivo...</span>
                   )}
                 </div>
-                <div className="grid grid-cols-1 sm:grid-cols-12 gap-2">
+                <div className="grid grid-cols-1 sm:grid-cols-12 gap-2 items-center">
                   <input
                     type="text"
                     placeholder="Nombre (ej. Navidad)"
                     value={newHolidayTitle}
                     onChange={e => setNewHolidayTitle(e.target.value)}
-                    className="sm:col-span-5 px-3 py-2 bg-white border border-gray-200 rounded-xl text-xs font-medium focus:outline-none focus:border-[#0071e3] transition-all shadow-2xs"
+                    className="sm:col-span-5 h-10 px-3 py-2 bg-white border border-gray-200 rounded-xl text-xs font-medium focus:outline-none focus:border-[#0071e3] transition-all shadow-2xs"
                   />
                   <div className="sm:col-span-3">
                     <Select value={newHolidayType} onValueChange={(val) => setNewHolidayType(val)}>
-                      <SelectTrigger className="w-full bg-white border border-gray-200 rounded-xl text-xs font-medium focus:outline-none focus:border-[#0071e3] transition-all shadow-2xs">
+                      <SelectTrigger className="w-full h-10 bg-white border border-gray-200 rounded-xl text-xs font-medium focus:outline-none focus:border-[#0071e3] transition-all shadow-2xs">
                         <SelectValue placeholder="Tipo" />
                       </SelectTrigger>
                       <SelectContent>
@@ -676,20 +682,20 @@ export default function OnboardingPage() {
                     </Select>
                   </div>
                   
-                  {/* Selector de fecha con Calendario Custom */}
+                  {/* Selector de fecha Festivo unificado en grosor */}
                   <div className="sm:col-span-3 relative">
                     <button
                       type="button"
-                      onClick={() => setShowHolidayCalendar(!showHolidayCalendar)}
-                      className="w-full px-3 py-2 bg-white border border-gray-200 rounded-xl text-xs font-medium text-left text-gray-700 flex items-center justify-between focus:outline-none focus:border-[#0071e3] transition-all shadow-2xs cursor-pointer"
+                      onClick={() => setActiveCalendar(activeCalendar === 'holiday' ? null : 'holiday')}
+                      className="w-full h-10 px-3 py-2 bg-white border border-gray-200 rounded-xl text-xs font-medium text-left text-gray-700 flex items-center justify-between focus:outline-none focus:border-[#0071e3] transition-all shadow-2xs cursor-pointer"
                     >
                       <span className="truncate">{newHolidayDate ? formatDateDDMMYYYY(newHolidayDate) : 'Seleccionar fecha'}</span>
                       <Calendar className="w-3.5 h-3.5 text-gray-400 shrink-0 ml-1" />
                     </button>
 
-                    {showHolidayCalendar && (
+                    {activeCalendar === 'holiday' && (
                       <div className="absolute z-50 mt-1 left-0 sm:left-auto sm:right-0">
-                        <div className="fixed inset-0 sm:hidden" onClick={() => setShowHolidayCalendar(false)} />
+                        <div className="fixed inset-0 sm:hidden" onClick={() => setActiveCalendar(null)} />
                         <div className="relative z-10">
                           <CustomCalendar
                             mode="single"
@@ -700,7 +706,7 @@ export default function OnboardingPage() {
                                 const month = String(date.getMonth() + 1).padStart(2, '0');
                                 const day = String(date.getDate()).padStart(2, '0');
                                 setNewHolidayDate(`${year}-${month}-${day}`);
-                                setShowHolidayCalendar(false);
+                                setActiveCalendar(null);
                               }
                             }}
                           />
@@ -712,7 +718,7 @@ export default function OnboardingPage() {
                   <button
                     type="button"
                     onClick={handleAddOrUpdateHoliday}
-                    className={`sm:col-span-1 p-2 rounded-xl text-xs font-bold cursor-pointer flex items-center justify-center shadow-2xs text-white transition-all ${editingHolidayId ? 'bg-blue-600 hover:bg-blue-700' : 'bg-gray-900 hover:bg-gray-800'}`}
+                    className={`sm:col-span-1 h-10 rounded-xl text-xs font-bold cursor-pointer flex items-center justify-center shadow-2xs text-white transition-all ${editingHolidayId ? 'bg-blue-600 hover:bg-blue-700' : 'bg-gray-900 hover:bg-gray-800'}`}
                     title={editingHolidayId ? 'Guardar cambios' : 'Añadir festivo'}
                   >
                     {editingHolidayId ? <Save className="w-4 h-4"/> : <Plus className="w-4 h-4"/>}
@@ -727,10 +733,10 @@ export default function OnboardingPage() {
                         <span className="text-[10px] text-gray-400 font-mono">({formatDateDDMMYYYY(h.date)})</span>
                       </div>
                       <div className="flex items-center gap-2">
-                        <button onClick={() => handleEditHoliday(h)} className="text-blue-500 hover:text-blue-700 p-1" title="Modificar">
+                        <button onClick={() => handleEditHoliday(h)} className="text-blue-500 hover:text-blue-700 p-1 cursor-pointer" title="Modificar">
                           <Edit2 className="w-3.5 h-3.5"/>
                         </button>
-                        <button onClick={() => setHolidays(holidays.filter(x => x.id !== h.id))} className="text-red-400 hover:text-red-600 p-1" title="Eliminar">
+                        <button onClick={() => setHolidays(holidays.filter(x => x.id !== h.id))} className="text-red-400 hover:text-red-600 p-1 cursor-pointer" title="Eliminar">
                           <Trash2 className="w-3.5 h-3.5"/>
                         </button>
                       </div>
@@ -755,25 +761,25 @@ export default function OnboardingPage() {
                     placeholder="Título (ej. Exámenes 1r Semestre)"
                     value={newExamTitle}
                     onChange={e => setNewExamTitle(e.target.value)}
-                    className="w-full px-3 py-2 bg-white border border-gray-200 rounded-xl text-xs font-medium focus:outline-none focus:border-[#0071e3] transition-all shadow-2xs"
+                    className="w-full h-10 px-3 py-2 bg-white border border-gray-200 rounded-xl text-xs font-medium focus:outline-none focus:border-[#0071e3] transition-all shadow-2xs"
                   />
                   <div className="flex gap-2 items-center">
                     
-                    {/* Fecha Inicio Examen con Calendario Custom */}
+                    {/* Fecha Inicio Examen */}
                     <div className="flex-1 relative">
                       <span className="text-[10px] text-gray-400 block mb-0.5 font-bold">Desde</span>
                       <button
                         type="button"
-                        onClick={() => setShowExamStartCalendar(!showExamStartCalendar)}
-                        className="w-full px-3 py-2 bg-white border border-gray-200 rounded-xl text-xs font-medium text-left text-gray-700 flex items-center justify-between focus:outline-none focus:border-[#0071e3] transition-all shadow-2xs cursor-pointer"
+                        onClick={() => setActiveCalendar(activeCalendar === 'examStart' ? null : 'examStart')}
+                        className="w-full h-10 px-3 py-2 bg-white border border-gray-200 rounded-xl text-xs font-medium text-left text-gray-700 flex items-center justify-between focus:outline-none focus:border-[#0071e3] transition-all shadow-2xs cursor-pointer"
                       >
                         <span className="truncate">{newExamStart ? formatDateDDMMYYYY(newExamStart) : 'Seleccionar'}</span>
                         <Calendar className="w-3.5 h-3.5 text-gray-400 shrink-0 ml-1" />
                       </button>
 
-                      {showExamStartCalendar && (
+                      {activeCalendar === 'examStart' && (
                         <div className="absolute z-50 mt-1 left-0">
-                          <div className="fixed inset-0 sm:hidden" onClick={() => setShowExamStartCalendar(false)} />
+                          <div className="fixed inset-0 sm:hidden" onClick={() => setActiveCalendar(null)} />
                           <div className="relative z-10">
                             <CustomCalendar
                               mode="single"
@@ -784,7 +790,7 @@ export default function OnboardingPage() {
                                   const month = String(date.getMonth() + 1).padStart(2, '0');
                                   const day = String(date.getDate()).padStart(2, '0');
                                   setNewExamStart(`${year}-${month}-${day}`);
-                                  setShowExamStartCalendar(false);
+                                  setActiveCalendar(null);
                                 }
                               }}
                             />
@@ -793,21 +799,21 @@ export default function OnboardingPage() {
                       )}
                     </div>
 
-                    {/* Fecha Fin Examen con Calendario Custom */}
+                    {/* Fecha Fin Examen */}
                     <div className="flex-1 relative">
                       <span className="text-[10px] text-gray-400 block mb-0.5 font-bold">Hasta</span>
                       <button
                         type="button"
-                        onClick={() => setShowExamEndCalendar(!showExamEndCalendar)}
-                        className="w-full px-3 py-2 bg-white border border-gray-200 rounded-xl text-xs font-medium text-left text-gray-700 flex items-center justify-between focus:outline-none focus:border-[#0071e3] transition-all shadow-2xs cursor-pointer"
+                        onClick={() => setActiveCalendar(activeCalendar === 'examEnd' ? null : 'examEnd')}
+                        className="w-full h-10 px-3 py-2 bg-white border border-gray-200 rounded-xl text-xs font-medium text-left text-gray-700 flex items-center justify-between focus:outline-none focus:border-[#0071e3] transition-all shadow-2xs cursor-pointer"
                       >
                         <span className="truncate">{newExamEnd ? formatDateDDMMYYYY(newExamEnd) : 'Seleccionar'}</span>
                         <Calendar className="w-3.5 h-3.5 text-gray-400 shrink-0 ml-1" />
                       </button>
 
-                      {showExamEndCalendar && (
+                      {activeCalendar === 'examEnd' && (
                         <div className="absolute z-50 mt-1 right-0 sm:left-auto">
-                          <div className="fixed inset-0 sm:hidden" onClick={() => setShowExamEndCalendar(false)} />
+                          <div className="fixed inset-0 sm:hidden" onClick={() => setActiveCalendar(null)} />
                           <div className="relative z-10">
                             <CustomCalendar
                               mode="single"
@@ -818,7 +824,7 @@ export default function OnboardingPage() {
                                   const month = String(date.getMonth() + 1).padStart(2, '0');
                                   const day = String(date.getDate()).padStart(2, '0');
                                   setNewExamEnd(`${year}-${month}-${day}`);
-                                  setShowExamEndCalendar(false);
+                                  setActiveCalendar(null);
                                 }
                               }}
                             />
@@ -831,7 +837,7 @@ export default function OnboardingPage() {
                       <button
                         type="button"
                         onClick={handleAddOrUpdateExamPeriod}
-                        className={`px-3.5 py-2 rounded-xl text-xs font-bold cursor-pointer shadow-2xs text-white transition-all ${editingExamId ? 'bg-blue-600 hover:bg-blue-700' : 'bg-[#0071e3] hover:bg-[#005bb5]'}`}
+                        className={`h-10 px-3.5 rounded-xl text-xs font-bold cursor-pointer shadow-2xs text-white transition-all ${editingExamId ? 'bg-blue-600 hover:bg-blue-700' : 'bg-[#0071e3] hover:bg-[#005bb5]'}`}
                         title={editingExamId ? 'Guardar cambios' : 'Añadir periodo'}
                       >
                         {editingExamId ? <Save className="w-4 h-4"/> : <Plus className="w-4 h-4"/>}
@@ -844,10 +850,10 @@ export default function OnboardingPage() {
                     <div key={e.id} className="flex justify-between items-center bg-white p-2.5 rounded-xl border border-gray-200 text-xs shadow-2xs">
                       <span className="font-bold text-gray-800">{e.title} <span className="text-[10px] text-gray-400 font-mono font-normal">({formatDateDDMMYYYY(e.startDate)} al {formatDateDDMMYYYY(e.endDate)})</span></span>
                       <div className="flex items-center gap-2">
-                        <button onClick={() => handleEditExamPeriod(e)} className="text-blue-500 hover:text-blue-700 p-1" title="Modificar">
+                        <button onClick={() => handleEditExamPeriod(e)} className="text-blue-500 hover:text-blue-700 p-1 cursor-pointer" title="Modificar">
                           <Edit2 className="w-3.5 h-3.5"/>
                         </button>
-                        <button onClick={() => setExamPeriods(examPeriods.filter(x => x.id !== e.id))} className="text-red-400 hover:text-red-600 p-1" title="Eliminar">
+                        <button onClick={() => setExamPeriods(examPeriods.filter(x => x.id !== e.id))} className="text-red-400 hover:text-red-600 p-1 cursor-pointer" title="Eliminar">
                           <Trash2 className="w-3.5 h-3.5"/>
                         </button>
                       </div>
@@ -961,10 +967,10 @@ export default function OnboardingPage() {
                         <p className="text-[10px] text-gray-400 font-medium">{sub.credits} ECTS • {getPeriodLabel(sub.period_type)}</p>
                       </div>
                       <div className="flex items-center gap-2">
-                        <button onClick={() => handleEditSubject(sub)} className="text-blue-500 hover:text-blue-700 p-1" title="Modificar">
+                        <button onClick={() => handleEditSubject(sub)} className="text-blue-500 hover:text-blue-700 p-1 cursor-pointer" title="Modificar">
                           <Edit2 className="w-3.5 h-3.5"/>
                         </button>
-                        <button onClick={() => setSubjects(subjects.filter(s => s.id !== sub.id))} className="text-red-400 hover:text-red-600 p-1" title="Eliminar">
+                        <button onClick={() => setSubjects(subjects.filter(s => s.id !== sub.id))} className="text-red-400 hover:text-red-600 p-1 cursor-pointer" title="Eliminar">
                           <Trash2 className="w-3.5 h-3.5"/>
                         </button>
                       </div>
@@ -1069,7 +1075,7 @@ export default function OnboardingPage() {
                                     <button 
                                       type="button" 
                                       onClick={() => handleEditSlot(sub.id, slot)} 
-                                      className="text-blue-500 hover:text-blue-700 p-1" 
+                                      className="text-blue-500 hover:text-blue-700 p-1 cursor-pointer" 
                                       title="Modificar"
                                     >
                                       <Edit2 className="w-3.5 h-3.5"/>
@@ -1077,7 +1083,7 @@ export default function OnboardingPage() {
                                     <button 
                                       type="button" 
                                       onClick={() => handleRemoveSlot(sub.id, slot.id)} 
-                                      className="text-red-400 hover:text-red-600 p-1"
+                                      className="text-red-400 hover:text-red-600 p-1 cursor-pointer"
                                       title="Eliminar"
                                     >
                                       <Trash2 className="w-3.5 h-3.5"/>
