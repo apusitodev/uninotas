@@ -1083,38 +1083,39 @@ export default function OnboardingPage() {
             )}
           </div>
 
-          {/* Modal flotante de carga con IA (METIDO AQUÍ DENTRO) */}
-          {((typeof parsingCalendar !== 'undefined' ? parsingCalendar : false) || parsingSubjects) && (
-            <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/25 backdrop-blur-md transition-all duration-300">
-              <div className="flex flex-col items-center justify-center bg-white/90 dark:bg-zinc-900/90 backdrop-blur-xl border border-white/40 dark:border-zinc-800 shadow-2xl rounded-3xl p-8 max-w-sm w-full mx-4 text-center animate-in fade-in zoom-in-95 duration-200">
-                
-                <div className="relative flex items-center justify-center mb-5">
-                  <div className="absolute inset-0 bg-primary/10 rounded-full blur-xl animate-pulse"></div>
-                  <DashRing className="size-12 text-primary relative z-10" />
-                </div>
-
-                <h3 className="text-lg font-semibold text-zinc-900 dark:text-zinc-100 tracking-tight mb-2">
-                  Procesando documento
-                </h3>
-
-                <p className="text-sm text-zinc-500 dark:text-zinc-400 leading-relaxed">
-                  {typeof parsingCalendar !== 'undefined' && parsingCalendar 
-                    ? "Analizando calendario académico y extrayendo festivos..." 
-                    : "Extrayendo asignaturas, créditos y bloques horarios..."}
-                </p>
-
-                <div className="flex items-center gap-1.5 mt-5">
-                  <span className="size-1.5 rounded-full bg-primary animate-bounce [animation-delay:-0.3s]"></span>
-                  <span className="size-1.5 rounded-full bg-primary animate-bounce [animation-delay:-0.15s]"></span>
-                  <span className="size-1.5 rounded-full bg-primary animate-bounce"></span>
-                </div>
-
-              </div>
-            </div>
-          )}
-
         </div>
       </div>
+
+      {/* Modal flotante de carga con IA (FUERA de la tarjeta, cubriendo toda la pantalla) */}
+      {((typeof parsingCalendar !== 'undefined' ? parsingCalendar : false) || parsingSubjects) && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30 backdrop-blur-md transition-all duration-300">
+          <div className="flex flex-col items-center justify-center bg-white/90 dark:bg-zinc-900/90 backdrop-blur-xl border border-white/40 dark:border-zinc-800 shadow-2xl rounded-3xl p-8 max-w-sm w-full mx-4 text-center animate-in fade-in zoom-in-95 duration-200">
+            
+            <div className="relative flex items-center justify-center mb-5">
+              <div className="absolute inset-0 bg-primary/10 rounded-full blur-xl animate-pulse"></div>
+              <DashRing className="size-12 text-primary relative z-10" />
+            </div>
+
+            <h3 className="text-lg font-semibold text-zinc-900 dark:text-zinc-100 tracking-tight mb-2">
+              Procesando documento
+            </h3>
+
+            <p className="text-sm text-zinc-500 dark:text-zinc-400 leading-relaxed">
+              {typeof parsingCalendar !== 'undefined' && parsingCalendar 
+                ? "Analizando calendario académico y extrayendo festivos..." 
+                : "Extrayendo asignaturas, créditos y bloques horarios..."}
+            </p>
+
+            <div className="flex items-center gap-1.5 mt-5">
+              <span className="size-1.5 rounded-full bg-primary animate-bounce [animation-delay:-0.3s]"></span>
+              <span className="size-1.5 rounded-full bg-primary animate-bounce [animation-delay:-0.15s]"></span>
+              <span className="size-1.5 rounded-full bg-primary animate-bounce"></span>
+            </div>
+
+          </div>
+        </div>
+      )}
+
     </div>
   );
 }
