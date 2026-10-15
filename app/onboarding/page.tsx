@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
+import { DashRing } from "@/components/ui/dash-ring";
 import { 
   GraduationCap, ArrowRight, ArrowLeft, Plus, Trash2, Upload, 
   Calendar, BookOpen, Clock, CheckCircle2, Building2, MapPin, ChevronDown, Edit2, Save, X 
@@ -1049,15 +1050,15 @@ export default function OnboardingPage() {
             </div>
           )}
 
-          {/* BOTONES DE NAVEGACIÓN */}
+          {/* Botones de navegación */}
           <div className="flex items-center justify-between pt-4 border-t border-gray-100">
             {step > 1 ? (
               <button
                 type="button"
                 onClick={() => setStep(step - 1)}
-                className="py-3 px-5 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-2xl text-xs font-bold flex items-center gap-1.5 cursor-pointer transition-colors"
+                className="py-3 px-5 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-2xl text-xs font-bold flex items-center gap-1.5 cursor-pointer transition-all"
               >
-                <ArrowLeft className="w-4 h-4"/> Volver
+                <ArrowLeft className="w-4 h-4" /> Volver
               </button>
             ) : <div />}
 
@@ -1065,22 +1066,52 @@ export default function OnboardingPage() {
               <button
                 type="button"
                 onClick={() => setStep(step + 1)}
-                className="py-3 px-6 bg-[#0071e3] hover:bg-[#005bb5] text-white rounded-2xl text-xs font-extrabold flex items-center gap-1.5 cursor-pointer shadow-lg shadow-blue-500/20 transition-all"
+                className="py-3 px-6 bg-[#0071e3] hover:bg-[#005bb5] text-white rounded-2xl text-xs font-extrabold flex items-center gap-1.5 cursor-pointer shadow-sm transition-all"
               >
-                Siguiente <ArrowRight className="w-4 h-4"/>
+                Siguiente <ArrowRight className="w-4 h-4" />
               </button>
             ) : (
               <button
                 type="button"
                 onClick={handleSaveOnboarding}
                 disabled={submitting || subjects.length === 0}
-                className="py-3 px-6 bg-green-600 hover:bg-green-700 disabled:opacity-50 text-white rounded-2xl text-xs font-extrabold flex items-center gap-1.5 cursor-pointer shadow-lg shadow-green-600/20 transition-all"
+                className="py-3 px-6 bg-green-600 hover:bg-green-700 disabled:opacity-50 text-white rounded-2xl text-xs font-extrabold flex items-center gap-1.5 cursor-pointer shadow-sm transition-all"
               >
                 <span>{submitting ? 'Guardando...' : 'Confirmar y Acceder'}</span>
-                <CheckCircle2 className="w-4 h-4"/>
+                <CheckCircle2 className="w-4 h-4" />
               </button>
             )}
           </div>
+
+          {/* Modal flotante de carga con IA (METIDO AQUÍ DENTRO) */}
+          {((typeof parsingCalendar !== 'undefined' ? parsingCalendar : false) || parsingSubjects) && (
+            <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/25 backdrop-blur-md transition-all duration-300">
+              <div className="flex flex-col items-center justify-center bg-white/90 dark:bg-zinc-900/90 backdrop-blur-xl border border-white/40 dark:border-zinc-800 shadow-2xl rounded-3xl p-8 max-w-sm w-full mx-4 text-center animate-in fade-in zoom-in-95 duration-200">
+                
+                <div className="relative flex items-center justify-center mb-5">
+                  <div className="absolute inset-0 bg-primary/10 rounded-full blur-xl animate-pulse"></div>
+                  <DashRing className="size-12 text-primary relative z-10" />
+                </div>
+
+                <h3 className="text-lg font-semibold text-zinc-900 dark:text-zinc-100 tracking-tight mb-2">
+                  Procesando documento
+                </h3>
+
+                <p className="text-sm text-zinc-500 dark:text-zinc-400 leading-relaxed">
+                  {typeof parsingCalendar !== 'undefined' && parsingCalendar 
+                    ? "Analizando calendario académico y extrayendo festivos..." 
+                    : "Extrayendo asignaturas, créditos y bloques horarios..."}
+                </p>
+
+                <div className="flex items-center gap-1.5 mt-5">
+                  <span className="size-1.5 rounded-full bg-primary animate-bounce [animation-delay:-0.3s]"></span>
+                  <span className="size-1.5 rounded-full bg-primary animate-bounce [animation-delay:-0.15s]"></span>
+                  <span className="size-1.5 rounded-full bg-primary animate-bounce"></span>
+                </div>
+
+              </div>
+            </div>
+          )}
 
         </div>
       </div>
