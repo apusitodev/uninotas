@@ -5,8 +5,16 @@ import { useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
 import { DashRing } from "@/components/ui/dash-ring";
 import { 
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Calendar as CustomCalendar } from "@/components/ui/calendar";
+import { 
   GraduationCap, ArrowRight, ArrowLeft, Plus, Trash2, Upload, 
-  Calendar, BookOpen, Clock, CheckCircle2, Building2, MapPin, ChevronDown, Edit2, Save, X 
+  Calendar, BookOpen, Clock, CheckCircle2, Building2, MapPin, Edit2, Save, X 
 } from 'lucide-react';
 
 interface HolidayInput {
@@ -77,12 +85,15 @@ export default function OnboardingPage() {
   const [newHolidayDate, setNewHolidayDate] = useState('');
   const [newHolidayType, setNewHolidayType] = useState('festivo');
   const [editingHolidayId, setEditingHolidayId] = useState<string | null>(null);
+  const [showHolidayCalendar, setShowHolidayCalendar] = useState(false);
 
   const [examPeriods, setExamPeriods] = useState<ExamPeriodInput[]>([]);
   const [newExamTitle, setNewExamTitle] = useState('');
   const [newExamStart, setNewExamStart] = useState('');
   const [newExamEnd, setNewExamEnd] = useState('');
   const [editingExamId, setEditingExamId] = useState<string | null>(null);
+  const [showExamStartCalendar, setShowExamStartCalendar] = useState(false);
+  const [showExamEndCalendar, setShowExamEndCalendar] = useState(false);
 
   // Paso 3 (Asignaturas)
   const [subjects, setSubjects] = useState<SubjectInput[]>([]);
@@ -173,7 +184,6 @@ export default function OnboardingPage() {
 
       const data = await res.json();
 
-      // Detección profesional de cuota agotada o saturación
       if (res.status === 429 || res.status === 503 || data.error === 'QUOTA_EXCEEDED' || data.error === 'AI_UNAVAILABLE') {
         alert(
           "🎓 Asistente de IA temporalmente ocupado\n\n" +
@@ -239,7 +249,6 @@ export default function OnboardingPage() {
 
       const data = await res.json();
 
-      // Detección profesional de cuota agotada o saturación
       if (res.status === 429 || res.status === 503 || data.error === 'QUOTA_EXCEEDED' || data.error === 'AI_UNAVAILABLE') {
         alert(
           "🎓 Asistente de IA temporalmente ocupado\n\n" +
@@ -288,7 +297,6 @@ export default function OnboardingPage() {
     return clean.slice(0, 5) || 'ASG';
   };
 
-  // Funciones Festivos (Añadir / Editar)
   const handleAddOrUpdateHoliday = () => {
     if (!newHolidayTitle.trim() || !newHolidayDate) return;
     if (editingHolidayId) {
@@ -309,7 +317,6 @@ export default function OnboardingPage() {
     setNewHolidayType(h.type);
   };
 
-  // Funciones Exámenes (Añadir / Editar)
   const handleAddOrUpdateExamPeriod = () => {
     if (!newExamTitle.trim() || !newExamStart || !newExamEnd) return;
     if (editingExamId) {
@@ -330,7 +337,6 @@ export default function OnboardingPage() {
     setNewExamEnd(e.endDate);
   };
 
-  // Funciones Asignaturas (Añadir / Editar)
   const handleAddOrUpdateSubject = (e: React.FormEvent) => {
     e.preventDefault();
     if (!newName.trim()) return;
@@ -381,7 +387,6 @@ export default function OnboardingPage() {
     }
 
     if (editingSlotId) {
-      // Si estamos editando, actualizamos el slot existente
       setSubjects(subjects.map(sub => {
         if (sub.id === targetId) {
           return {
@@ -399,7 +404,6 @@ export default function OnboardingPage() {
       }));
       setEditingSlotId(null);
     } else {
-      // Si es nuevo, lo añadimos al array
       setSubjects(subjects.map(sub => {
         if (sub.id === targetId) {
           return {
@@ -543,7 +547,7 @@ export default function OnboardingPage() {
           {/* PASO 1 */}
           {step === 1 && (
             <div className="space-y-4 animate-in fade-in duration-300">
-              <h3 className="text-xs font-extrabold text-gray-800 uppercase tracking-wider">1. Información de la Universidad</h3>
+              <h3 className="text-xs font-extrabold text-gray-800 uppercase tracking-wider">Información de la Universidad</h3>
               
               <div className="space-y-3">
                 <div className="relative">
@@ -660,23 +664,51 @@ export default function OnboardingPage() {
                     onChange={e => setNewHolidayTitle(e.target.value)}
                     className="sm:col-span-5 px-3 py-2 bg-white border border-gray-200 rounded-xl text-xs font-medium focus:outline-none focus:border-[#0071e3] transition-all shadow-2xs"
                   />
-                  <div className="sm:col-span-3 relative">
-                    <select
-                      value={newHolidayType}
-                      onChange={e => setNewHolidayType(e.target.value)}
-                      className="w-full appearance-none px-3 py-2 bg-white border border-gray-200 rounded-xl text-xs font-medium focus:outline-none focus:border-[#0071e3] transition-all shadow-2xs cursor-pointer pr-8"
-                    >
-                      <option value="festivo">Festivo</option>
-                      <option value="recuperacion">Recuperación</option>
-                    </select>
-                    <ChevronDown className="w-3.5 h-3.5 text-gray-400 absolute right-2.5 top-3 pointer-events-none"/>
+                  <div className="sm:col-span-3">
+                    <Select value={newHolidayType} onValueChange={(val) => setNewHolidayType(val)}>
+                      <SelectTrigger className="w-full bg-white border border-gray-200 rounded-xl text-xs font-medium focus:outline-none focus:border-[#0071e3] transition-all shadow-2xs">
+                        <SelectValue placeholder="Tipo" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="festivo">Festivo</SelectItem>
+                        <SelectItem value="recuperacion">Recuperación</SelectItem>
+                      </SelectContent>
+                    </Select>
                   </div>
-                  <input
-                    type="date"
-                    value={newHolidayDate}
-                    onChange={e => setNewHolidayDate(e.target.value)}
-                    className="sm:col-span-3 px-3 py-2 bg-white border border-gray-200 rounded-xl text-xs font-medium focus:outline-none focus:border-[#0071e3] transition-all shadow-2xs cursor-pointer"
-                  />
+                  
+                  {/* Selector de fecha con Calendario Custom */}
+                  <div className="sm:col-span-3 relative">
+                    <button
+                      type="button"
+                      onClick={() => setShowHolidayCalendar(!showHolidayCalendar)}
+                      className="w-full px-3 py-2 bg-white border border-gray-200 rounded-xl text-xs font-medium text-left text-gray-700 flex items-center justify-between focus:outline-none focus:border-[#0071e3] transition-all shadow-2xs cursor-pointer"
+                    >
+                      <span className="truncate">{newHolidayDate ? formatDateDDMMYYYY(newHolidayDate) : 'Seleccionar fecha'}</span>
+                      <Calendar className="w-3.5 h-3.5 text-gray-400 shrink-0 ml-1" />
+                    </button>
+
+                    {showHolidayCalendar && (
+                      <div className="absolute z-50 mt-1 left-0 sm:left-auto sm:right-0">
+                        <div className="fixed inset-0 sm:hidden" onClick={() => setShowHolidayCalendar(false)} />
+                        <div className="relative z-10">
+                          <CustomCalendar
+                            mode="single"
+                            selected={newHolidayDate ? new Date(newHolidayDate + 'T00:00:00') : undefined}
+                            onSelect={(date) => {
+                              if (date) {
+                                const year = date.getFullYear();
+                                const month = String(date.getMonth() + 1).padStart(2, '0');
+                                const day = String(date.getDate()).padStart(2, '0');
+                                setNewHolidayDate(`${year}-${month}-${day}`);
+                                setShowHolidayCalendar(false);
+                              }
+                            }}
+                          />
+                        </div>
+                      </div>
+                    )}
+                  </div>
+
                   <button
                     type="button"
                     onClick={handleAddOrUpdateHoliday}
@@ -726,24 +758,75 @@ export default function OnboardingPage() {
                     className="w-full px-3 py-2 bg-white border border-gray-200 rounded-xl text-xs font-medium focus:outline-none focus:border-[#0071e3] transition-all shadow-2xs"
                   />
                   <div className="flex gap-2 items-center">
-                    <div className="flex-1">
+                    
+                    {/* Fecha Inicio Examen con Calendario Custom */}
+                    <div className="flex-1 relative">
                       <span className="text-[10px] text-gray-400 block mb-0.5 font-bold">Desde</span>
-                      <input
-                        type="date"
-                        value={newExamStart}
-                        onChange={e => setNewExamStart(e.target.value)}
-                        className="w-full px-3 py-2 bg-white border border-gray-200 rounded-xl text-xs font-medium focus:outline-none focus:border-[#0071e3] transition-all shadow-2xs cursor-pointer"
-                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowExamStartCalendar(!showExamStartCalendar)}
+                        className="w-full px-3 py-2 bg-white border border-gray-200 rounded-xl text-xs font-medium text-left text-gray-700 flex items-center justify-between focus:outline-none focus:border-[#0071e3] transition-all shadow-2xs cursor-pointer"
+                      >
+                        <span className="truncate">{newExamStart ? formatDateDDMMYYYY(newExamStart) : 'Seleccionar'}</span>
+                        <Calendar className="w-3.5 h-3.5 text-gray-400 shrink-0 ml-1" />
+                      </button>
+
+                      {showExamStartCalendar && (
+                        <div className="absolute z-50 mt-1 left-0">
+                          <div className="fixed inset-0 sm:hidden" onClick={() => setShowExamStartCalendar(false)} />
+                          <div className="relative z-10">
+                            <CustomCalendar
+                              mode="single"
+                              selected={newExamStart ? new Date(newExamStart + 'T00:00:00') : undefined}
+                              onSelect={(date) => {
+                                if (date) {
+                                  const year = date.getFullYear();
+                                  const month = String(date.getMonth() + 1).padStart(2, '0');
+                                  const day = String(date.getDate()).padStart(2, '0');
+                                  setNewExamStart(`${year}-${month}-${day}`);
+                                  setShowExamStartCalendar(false);
+                                }
+                              }}
+                            />
+                          </div>
+                        </div>
+                      )}
                     </div>
-                    <div className="flex-1">
+
+                    {/* Fecha Fin Examen con Calendario Custom */}
+                    <div className="flex-1 relative">
                       <span className="text-[10px] text-gray-400 block mb-0.5 font-bold">Hasta</span>
-                      <input
-                        type="date"
-                        value={newExamEnd}
-                        onChange={e => setNewExamEnd(e.target.value)}
-                        className="w-full px-3 py-2 bg-white border border-gray-200 rounded-xl text-xs font-medium focus:outline-none focus:border-[#0071e3] transition-all shadow-2xs cursor-pointer"
-                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowExamEndCalendar(!showExamEndCalendar)}
+                        className="w-full px-3 py-2 bg-white border border-gray-200 rounded-xl text-xs font-medium text-left text-gray-700 flex items-center justify-between focus:outline-none focus:border-[#0071e3] transition-all shadow-2xs cursor-pointer"
+                      >
+                        <span className="truncate">{newExamEnd ? formatDateDDMMYYYY(newExamEnd) : 'Seleccionar'}</span>
+                        <Calendar className="w-3.5 h-3.5 text-gray-400 shrink-0 ml-1" />
+                      </button>
+
+                      {showExamEndCalendar && (
+                        <div className="absolute z-50 mt-1 right-0 sm:left-auto">
+                          <div className="fixed inset-0 sm:hidden" onClick={() => setShowExamEndCalendar(false)} />
+                          <div className="relative z-10">
+                            <CustomCalendar
+                              mode="single"
+                              selected={newExamEnd ? new Date(newExamEnd + 'T00:00:00') : undefined}
+                              onSelect={(date) => {
+                                if (date) {
+                                  const year = date.getFullYear();
+                                  const month = String(date.getMonth() + 1).padStart(2, '0');
+                                  const day = String(date.getDate()).padStart(2, '0');
+                                  setNewExamEnd(`${year}-${month}-${day}`);
+                                  setShowExamEndCalendar(false);
+                                }
+                              }}
+                            />
+                          </div>
+                        </div>
+                      )}
                     </div>
+
                     <div className="flex items-end pt-4">
                       <button
                         type="button"
@@ -825,30 +908,28 @@ export default function OnboardingPage() {
                       max={30}
                     />
                   </div>
-                  <div className="sm:col-span-4 relative">
+                  <div className="sm:col-span-4">
                     <label className="text-[10px] font-bold text-gray-600 block mb-1">Duración / Periodo</label>
-                    <div className="relative">
-                      <select
-                        value={newPeriod}
-                        onChange={e => setNewPeriod(e.target.value)}
-                        className="w-full appearance-none px-3 py-2 bg-white border border-gray-200 rounded-xl text-xs font-medium focus:outline-none focus:border-[#0071e3] transition-all shadow-2xs cursor-pointer pr-8"
-                      >
+                    <Select value={newPeriod} onValueChange={(val) => setNewPeriod(val)}>
+                      <SelectTrigger className="w-full bg-white border border-gray-200 rounded-xl text-xs font-medium focus:outline-none focus:border-[#0071e3] transition-all shadow-2xs">
+                        <SelectValue placeholder="Seleccionar periodo" />
+                      </SelectTrigger>
+                      <SelectContent>
                         {systemType === 'quarter' ? (
                           <>
-                            <option value="quarter_1">1r Trimestre</option>
-                            <option value="quarter_2">2n Trimestre</option>
-                            <option value="quarter_3">3r Trimestre</option>
+                            <SelectItem value="quarter_1">1r Trimestre</SelectItem>
+                            <SelectItem value="quarter_2">2n Trimestre</SelectItem>
+                            <SelectItem value="quarter_3">3r Trimestre</SelectItem>
                           </>
                         ) : (
                           <>
-                            <option value="semester_1">1r Semestre</option>
-                            <option value="semester_2">2n Semestre</option>
+                            <SelectItem value="semester_1">1r Semestre</SelectItem>
+                            <SelectItem value="semester_2">2n Semestre</SelectItem>
                           </>
                         )}
-                        <option value="full_year">Todo el curso</option>
-                      </select>
-                      <ChevronDown className="w-3.5 h-3.5 text-gray-400 absolute right-2.5 top-3 pointer-events-none"/>
-                    </div>
+                        <SelectItem value="full_year">Todo el curso</SelectItem>
+                      </SelectContent>
+                    </Select>
                   </div>
                 </div>
                 <div className="flex justify-end pt-2">
@@ -908,38 +989,36 @@ export default function OnboardingPage() {
                 </div>
               ) : (
                 <div className="space-y-4">
-                  <div className="relative">
+                  <div>
                     <label className="text-[10px] font-bold text-gray-600 block mb-1">Seleccionar Asignatura</label>
-                    <div className="relative">
-                      <select
-                        value={selectedSubjectForSlot}
-                        onChange={e => setSelectedSubjectForSlot(e.target.value)}
-                        className="w-full appearance-none px-4 py-2.5 bg-gray-50 hover:bg-gray-100 border border-gray-200 rounded-xl text-xs font-bold text-gray-800 focus:outline-none focus:border-[#0071e3] transition-colors cursor-pointer pr-10 shadow-2xs"
-                      >
+                    <Select value={selectedSubjectForSlot} onValueChange={(val) => setSelectedSubjectForSlot(val)}>
+                      <SelectTrigger className="w-full bg-gray-50 hover:bg-gray-100 border border-gray-200 rounded-xl text-xs font-bold text-gray-800 focus:outline-none focus:border-[#0071e3] transition-colors shadow-2xs">
+                        <SelectValue placeholder="Seleccionar asignatura" />
+                      </SelectTrigger>
+                      <SelectContent>
                         {subjects.map(sub => (
-                          <option key={sub.id} value={sub.id}>{sub.name} ({sub.code})</option>
+                          <SelectItem key={sub.id} value={sub.id}>{sub.name} ({sub.code})</SelectItem>
                         ))}
-                      </select>
-                      <ChevronDown className="w-4 h-4 text-gray-400 absolute right-3 top-3 pointer-events-none"/>
-                    </div>
+                      </SelectContent>
+                    </Select>
                   </div>
 
                   <div className="bg-gray-50 p-4 rounded-2xl border border-gray-200 space-y-3">
                     <h4 className="text-[11px] font-bold text-gray-700">Añadir Franja Horaria</h4>
                     <div className="grid grid-cols-2 sm:grid-cols-5 gap-2">
-                      <div className="relative">
-                        <select
-                          value={slotDay}
-                          onChange={e => setSlotDay(Number(e.target.value))}
-                          className="w-full appearance-none px-3 py-2 bg-white border border-gray-200 rounded-xl text-xs font-medium focus:outline-none focus:border-[#0071e3] shadow-2xs cursor-pointer pr-7"
-                        >
-                          <option value={1}>Lunes</option>
-                          <option value={2}>Martes</option>
-                          <option value={3}>Miércoles</option>
-                          <option value={4}>Jueves</option>
-                          <option value={5}>Viernes</option>
-                        </select>
-                        <ChevronDown className="w-3 h-3 text-gray-400 absolute right-2 top-3 pointer-events-none"/>
+                      <div>
+                        <Select value={String(slotDay)} onValueChange={(val) => setSlotDay(Number(val))}>
+                          <SelectTrigger className="w-full bg-white border border-gray-200 rounded-xl text-xs font-medium focus:outline-none focus:border-[#0071e3] shadow-2xs">
+                            <SelectValue placeholder="Día" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="1">Lunes</SelectItem>
+                            <SelectItem value="2">Martes</SelectItem>
+                            <SelectItem value="3">Miércoles</SelectItem>
+                            <SelectItem value="4">Jueves</SelectItem>
+                            <SelectItem value="5">Viernes</SelectItem>
+                          </SelectContent>
+                        </Select>
                       </div>
                       <input
                         type="time"
@@ -1086,7 +1165,7 @@ export default function OnboardingPage() {
         </div>
       </div>
 
-      {/* Modal flotante de carga con IA (FUERA de la tarjeta, cubriendo toda la pantalla) */}
+      {/* Modal flotante de carga con IA */}
       {((typeof parsingCalendar !== 'undefined' ? parsingCalendar : false) || parsingSubjects) && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30 backdrop-blur-md transition-all duration-300">
           <div className="flex flex-col items-center justify-center bg-white/90 dark:bg-zinc-900/90 backdrop-blur-xl border border-white/40 dark:border-zinc-800 shadow-2xl rounded-3xl p-8 max-w-sm w-full mx-4 text-center animate-in fade-in zoom-in-95 duration-200">
