@@ -4,7 +4,6 @@ import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { 
   BookOpen, 
-  Globe, 
   User, 
   ArrowLeft, 
   ShieldAlert, 
@@ -20,6 +19,7 @@ import {
   AlertCircle
 } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
+import { subscribeUserToPush } from '@/lib/pushNotifications';
 
 interface Subject {
   id: string;
@@ -45,16 +45,21 @@ export default function SettingsPage() {
   const [loading, setLoading] = useState(false);
 
   const [subjects, setSubjects] = useState<Subject[]>([]);
-
   const [scheduleConfig, setScheduleConfig] = useState<Record<string, Record<string, { active: boolean; startTime: string; endTime: string }>>>({});
 
-  // Cargar los datos reales de Supabase desde la tabla unificada user_subjects al abrir ajustes
+  // Estados específicos para Notificaciones Push
+  const [notificationsEnabled, setNotificationsEnabled] = useState(false);
+  const [notifLoading, setNotifLoading] = useState(false);
+  const [notifMessage, setNotifMessage] = useState('');
+
+  // Cargar los datos reales de Supabase desde la tabla unificada user_subjects y comprobar notificaciones al abrir ajustes
   useEffect(() => {
     const fetchUserSettings = async () => {
       try {
         const { data: { user } } = await supabase.auth.getUser();
         if (!user) return;
 
+        // 1. Cargar asignaturas
         const { data: userSubjectsData, error: userError } = await supabase
           .from('user_subjects')
           .select('subject_id, name, ects, schedule, weights, is_convalidated, period_type')
@@ -88,6 +93,22 @@ export default function SettingsPage() {
           }
         }
 
+        // 2. Comprobar estado de notificaciones push
+        if ('serviceWorker' in navigator && 'PushManager' in window) {
+          const permission = Notification.permission;
+          if (permission === 'granted') {
+            const { data: subData } = await supabase
+              .from('push_subscriptions')
+              .select('id')
+              .eq('user_id', user.id)
+              .single();
+
+            if (subData) {
+              setNotificationsEnabled(true);
+            }
+          }
+        }
+
       } catch (err) {
         console.error('Error cargando la configuración de Supabase:', err);
       }
@@ -95,7 +116,41 @@ export default function SettingsPage() {
 
     fetchUserSettings();
   }, []);
-  
+
+  // Manejar el cambio del switch de Notificaciones Push
+  const handleToggleNotifications = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const activate = e.target.checked;
+    setNotifMessage('');
+
+    try {
+      setNotifLoading(true);
+
+      if (activate) {
+        const subscription = await subscribeUserToPush();
+        if (subscription) {
+          setNotificationsEnabled(true);
+          setNotifMessage('¡Notificaciones push activadas correctamente!');
+        }
+      } else {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (user) {
+          await supabase
+            .from('push_subscriptions')
+            .delete()
+            .eq('user_id', user.id);
+        }
+        setNotificationsEnabled(false);
+        setNotifMessage('Has desactivado las notificaciones push.');
+      }
+    } catch (error) {
+      console.error(error);
+      setNotifMessage('Hubo un error al cambiar las preferencias de notificaciones.');
+      setNotificationsEnabled(!activate);
+    } finally {
+      setNotifLoading(false);
+    }
+  };
+
   const handleCreditChange = (id: string, val: string) => {
     const num = parseFloat(val) || 0;
     setSubjects(prev => prev.map(s => s.id === id ? { ...s, credits: num } : s));
@@ -137,7 +192,7 @@ export default function SettingsPage() {
     });
   };
 
-const handleSaveAll = async (e: React.FormEvent) => {
+  const handleSaveAll = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
 
@@ -171,7 +226,7 @@ const handleSaveAll = async (e: React.FormEvent) => {
         }
       }
 
-      // 4. Guardar horarios, pesos y convalidaciones en Supabase sin campos fantasmas
+      // 3. Guardar horarios, pesos y convalidaciones en Supabase
       for (const sub of subjects) {
         const subSchedule = scheduleConfig[sub.id] || {};
         const subCriteria = sub.criteria || [
@@ -229,8 +284,8 @@ const handleSaveAll = async (e: React.FormEvent) => {
   return (
     <div className="min-h-screen bg-[#f4f5f8] text-gray-900 font-sans antialiased flex flex-col justify-between p-4 sm:p-8">
       <div className="max-w-7xl mx-auto w-full space-y-6">
-        
-        {/* Cabecera general adaptada a ancho completo */}
+
+        {/* Cabecera general */}
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 bg-white/80 backdrop-blur-xl border border-gray-200/80 rounded-3xl p-6 shadow-xl w-full">
           <div className="flex items-center gap-4">
             <button
@@ -256,7 +311,7 @@ const handleSaveAll = async (e: React.FormEvent) => {
           </div>
         </div>
 
-        {/* Menú de pestañas superior horizontal (debajo del título) */}
+        {/* Menú de pestañas superior horizontal */}
         <div className="flex items-center gap-2 overflow-x-auto pb-2 scrollbar-none w-full">
           <button
             onClick={() => setActiveTab('academic')}
@@ -291,167 +346,160 @@ const handleSaveAll = async (e: React.FormEvent) => {
           </button>
         </div>
 
-        {/* Contenedor principal de contenido a ancho completo */}
+        {/* Contenedor principal */}
         <div className="w-full">
           <form onSubmit={handleSaveAll} className="bg-white/90 backdrop-blur-xl border border-gray-200/80 rounded-3xl p-6 sm:p-8 shadow-xl space-y-6 w-full">
-            
+
             {activeTab === 'academic' && (
-                <div className="space-y-6">
-                    <div>
-                    <h2 className="text-lg font-black text-gray-900">Gestión de Asignaturas, Créditos ECTS y Horarios</h2>
-                    <p className="text-xs text-gray-400 font-medium">Configura los créditos (esenciales para el cálculo ponderado de notas) y los días lectivos con sus respectivas horas.</p>
-                    </div>
+              <div className="space-y-6">
+                <div>
+                  <h2 className="text-lg font-black text-gray-900">Gestión de Asignaturas, Créditos ECTS y Horarios</h2>
+                  <p className="text-xs text-gray-400 font-medium">Configura los créditos (esenciales para el cálculo ponderado de notas) y los días lectivos con sus respectivas horas.</p>
+                </div>
 
-                    <div className="space-y-4">
-                    {subjects.map((sub) => {
-                        const hasNoCredits = !sub.credits || sub.credits <= 0;
-                        return (
-                        <div key={sub.id} className="p-5 rounded-2xl bg-gray-50 border border-gray-200/70 space-y-4 w-full">
-                            
-                            {hasNoCredits && (
-                            <div className="flex items-center gap-2 bg-amber-50 border border-amber-200 text-amber-800 px-3 py-2 rounded-xl text-[11px] font-bold">
-                                <AlertCircle className="w-4 h-4 text-amber-600 shrink-0" />
-                                <span>¡Aviso! Esta asignatura no tiene créditos ECTS asignados.</span>
-                            </div>
-                            )}
+                <div className="space-y-4">
+                  {subjects.map((sub) => {
+                    const hasNoCredits = !sub.credits || sub.credits <= 0;
+                    return (
+                      <div key={sub.id} className="p-5 rounded-2xl bg-gray-50 border border-gray-200/70 space-y-4 w-full">
 
-                            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                            <div className="md:col-span-2 space-y-1">
-                                <label className="text-[10px] uppercase font-bold text-gray-400 tracking-wider">Nombre de la Asignatura ({sub.id})</label>
-                                <input 
-                                type="text" 
-                                value={sub.name}
-                                onChange={(e) => handleNameChange(sub.id, e.target.value)}
-                                className="w-full text-xs font-bold text-gray-900 bg-white border border-gray-200 rounded-xl px-3 py-2.5 outline-none focus:border-[#0071e3]"
-                                />
-                            </div>
-                            <div className="space-y-1">
-                                <label className="text-[10px] uppercase font-bold text-gray-400 tracking-wider">Créditos ECTS</label>
-                                <input 
-                                type="number" 
-                                step="0.5"
-                                min="0"
-                                value={sub.credits}
-                                onChange={(e) => handleCreditChange(sub.id, e.target.value)}
-                                className={`w-full text-xs font-bold text-gray-900 bg-white border rounded-xl px-3 py-2.5 outline-none ${hasNoCredits ? 'border-amber-400 bg-amber-50/30' : 'border-gray-200 focus:border-[#0071e3]'}`}
-                                />
-                            </div>
-                            </div>
-                            
-                            {/* Checkbox para marcar como convalidada */}
-                            <div className="flex items-center gap-2 pt-1">
-                                <label className="flex items-center gap-2 text-xs font-bold text-gray-700 cursor-pointer select-none bg-white px-3 py-2 rounded-xl border border-gray-200 hover:bg-gray-50 transition-colors w-fit shadow-2xs">
-                                <input
-                                    type="checkbox"
-                                    checked={sub.is_convalidated || false}
-                                    onChange={(e) => handleToggleConvalidated(sub.id, e.target.checked)}
-                                    className="w-4 h-4 text-[#0071e3] rounded-md border-gray-300 focus:ring-[#0071e3] cursor-pointer"
-                                />
-                                <span>Asignatura convalidada (Sin clases ni exámenes)</span>
-                                </label>
-                            </div>
+                        {hasNoCredits && (
+                          <div className="flex items-center gap-2 bg-amber-50 border border-amber-200 text-amber-800 px-3 py-2 rounded-xl text-[11px] font-bold">
+                            <AlertCircle className="w-4 h-4 text-amber-600 shrink-0" />
+                            <span>¡Aviso! Esta asignatura no tiene créditos ECTS asignados.</span>
+                          </div>
+                        )}
 
-                            {/* Selector de Periodo Académico */}
-                            <div className="w-full mt-3 pt-3 border-t border-gray-200/60">
-                              <label className="text-[10px] uppercase font-bold text-gray-400 tracking-wider block mb-1">
-                                Periodo / Duración Académica
-                              </label>
-                              <select
-                                value={sub.period_type || 'semester_1'}
-                                onChange={(e) => {
-                                  const updated = subjects.map(s => s.id === sub.id ? { ...s, period_type: e.target.value } : s);
-                                  setSubjects(updated);
-                                }}
-                                className="w-full px-3 py-2 bg-white border border-gray-200 rounded-xl text-xs font-bold text-gray-900 focus:outline-none focus:border-[#0071e3]"
-                              >
-                                <option value="semester_1">1r Semestre</option>
-                                <option value="semester_2">2n Semestre</option>
-                                <option value="quarter_1">1r Trimestre</option>
-                                <option value="quarter_2">2n Trimestre</option>
-                                <option value="quarter_3">3r Trimestre</option>
-                                <option value="full_year">Todo el curso</option>
-                              </select>
-                            </div>
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                          <div className="md:col-span-2 space-y-1">
+                            <label className="text-[10px] uppercase font-bold text-gray-400 tracking-wider">Nombre de la Asignatura ({sub.id})</label>
+                            <input 
+                              type="text" 
+                              value={sub.name}
+                              onChange={(e) => handleNameChange(sub.id, e.target.value)}
+                              className="w-full text-xs font-bold text-gray-900 bg-white border border-gray-200 rounded-xl px-3 py-2.5 outline-none focus:border-[#0071e3]"
+                            />
+                          </div>
+                          <div className="space-y-1">
+                            <label className="text-[10px] uppercase font-bold text-gray-400 tracking-wider">Créditos ECTS</label>
+                            <input 
+                              type="number" 
+                              step="0.5"
+                              min="0"
+                              value={sub.credits}
+                              onChange={(e) => handleCreditChange(sub.id, e.target.value)}
+                              className={`w-full text-xs font-bold text-gray-900 bg-white border rounded-xl px-3 py-2.5 outline-none ${hasNoCredits ? 'border-amber-400 bg-amber-50/30' : 'border-gray-200 focus:border-[#0071e3]'}`}
+                            />
+                          </div>
+                        </div>
 
-                            {/* Si está convalidada, ocultamos el horario y mostramos el aviso. Si no, mostramos el horario interactivo normal */}
-                            {sub.is_convalidated ? (
-                                <div className="p-4 rounded-2xl bg-purple-50 border border-purple-200 text-purple-900 text-xs font-bold flex items-center justify-between">
-                                <span>✨ Esta asignatura está convalidada. No requiere horario ni asistencias.</span>
-                                <span className="px-2.5 py-1 bg-purple-100 text-purple-700 rounded-lg text-[10px] uppercase font-black">Convalidada</span>
-                                </div>
-                            ) : (
-                                <div className="space-y-3 pt-2">
-                                <span className="text-xs font-black text-gray-900 uppercase tracking-wider">Horario y días lectivos</span>
-                                {/* A AQUÍ VA TU BLOQUE DE HORARIOS QUE YA TENÍAS */}
-                                </div>
-                            )}
+                        {/* Checkbox para marcar como convalidada */}
+                        <div className="flex items-center gap-2 pt-1">
+                          <label className="flex items-center gap-2 text-xs font-bold text-gray-700 cursor-pointer select-none bg-white px-3 py-2 rounded-xl border border-gray-200 hover:bg-gray-50 transition-colors w-fit shadow-2xs">
+                            <input
+                              type="checkbox"
+                              checked={sub.is_convalidated || false}
+                              onChange={(e) => handleToggleConvalidated(sub.id, e.target.checked)}
+                              className="w-4 h-4 text-[#0071e3] rounded-md border-gray-300 focus:ring-[#0071e3] cursor-pointer"
+                            />
+                            <span>Asignatura convalidada (Sin clases ni exámenes)</span>
+                          </label>
+                        </div>
 
-                            {/* Horarios interactivos específicos por día */}
-                            <div className="space-y-3 pt-3 border-t border-gray-200/60">
+                        {/* Selector de Periodo Académico */}
+                        <div className="w-full mt-3 pt-3 border-t border-gray-200/60">
+                          <label className="text-[10px] uppercase font-bold text-gray-400 tracking-wider block mb-1">
+                            Periodo / Duración Académica
+                          </label>
+                          <select
+                            value={sub.period_type || 'semester_1'}
+                            onChange={(e) => {
+                              const updated = subjects.map(s => s.id === sub.id ? { ...s, period_type: e.target.value } : s);
+                              setSubjects(updated);
+                            }}
+                            className="w-full px-3 py-2 bg-white border border-gray-200 rounded-xl text-xs font-bold text-gray-900 focus:outline-none focus:border-[#0071e3]"
+                          >
+                            <option value="semester_1">1r Semestre</option>
+                            <option value="semester_2">2n Semestre</option>
+                            <option value="quarter_1">1r Trimestre</option>
+                            <option value="quarter_2">2n Trimestre</option>
+                            <option value="quarter_3">3r Trimestre</option>
+                            <option value="full_year">Todo el curso</option>
+                          </select>
+                        </div>
+
+                        {sub.is_convalidated ? (
+                          <div className="p-4 rounded-2xl bg-purple-50 border border-purple-200 text-purple-900 text-xs font-bold flex items-center justify-between">
+                            <span>✨ Esta asignatura está convalidada. No requiere horario ni asistencias.</span>
+                            <span className="px-2.5 py-1 bg-purple-100 text-purple-700 rounded-lg text-[10px] uppercase font-black">Convalidada</span>
+                          </div>
+                        ) : (
+                          <div className="space-y-3 pt-3 border-t border-gray-200/60">
                             <label className="text-[10px] uppercase font-bold text-gray-400 tracking-wider flex items-center gap-1.5">
-                                <Calendar className="w-3.5 h-3.5 text-[#0071e3]" />
-                                <span>Horario y Días Lectivos Interactivos</span>
+                              <Calendar className="w-3.5 h-3.5 text-[#0071e3]" />
+                              <span>Horario y Días Lectivos Interactivos</span>
                             </label>
 
                             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-5 gap-3">
-                                {DAYS_OF_WEEK.map((day) => {
+                              {DAYS_OF_WEEK.map((day) => {
                                 const dayState = scheduleConfig[sub.id]?.[day.id] || { active: false, startTime: '16:00', endTime: '19:00' };
                                 return (
-                                    <div 
+                                  <div 
                                     key={day.id} 
                                     className={`p-3 rounded-2xl border transition-all flex flex-col gap-2 ${
-                                        dayState.active 
+                                      dayState.active 
                                         ? 'bg-blue-50/50 border-[#0071e3] shadow-2xs' 
                                         : 'bg-white border-gray-200/80 opacity-80'
                                     }`}
-                                    >
+                                  >
                                     <div className="flex items-center justify-between">
-                                        <span className="text-xs font-extrabold text-gray-800">{day.label}</span>
-                                        <button
+                                      <span className="text-xs font-extrabold text-gray-800">{day.label}</span>
+                                      <button
                                         type="button"
                                         onClick={() => toggleDayActive(sub.id, day.id)}
                                         className={`text-[10px] uppercase px-2.5 py-1 rounded-full font-extrabold cursor-pointer transition-colors ${
-                                            dayState.active ? 'bg-[#0071e3] text-white shadow-xs' : 'bg-gray-100 text-gray-500 hover:bg-gray-200'
+                                          dayState.active ? 'bg-[#0071e3] text-white shadow-xs' : 'bg-gray-100 text-gray-500 hover:bg-gray-200'
                                         }`}
-                                        >
+                                      >
                                         {dayState.active ? 'Activo' : 'Inactivo'}
-                                        </button>
+                                      </button>
                                     </div>
 
                                     {dayState.active && (
-                                        <div className="space-y-2 pt-2 border-t border-blue-100 animate-fade-in">
+                                      <div className="space-y-2 pt-2 border-t border-blue-100 animate-fade-in">
                                         <div className="space-y-0.5">
-                                            <span className="text-[9px] text-gray-400 font-bold">Inicio:</span>
-                                            <input 
+                                          <span className="text-[9px] text-gray-400 font-bold">Inicio:</span>
+                                          <input 
                                             type="time" 
                                             value={dayState.startTime}
                                             onChange={(e) => handleTimeChange(sub.id, day.id, 'startTime', e.target.value)}
                                             className="text-[11px] font-bold bg-white border border-gray-200 rounded-xl p-1.5 text-gray-800 outline-none w-full text-center focus:border-[#0071e3]"
-                                            />
+                                          />
                                         </div>
                                         <div className="space-y-0.5">
-                                            <span className="text-[9px] text-gray-400 font-bold">Fin:</span>
-                                            <input 
+                                          <span className="text-[9px] text-gray-400 font-bold">Fin:</span>
+                                          <input 
                                             type="time" 
                                             value={dayState.endTime}
                                             onChange={(e) => handleTimeChange(sub.id, day.id, 'endTime', e.target.value)}
                                             className="text-[11px] font-bold bg-white border border-gray-200 rounded-xl p-1.5 text-gray-800 outline-none w-full text-center focus:border-[#0071e3]"
-                                            />
+                                          />
                                         </div>
-                                        </div>
+                                      </div>
                                     )}
-                                    </div>
+                                  </div>
                                 );
-                                })}
+                              })}
                             </div>
-                            </div>
+                          </div>
+                        )}
 
-                        </div>
-                        );
-                    })}
-                    </div>
+                      </div>
+                    );
+                  })}
                 </div>
-                )}
+              </div>
+            )}
 
             {activeTab === 'weights' && (
               <div className="space-y-6">
@@ -462,28 +510,23 @@ const handleSaveAll = async (e: React.FormEvent) => {
 
                 <div className="space-y-6">
                   {subjects.map((sub) => {
-                    // Estado local o simulado para los apartados de cada asignatura
-                    // (Esto se conectará directamente a los arrays de Supabase de cada subject)
                     const criteriaList = (sub as any).criteria || [
                       { id: 'ex', name: 'Examen', weight: 60 },
                       { id: 'trab', name: 'Trabajos', weight: 40 }
                     ];
 
-                    // Calcular la suma total de los porcentajes de esta asignatura
                     const totalWeight = criteriaList.reduce((acc: number, curr: any) => acc + (Number(curr.weight) || 0), 0);
                     const isValid100 = totalWeight === 100;
 
                     return (
                       <div key={sub.id} className="p-5 rounded-2xl bg-gray-50 border border-gray-200/70 space-y-4 w-full">
-                        
-                        {/* Cabecera de la asignatura y aviso del 100% */}
+
                         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 pb-3 border-b border-gray-200/60">
                           <div>
                             <span className="text-xs font-black text-gray-900 uppercase tracking-wider">{sub.name}</span>
                             <span className="text-[10px] text-gray-400 ml-2 font-medium">({sub.id})</span>
                           </div>
 
-                          {/* Aviso visual del 100% */}
                           <div className={`flex items-center gap-1.5 px-3 py-1 rounded-xl text-[11px] font-bold ${
                             isValid100 
                               ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' 
@@ -494,28 +537,23 @@ const handleSaveAll = async (e: React.FormEvent) => {
                           </div>
                         </div>
 
-                        {/* Listado de apartados editables */}
                         <div className="space-y-3">
                           {criteriaList.map((crit: any, index: number) => (
                             <div key={crit.id || index} className="flex items-center gap-3 bg-white p-3 rounded-xl border border-gray-200/80 shadow-2xs">
-                              
-                              {/* Nombre del apartado */}
                               <div className="flex-1">
                                 <input 
                                   type="text"
                                   value={crit.name}
                                   onChange={(e) => {
-                                    // Lógica para actualizar el nombre del apartado al vuelo
                                     const updated = [...criteriaList];
                                     updated[index].name = e.target.value;
                                     setSubjects(prev => prev.map(s => s.id === sub.id ? { ...s, criteria: updated } as any : s));
                                   }}
-                                  placeholder="Nombre del apartado (ej. Parcial 1)"
+                                  placeholder="Nombre del apartado"
                                   className="w-full text-xs font-bold text-gray-800 bg-gray-50/50 border border-gray-200 rounded-lg px-3 py-2 outline-none focus:border-[#0071e3]"
                                 />
                               </div>
 
-                              {/* Porcentaje editable */}
                               <div className="w-28 flex items-center gap-1">
                                 <input 
                                   type="number"
@@ -523,7 +561,6 @@ const handleSaveAll = async (e: React.FormEvent) => {
                                   max="100"
                                   value={crit.weight}
                                   onChange={(e) => {
-                                    // Lógica para actualizar el peso al vuelo
                                     const val = parseFloat(e.target.value) || 0;
                                     const updated = [...criteriaList];
                                     updated[index].weight = val;
@@ -534,7 +571,6 @@ const handleSaveAll = async (e: React.FormEvent) => {
                                 <span className="text-xs font-bold text-gray-400">%</span>
                               </div>
 
-                              {/* Botón de eliminar apartado con confirmación */}
                               <button
                                 type="button"
                                 onClick={() => {
@@ -552,7 +588,6 @@ const handleSaveAll = async (e: React.FormEvent) => {
                           ))}
                         </div>
 
-                        {/* Botón para añadir un nuevo apartado en esta asignatura */}
                         <div className="pt-1">
                           <button
                             type="button"
@@ -577,8 +612,35 @@ const handleSaveAll = async (e: React.FormEvent) => {
             {activeTab === 'preferences' && (
               <div className="space-y-6">
                 <div>
-                  <h2 className="text-lg font-black text-gray-900">Preferencias de la Aplicación</h2>
-                  <p className="text-xs text-gray-400 font-medium">Personaliza el aspecto visual.</p>
+                  <h2 className="text-lg font-black text-gray-900">Preferencias y Notificaciones</h2>
+                  <p className="text-xs text-gray-400 font-medium">Gestiona tus preferencias de privacidad y mantente al día activando las alertas push en este dispositivo.</p>
+                </div>
+
+                {/* Apartado de Notificaciones Push con Switch */}
+                <div className="p-5 rounded-2xl bg-gray-50 border border-gray-200/70 space-y-4">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-xs font-black text-gray-900 uppercase tracking-wider">Notificaciones Push</p>
+                      <p className="text-[11px] text-gray-500 font-medium">Recibe avisos importantes y alertas directamente en tu dispositivo.</p>
+                    </div>
+
+                    <label className="relative inline-flex items-center cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={notificationsEnabled}
+                        onChange={handleToggleNotifications}
+                        disabled={notifLoading}
+                        className="sr-only peer"
+                      />
+                      <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-[#0071e3] disabled:opacity-50"></div>
+                    </label>
+                  </div>
+
+                  {notifMessage && (
+                    <p className="text-xs font-bold text-[#0071e3] animate-fade-in pt-1">
+                      {notifMessage}
+                    </p>
+                  )}
                 </div>
               </div>
             )}
@@ -669,7 +731,6 @@ const handleSaveAll = async (e: React.FormEvent) => {
 
       </div>
 
-      {/* Footer fijado correctamente abajo del todo */}
       <footer className="w-full max-w-7xl mx-auto pt-8 pb-4 text-center text-xs text-gray-400 border-t border-gray-200/60 mt-12">
         <p>UniNotas • EUM • Gestión Académica</p>
       </footer>
