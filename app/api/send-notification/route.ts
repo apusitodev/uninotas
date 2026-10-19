@@ -1,16 +1,23 @@
 import { NextResponse } from 'next/server';
 import webpush from 'web-push';
-import { supabase } from '@/lib/supabase';
-
-// Configurar web-push con las claves VAPID del servidor
-webpush.setVapidDetails(
-  process.env.VAPID_SUBJECT || 'mailto:admin@uninotas.app',
-  process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY || '',
-  process.env.VAPID_PRIVATE_KEY || ''
-);
+import { createClient } from '@supabase/supabase-js';
 
 export async function POST(request: Request) {
   try {
+    // 1. Configurar web-push dentro de la función para evitar fallos en el build
+    webpush.setVapidDetails(
+      process.env.VAPID_SUBJECT || 'mailto:admin@uninotas.app',
+      process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY || '',
+      process.env.VAPID_PRIVATE_KEY || ''
+    );
+
+    // 2. Crear un cliente de Supabase con permisos de administrador (Service Role)
+    // Esto evita que las políticas RLS bloqueen el acceso a las suscripciones desde el servidor
+    const supabaseAdmin = createClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL || '',
+      process.env.SUPABASE_SERVICE_ROLE_KEY || ''
+    );
+
     const body = await request.json();
     const { userId, title, message, url } = body;
 
@@ -21,9 +28,9 @@ export async function POST(request: Request) {
       );
     }
 
-    let query = supabase.from('push_subscriptions').select('subscription, user_id');
+    let query = supabaseAdmin.from('push_subscriptions').select('subscription, user_id');
 
-    // Si se especifica un userId, enviamos solo a ese usuario. Si no, enviamos a todos (masiva).
+    // Si se especifica un userId, filtramos por él. Si no, enviamos de forma masiva a todos.
     if (userId) {
       query = query.eq('user_id', userId);
     }
@@ -53,9 +60,9 @@ export async function POST(request: Request) {
           await webpush.sendNotification(pushSubscription, payload);
           return { success: true, userId: subRecord.user_id };
         } catch (err: any) {
-          // Si la suscripción ya no es válida (ej. el usuario la revocó), podemos limpiarla
+          // Si la suscripción ya no es válida (código 410 o 404), la limpiamos de la base de datos
           if (err.statusCode === 410 || err.statusCode === 404) {
-            await supabase
+            await supabaseAdmin
               .from('push_subscriptions')
               .delete()
               .eq('user_id', subRecord.user_id);
