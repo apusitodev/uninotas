@@ -93,18 +93,25 @@ export default function SettingsPage() {
           }
         }
 
-        // 2. Comprobar estado de notificaciones push
+        // 2. Comprobar estado de notificaciones push para este navegador/dispositivo
         if ('serviceWorker' in navigator && 'PushManager' in window) {
           const permission = Notification.permission;
           if (permission === 'granted') {
-            const { data: subData } = await supabase
-              .from('push_subscriptions')
-              .select('id')
-              .eq('user_id', user.id)
-              .single();
+            const registration = await navigator.serviceWorker.ready;
+            const subscription = await registration.pushManager.getSubscription();
 
-            if (subData) {
-              setNotificationsEnabled(true);
+            if (subscription) {
+              // Verificamos si este endpoint exacto está registrado en Supabase
+              const { data: subData } = await supabase
+                .from('push_subscriptions')
+                .select('id')
+                .eq('user_id', user.id)
+                .contains('subscription', { endpoint: subscription.endpoint })
+                .single();
+
+              if (subData) {
+                setNotificationsEnabled(true);
+              }
             }
           }
         }
@@ -117,7 +124,7 @@ export default function SettingsPage() {
     fetchUserSettings();
   }, []);
 
-  // Manejar el cambio del switch de Notificaciones Push
+  // Manejar el cambio del switch de Notificaciones Push sincronizado con la base de datos
   const handleToggleNotifications = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const activate = e.target.checked;
     setNotifMessage('');
@@ -125,27 +132,54 @@ export default function SettingsPage() {
     try {
       setNotifLoading(true);
 
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        setNotifMessage('Debes iniciar sesión para configurar las notificaciones.');
+        setNotifLoading(false);
+        return;
+      }
+
       if (activate) {
         const subscription = await subscribeUserToPush();
         if (subscription) {
           setNotificationsEnabled(true);
           setNotifMessage('¡Notificaciones push activadas correctamente!');
+        } else {
+          setNotificationsEnabled(false);
+          setNotifMessage('No se pudo activar la suscripción en este navegador.');
         }
       } else {
-        const { data: { user } } = await supabase.auth.getUser();
-        if (user) {
-          await supabase
-            .from('push_subscriptions')
-            .delete()
-            .eq('user_id', user.id);
+        // Desactivar: borramos la suscripción correspondiente a este dispositivo en concreto
+        if ('serviceWorker' in navigator) {
+          const registration = await navigator.serviceWorker.ready;
+          const subscription = await registration.pushManager.getSubscription();
+
+          if (subscription) {
+            // Borramos de Supabase filtrando por el endpoint de este dispositivo
+            await supabase
+              .from('push_subscriptions')
+              .delete()
+              .eq('user_id', user.id)
+              .contains('subscription', { endpoint: subscription.endpoint });
+
+            // Desuscribir también en el navegador
+            await subscription.unsubscribe();
+          } else {
+            // Fallback por si acaso: borramos las del usuario si no hay objeto local
+            await supabase
+              .from('push_subscriptions')
+              .delete()
+              .eq('user_id', user.id);
+          }
         }
+
         setNotificationsEnabled(false);
         setNotifMessage('Has desactivado las notificaciones push.');
       }
     } catch (error) {
       console.error(error);
       setNotifMessage('Hubo un error al cambiar las preferencias de notificaciones.');
-      setNotificationsEnabled(!activate);
+      setNotificationsEnabled(!activate); // Revertir visualmente si hay error
     } finally {
       setNotifLoading(false);
     }
