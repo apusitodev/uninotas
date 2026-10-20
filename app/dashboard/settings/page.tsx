@@ -51,6 +51,7 @@ export default function SettingsPage() {
   const [notificationsEnabled, setNotificationsEnabled] = useState(false);
   const [notifLoading, setNotifLoading] = useState(false);
   const [notifMessage, setNotifMessage] = useState('');
+  const [showConfirmModal, setShowConfirmModal] = useState(false);
 
   // Cargar los datos reales de Supabase desde la tabla unificada user_subjects y comprobar notificaciones al abrir ajustes
   useEffect(() => {
@@ -122,60 +123,79 @@ export default function SettingsPage() {
   }, []);
 
   // Manejar el cambio del switch de Notificaciones Push sincronizado con la cuenta
-  const handleToggleNotifications = async (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleToggleNotifications = (e: React.ChangeEvent<HTMLInputElement>) => {
     const activate = e.target.checked;
     setNotifMessage('');
 
+    if (!activate) {
+      // Si quiere desactivar, abrimos nuestro modal personalizado y evitamos cambios prematuros
+      setShowConfirmModal(true);
+      return;
+    }
+
+    // Si quiere activar, ejecutamos directamente
+    executeEnableNotifications();
+  };
+
+  const executeEnableNotifications = async () => {
     try {
+      setNotifLoading(true);
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) {
         setNotifMessage('Debes iniciar sesión para configurar las notificaciones.');
+        setNotifLoading(false);
         return;
       }
 
-      if (activate) {
-        setNotifLoading(true);
-        const subscription = await subscribeUserToPush();
-        if (subscription) {
-          setNotificationsEnabled(true);
-          setNotifMessage('¡Notificaciones push activadas correctamente!');
-        } else {
-          setNotificationsEnabled(false);
-          setNotifMessage('No se pudo activar la suscripción en este dispositivo.');
-        }
+      const subscription = await subscribeUserToPush();
+      if (subscription) {
+        setNotificationsEnabled(true);
+        setNotifMessage('¡Notificaciones push activadas correctamente!');
       } else {
-        // Ventana flotante de confirmación antes de desactivar
-        const confirmDisable = window.confirm('¿Estás seguro de que deseas desactivar las notificaciones push para tu cuenta?');
-        
-        if (!confirmDisable) {
-          // Si el usuario cancela, revertimos el switch visualmente sin hacer nada
-          return;
-        }
-
-        setNotifLoading(true);
-
-        // Borramos el registro de la cuenta en Supabase
-        await supabase
-          .from('push_subscriptions')
-          .delete()
-          .eq('user_id', user.id);
-
-        // Intentamos desuscribir localmente en el navegador si es posible
-        if ('serviceWorker' in navigator) {
-          const registration = await navigator.serviceWorker.ready;
-          const subscription = await registration.pushManager.getSubscription();
-          if (subscription) {
-            await subscription.unsubscribe();
-          }
-        }
-
         setNotificationsEnabled(false);
-        setNotifMessage('Has desactivado las notificaciones push.');
+        setNotifMessage('No se pudo activar la suscripción en este dispositivo.');
       }
     } catch (error) {
       console.error(error);
       setNotifMessage('Hubo un error al cambiar las preferencias de notificaciones.');
-      setNotificationsEnabled(!activate); // Revertir visualmente si hay error
+      setNotificationsEnabled(false);
+    } finally {
+      setNotifLoading(false);
+    }
+  };
+
+  const executeDisableNotifications = async () => {
+    setShowConfirmModal(false);
+    try {
+      setNotifLoading(true);
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        setNotifMessage('Debes iniciar sesión para configurar las notificaciones.');
+        setNotifLoading(false);
+        return;
+      }
+
+      // Borramos el registro de la cuenta en Supabase
+      await supabase
+        .from('push_subscriptions')
+        .delete()
+        .eq('user_id', user.id);
+
+      // Intentamos desuscribir localmente en el navegador si es posible
+      if ('serviceWorker' in navigator) {
+        const registration = await navigator.serviceWorker.ready;
+        const subscription = await registration.pushManager.getSubscription();
+        if (subscription) {
+          await subscription.unsubscribe();
+        }
+      }
+
+      setNotificationsEnabled(false);
+      setNotifMessage('Has desactivado las notificaciones push.');
+    } catch (error) {
+      console.error(error);
+      setNotifMessage('Hubo un error al desactivar las notificaciones.');
+      setNotificationsEnabled(true);
     } finally {
       setNotifLoading(false);
     }
@@ -760,6 +780,40 @@ export default function SettingsPage() {
         </div>
 
       </div>
+
+      {/* Modal de confirmación personalizado para desactivar notificaciones */}
+      {showConfirmModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-xs p-4 animate-fade-in">
+          <div className="bg-white border border-gray-200 rounded-3xl p-6 max-w-sm w-full shadow-2xl space-y-4">
+            <div className="flex items-center gap-3 text-amber-600">
+              <div className="w-10 h-10 rounded-2xl bg-amber-50 flex items-center justify-center shrink-0">
+                <AlertTriangle className="w-5 h-5" />
+              </div>
+              <div>
+                <h3 className="text-sm font-black text-gray-900">¿Desactivar notificaciones?</h3>
+                <p className="text-[11px] text-gray-400 font-medium">Dejarás de recibir avisos en todos tus dispositivos.</p>
+              </div>
+            </div>
+
+            <div className="flex items-center justify-end gap-2 pt-2">
+              <button
+                type="button"
+                onClick={() => setShowConfirmModal(false)}
+                className="px-4 py-2 rounded-xl bg-gray-100 hover:bg-gray-200 text-gray-700 text-xs font-bold transition-colors cursor-pointer"
+              >
+                Cancelar
+              </button>
+              <button
+                type="button"
+                onClick={executeDisableNotifications}
+                className="px-4 py-2 rounded-xl bg-red-600 hover:bg-red-700 text-white text-xs font-bold transition-colors cursor-pointer shadow-xs"
+              >
+                Sí, desactivar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       <footer className="w-full max-w-7xl mx-auto pt-8 pb-4 text-center text-xs text-gray-400 border-t border-gray-200/60 mt-12">
         <p>UniNotas • EUM • Gestión Académica</p>
