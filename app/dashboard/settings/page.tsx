@@ -93,26 +93,23 @@ export default function SettingsPage() {
           }
         }
 
-        // 2. Comprobar estado de notificaciones push para este navegador/dispositivo
+        // 2. Comprobar estado de notificaciones push basado en la cuenta de usuario
         if ('serviceWorker' in navigator && 'PushManager' in window) {
           const permission = Notification.permission;
           if (permission === 'granted') {
-            const registration = await navigator.serviceWorker.ready;
-            const subscription = await registration.pushManager.getSubscription();
+            const { data: subData } = await supabase
+              .from('push_subscriptions')
+              .select('id')
+              .eq('user_id', user.id)
+              .limit(1);
 
-            if (subscription) {
-              // Verificamos si este endpoint exacto está registrado en Supabase
-              const { data: subData } = await supabase
-                .from('push_subscriptions')
-                .select('id')
-                .eq('user_id', user.id)
-                .contains('subscription', { endpoint: subscription.endpoint })
-                .single();
-
-              if (subData) {
-                setNotificationsEnabled(true);
-              }
+            if (subData && subData.length > 0) {
+              setNotificationsEnabled(true);
+            } else {
+              setNotificationsEnabled(false);
             }
+          } else {
+            setNotificationsEnabled(false);
           }
         }
 
@@ -124,52 +121,51 @@ export default function SettingsPage() {
     fetchUserSettings();
   }, []);
 
-  // Manejar el cambio del switch de Notificaciones Push sincronizado con la base de datos
+  // Manejar el cambio del switch de Notificaciones Push sincronizado con la cuenta
   const handleToggleNotifications = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const activate = e.target.checked;
     setNotifMessage('');
 
     try {
-      setNotifLoading(true);
-
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) {
         setNotifMessage('Debes iniciar sesión para configurar las notificaciones.');
-        setNotifLoading(false);
         return;
       }
 
       if (activate) {
+        setNotifLoading(true);
         const subscription = await subscribeUserToPush();
         if (subscription) {
           setNotificationsEnabled(true);
           setNotifMessage('¡Notificaciones push activadas correctamente!');
         } else {
           setNotificationsEnabled(false);
-          setNotifMessage('No se pudo activar la suscripción en este navegador.');
+          setNotifMessage('No se pudo activar la suscripción en este dispositivo.');
         }
       } else {
-        // Desactivar: borramos la suscripción correspondiente a este dispositivo en concreto
+        // Ventana flotante de confirmación antes de desactivar
+        const confirmDisable = window.confirm('¿Estás seguro de que deseas desactivar las notificaciones push para tu cuenta?');
+        
+        if (!confirmDisable) {
+          // Si el usuario cancela, revertimos el switch visualmente sin hacer nada
+          return;
+        }
+
+        setNotifLoading(true);
+
+        // Borramos el registro de la cuenta en Supabase
+        await supabase
+          .from('push_subscriptions')
+          .delete()
+          .eq('user_id', user.id);
+
+        // Intentamos desuscribir localmente en el navegador si es posible
         if ('serviceWorker' in navigator) {
           const registration = await navigator.serviceWorker.ready;
           const subscription = await registration.pushManager.getSubscription();
-
           if (subscription) {
-            // Borramos de Supabase filtrando por el endpoint de este dispositivo
-            await supabase
-              .from('push_subscriptions')
-              .delete()
-              .eq('user_id', user.id)
-              .contains('subscription', { endpoint: subscription.endpoint });
-
-            // Desuscribir también en el navegador
             await subscription.unsubscribe();
-          } else {
-            // Fallback por si acaso: borramos las del usuario si no hay objeto local
-            await supabase
-              .from('push_subscriptions')
-              .delete()
-              .eq('user_id', user.id);
           }
         }
 
