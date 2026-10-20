@@ -60,6 +60,8 @@ export async function POST(request: Request) {
           await webpush.sendNotification(pushSubscription, payload);
           return { success: true, userId: subRecord.user_id };
         } catch (err: any) {
+          console.error("DETALLE DEL ERROR DE APPLE/WEB-PUSH:", err);
+          
           // Si la suscripción ya no es válida (código 410 o 404), la limpiamos de la base de datos
           if (err.statusCode === 410 || err.statusCode === 404) {
             await supabaseAdmin
@@ -67,7 +69,7 @@ export async function POST(request: Request) {
               .delete()
               .eq('user_id', subRecord.user_id);
           }
-          return { success: false, userId: subRecord.user_id, error: err.message };
+          return { success: false, userId: subRecord.user_id, error: err.message, details: err.body };
         }
       })
     );
