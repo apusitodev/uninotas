@@ -4,15 +4,12 @@ import { createClient } from '@supabase/supabase-js';
 
 export async function POST(request: Request) {
   try {
-    // 1. Configurar web-push dentro de la función para evitar fallos en el build
     webpush.setVapidDetails(
       process.env.VAPID_SUBJECT || 'mailto:admin@uninotas.app',
       process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY || '',
       process.env.VAPID_PRIVATE_KEY || ''
     );
 
-    // 2. Crear un cliente de Supabase con permisos de administrador (Service Role)
-    // Esto evita que las políticas RLS bloqueen el acceso a las suscripciones desde el servidor
     const supabaseAdmin = createClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL || '',
       process.env.SUPABASE_SERVICE_ROLE_KEY || ''
@@ -30,7 +27,6 @@ export async function POST(request: Request) {
 
     let query = supabaseAdmin.from('push_subscriptions').select('subscription, user_id');
 
-    // Si se especifica un userId, filtramos por él. Si no, enviamos de forma masiva a todos.
     if (userId) {
       query = query.eq('user_id', userId);
     }
@@ -52,7 +48,6 @@ export async function POST(request: Request) {
       url: url || '/dashboard'
     });
 
-    // Enviar las notificaciones a todas las suscripciones encontradas
     const results = await Promise.allSettled(
       subscriptions.map(async (subRecord) => {
         try {
@@ -60,16 +55,13 @@ export async function POST(request: Request) {
           await webpush.sendNotification(pushSubscription, payload);
           return { success: true, userId: subRecord.user_id };
         } catch (err: any) {
-          console.error("DETALLE DEL ERROR DE APPLE/WEB-PUSH:", err);
-          
-          // Si la suscripción ya no es válida (código 410 o 404), la limpiamos de la base de datos
           if (err.statusCode === 410 || err.statusCode === 404) {
             await supabaseAdmin
               .from('push_subscriptions')
               .delete()
               .eq('user_id', subRecord.user_id);
           }
-          return { success: false, userId: subRecord.user_id, error: err.message, details: err.body };
+          return { success: false, userId: subRecord.user_id, error: err.message };
         }
       })
     );
