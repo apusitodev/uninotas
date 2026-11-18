@@ -6,7 +6,7 @@ import Link from 'next/link';
 import { supabase } from '@/lib/supabase';
 import { 
   GraduationCap, 
-  LayoutDashboard, 
+  LayoutDashboard,
   CheckSquare, 
   Award, 
   LogOut, 
