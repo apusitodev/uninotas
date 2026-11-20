@@ -11,6 +11,7 @@
 Web/PWA (web que se puede instalar en el móvil como una app) para estudiantes de la EUM: asistencia, horario, calendario de exámenes y trabajos, y cálculo de notas ponderadas.
 - En producción: https://uninotas.vercel.app
 - Repositorio: https://github.com/apusitodev/uninotas (rama `main`, público)
+- Carpeta en el Mac: `~/Proyectos/uninotas`, fuera de iCloud. No debe estar en el Escritorio ni en Documentos: se sincronizan con iCloud y eso da problemas con Git.
 - Versiones guardadas: etiquetas `v1-estable` y `v2-estable`
 - Plan de tareas y estado detallado: `PLAN.md`
 - El resumen antiguo de Gemini está desactualizado. Si algo no coincide, manda el código.
@@ -80,7 +81,6 @@ Web/PWA (web que se puede instalar en el móvil como una app) para estudiantes d
 
 **Otros:**
 - `app/sitemap.ts` usa `https://uninotas.app` si falta `NEXT_PUBLIC_SITE_URL`, pero la web real es `uninotas.vercel.app`.
-- La carpeta del proyecto está en el Escritorio, que se sincroniza con iCloud: si Git da errores raros o hay archivos que no se pueden abrir, puede ser por eso.
 
 ## Diseño (respétalo)
 Estilo Apple: fondo gris `#f4f5f8`, azul `#0071e3`, tarjetas blancas semitransparentes con `backdrop-blur`, esquinas `rounded-2xl`/`rounded-3xl`, sombras suaves, textos pequeños y en negrita. Fuente Geist. Por ahora solo hay modo claro.
