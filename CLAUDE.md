@@ -88,11 +88,15 @@ Estilo Apple: fondo gris `#f4f5f8`, azul `#0071e3`, tarjetas blancas semitranspa
 ## Normas técnicas
 1. **Cambios pequeños.** Una cosa cada vez. Nada de reescribir archivos enteros si no te lo pido.
 2. **`app/dashboard/page.tsx` es frágil**: está todo junto a propósito porque separarlo dio problemas. Si hay que separarlo, será poco a poco y avisándome antes.
-3. **Prueba antes de dar algo por terminado**: `npm run build` (comprueba que la web se construye sin errores) y, si toca pantallas, `npm run dev` para verla en http://localhost:3000.
-4. **Git**: no hagas `push` a `main` sin que yo diga "sí". Propón el mensaje del commit (la "foto" guardada de los cambios) en español y explícamelo.
+3. **Prueba y enséñamelo**: antes de enseñarme un cambio, comprueba con `npm run build` que la web se construye sin errores. Después ábrela con `npm run dev` (http://localhost:3000) y dime qué página abrir y qué tocar. Un cambio no está terminado hasta que yo decida.
+4. **Git**:
+   - Trabaja siempre en una rama de prueba, nunca directamente en `main`.
+   - Haz el commit (la "foto" guardada de los cambios) solo cuando yo diga que el cambio me gusta. Propón el mensaje en español y explícamelo.
+   - Si no me gusta, deshaz los cambios de la rama y deja todo como estaba.
+   - No subas nada a GitHub (ni la rama de prueba ni `main`) sin mi "sí". Juntar la rama de prueba con `main` también necesita mi "sí", porque al subir `main` Vercel publica la web real.
 5. **Antes de algo arriesgado** (borrar datos, tocar la base de datos, cambiar el login), avísame y propón crear una etiqueta de seguridad (como `v2-estable`).
 6. **Textos de la web en español.** Ventanas de confirmación: usa modales propios, no `window.confirm` ni `alert`.
-7. **Al terminar una tarea, actualiza `PLAN.md`** (estado y lo que falta) y, si cambia algo importante, este archivo.
+7. **Al terminar una tarea, propón actualizar `PLAN.md`** (estado y lo que falta) y, si cambia algo importante, este archivo. Como cualquier cambio, espera mi "sí".
 
 ## Seguridad técnica (obligatorio)
 - Las claves van **solo** en `.env.local` (en mi ordenador) y en Vercel. Nunca en el código ni en GitHub. No abras ni muestres `.env.local`.
@@ -114,13 +118,20 @@ Estilo Apple: fondo gris `#f4f5f8`, azul `#0071e3`, tarjetas blancas semitranspa
 Soy principiante y no sé programar. Explícame todo en español y sin jerga; si usas una palabra técnica, explícala.
 Uso un MacBook. El proyecto usa VSCode, GitHub, Supabase y Vercel.
 
-### Forma de trabajar
-- Antes de cambiar nada, explícame qué vas a hacer y por qué, y espera a que te diga que sí.
-- Divide cada tarea en pasos. Hazlos de uno en uno y explícame cada uno.
-- No pases al siguiente paso hasta que yo te diga que el anterior está completado.
-- No me pases código ni lo escribas en los archivos hasta que yo te lo pida.
-- Después de cada cambio, dime cómo comprobar que funciona.
+Forma de trabajar:
 
-### Seguridad
-- Nunca muestres ni subas a GitHub contraseñas o claves (archivos .env).
-- Si no estás seguro de algo, pregúntame.
+Antes de cambiar nada, explícame qué vas a hacer y por qué, y espera a que te diga que sí. Si es un cambio de diseño, descríbeme cómo quedará o hazme un boceto antes.
+Divide cada tarea en pasos. Hazlos de uno en uno, explícame cada uno y no pases al siguiente hasta que yo te diga que está completado.
+No me pases código hasta que yo te lo pida.
+Haz siempre los cambios en una rama de prueba, nunca directamente en main.
+Cuando termines un cambio, enséñamelo en localhost: dime qué página abrir y qué tocar para verlo.
+Espera a que yo decida:
+Si me gusta: guarda el cambio (commit) y pregúntame antes de subirlo a GitHub.
+Si no me gusta: deshazlo y deja todo como estaba.
+Si quiero retoques: hazlos y vuélvemelo a enseñar.
+Nunca subas nada a GitHub ni a la web real sin que yo diga “sí”.
+
+Seguridad:
+
+Nunca muestres ni subas a GitHub contraseñas o claves (archivos .env).
+Si no estás seguro de algo, pregúntame.
